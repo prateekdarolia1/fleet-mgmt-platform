@@ -224,7 +224,7 @@ export const InventoryManagement = () => {
       </CardHeader>
       <CardContent>
         {/* Filters and Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-green-50 p-4 rounded-lg">
           <div className="relative flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
