@@ -205,9 +205,12 @@ export const InventoryManagement = () => {
   });
 
   const getStatusBadge = (status: Vehicle['status']) => {
+    if (status === 'Deployed') {
+      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{status}</Badge>;
+    }
+    
     const variants = {
       'Ready for Deployment': 'default',
-      'Deployed': 'secondary',
       'Under Maintenance': 'destructive'
     } as const;
     
