@@ -1,12 +1,21 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { InventoryManagement } from "@/components/fleet/InventoryManagement";
 import { RiderManagement } from "@/components/fleet/RiderManagement";
 import { PaymentTracking } from "@/components/fleet/PaymentTracking";
-import { Bike, Users, CreditCard, Activity } from "lucide-react";
+import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt } from "lucide-react";
+import { 
+  Sidebar, 
+  SidebarContent, 
+  SidebarGroup, 
+  SidebarGroupContent, 
+  SidebarMenu, 
+  SidebarMenuButton, 
+  SidebarMenuItem, 
+  SidebarProvider 
+} from "@/components/ui/sidebar";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("inventory");
@@ -96,26 +105,68 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="inventory">Inventory Management</TabsTrigger>
-            <TabsTrigger value="riders">Rider Management</TabsTrigger>
-            <TabsTrigger value="payments">Payment Tracking</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="inventory" className="space-y-4">
-            <InventoryManagement />
-          </TabsContent>
-          
-          <TabsContent value="riders" className="space-y-4">
-            <RiderManagement />
-          </TabsContent>
-          
-          <TabsContent value="payments" className="space-y-4">
-            <PaymentTracking />
-          </TabsContent>
-        </Tabs>
+        {/* Main Content with Sidebar */}
+        <SidebarProvider>
+          <div className="flex min-h-screen w-full">
+            <Sidebar className="w-64">
+              <SidebarContent>
+                <SidebarGroup>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton 
+                          onClick={() => setActiveTab("inventory")}
+                          className={activeTab === "inventory" ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"}
+                        >
+                          <Package className="mr-2 h-4 w-4" />
+                          <span>Inventory</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton 
+                          onClick={() => setActiveTab("riders")}
+                          className={activeTab === "riders" ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"}
+                        >
+                          <UserCheck className="mr-2 h-4 w-4" />
+                          <span>Riders</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton 
+                          onClick={() => setActiveTab("payments")}
+                          className={activeTab === "payments" ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"}
+                        >
+                          <Receipt className="mr-2 h-4 w-4" />
+                          <span>Payment</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </SidebarContent>
+            </Sidebar>
+            
+            <main className="flex-1 p-6">
+              {activeTab === "inventory" && (
+                <div className="space-y-4">
+                  <InventoryManagement />
+                </div>
+              )}
+              
+              {activeTab === "riders" && (
+                <div className="space-y-4">
+                  <RiderManagement />
+                </div>
+              )}
+              
+              {activeTab === "payments" && (
+                <div className="space-y-4">
+                  <PaymentTracking />
+                </div>
+              )}
+            </main>
+          </div>
+        </SidebarProvider>
       </div>
     </div>
   );
