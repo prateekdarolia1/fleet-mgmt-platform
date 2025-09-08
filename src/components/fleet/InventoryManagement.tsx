@@ -209,8 +209,11 @@ export const InventoryManagement = () => {
       return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{status}</Badge>;
     }
     
+    if (status === 'Ready for Deployment') {
+      return <Badge className="bg-yellow-600 text-yellow-50 hover:bg-yellow-600">{status}</Badge>;
+    }
+    
     const variants = {
-      'Ready for Deployment': 'default',
       'Under Maintenance': 'destructive'
     } as const;
     
