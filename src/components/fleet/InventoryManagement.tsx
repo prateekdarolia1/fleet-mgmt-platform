@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,28 +7,71 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Plus, Search, Filter, Calendar, Wrench } from "lucide-react";
+import { toast } from "sonner";
 
 interface Vehicle {
   id: string;
   vehicleNumber: string;
+  make: string;
   model: string;
-  status: 'available' | 'rented' | 'maintenance' | 'out-of-service';
+  color: string;
+  chassisNumber: string;
+  motorSerialNumber: string;
+  deliveryDate: string;
+  vendor: string;
+  pdiDoneBy: string;
+  registrationReceived: string;
+  insuranceReceived: string;
+  portableChargerReceived: string;
+  vehicleType: string;
+  batteryType: string;
+  status: 'Ready for Deployment' | 'rented' | 'maintenance' | 'out-of-service';
   riderId?: string;
   riderName?: string;
   rentalStartDate?: string;
   rentalEndDate?: string;
   nextMaintenanceDate: string;
-  location: string;
+  location?: string;
+}
+
+interface VehicleFormData {
+  make: string;
+  model: string;
+  color: string;
+  chassisNumber: string;
+  motorSerialNumber: string;
+  deliveryDate: string;
+  vendor: string;
+  pdiDoneBy: string;
+  registrationReceived: string;
+  insuranceReceived: string;
+  portableChargerReceived: string;
+  vehicleType: string;
+  batteryType: string;
 }
 
 export const InventoryManagement = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([
     {
-      id: "1",
-      vehicleNumber: "EV001",
-      model: "Ather 450X",
+      id: "LP-01-0001",
+      vehicleNumber: "LP-01-0001",
+      make: "EBlu",
+      model: "Feo",
+      color: "Black",
+      chassisNumber: "CH001ABC123",
+      motorSerialNumber: "MS001XYZ456",
+      deliveryDate: "2024-01-10",
+      vendor: "Global Transatlantic",
+      pdiDoneBy: "Shubham",
+      registrationReceived: "Yes",
+      insuranceReceived: "Yes",
+      portableChargerReceived: "Yes",
+      vehicleType: "High Speed",
+      batteryType: "Fixed",
       status: "rented",
       riderId: "R001",
       riderName: "Arjun Kumar",
@@ -35,28 +79,52 @@ export const InventoryManagement = () => {
       rentalEndDate: "2024-02-14",
       nextMaintenanceDate: "2024-02-20",
       location: "Zone A"
-    },
-    {
-      id: "2",
-      vehicleNumber: "EV002",
-      model: "TVS iQube",
-      status: "available",
-      nextMaintenanceDate: "2024-01-25",
-      location: "Zone B"
-    },
-    {
-      id: "3",
-      vehicleNumber: "EV003",
-      model: "Ola S1 Pro",
-      status: "maintenance",
-      nextMaintenanceDate: "2024-01-20",
-      location: "Service Center"
     }
   ]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [pendingVehicleData, setPendingVehicleData] = useState<VehicleFormData | null>(null);
+
+  const form = useForm<VehicleFormData>();
+
+  const generateVehicleId = () => {
+    const existingNumbers = vehicles
+      .map(v => v.vehicleNumber)
+      .filter(num => num.startsWith("LP-01-"))
+      .map(num => parseInt(num.split("-")[2]))
+      .filter(num => !isNaN(num));
+    
+    const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+    return `LP-01-${nextNumber.toString().padStart(4, '0')}`;
+  };
+
+  const onSubmit = (data: VehicleFormData) => {
+    setPendingVehicleData(data);
+    setShowConfirmation(true);
+  };
+
+  const confirmAddVehicle = () => {
+    if (!pendingVehicleData) return;
+
+    const vehicleId = generateVehicleId();
+    const newVehicle: Vehicle = {
+      id: vehicleId,
+      vehicleNumber: vehicleId,
+      ...pendingVehicleData,
+      status: 'Ready for Deployment',
+      nextMaintenanceDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 days from now
+    };
+
+    setVehicles(prev => [...prev, newVehicle]);
+    setIsAddVehicleOpen(false);
+    setShowConfirmation(false);
+    setPendingVehicleData(null);
+    form.reset();
+    toast.success(`Vehicle ${vehicleId} added successfully!`);
+  };
 
   const filteredVehicles = vehicles.filter(vehicle => {
     const matchesSearch = vehicle.vehicleNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -68,7 +136,7 @@ export const InventoryManagement = () => {
 
   const getStatusBadge = (status: Vehicle['status']) => {
     const variants = {
-      available: 'default',
+      'Ready for Deployment': 'default',
       rented: 'secondary',
       maintenance: 'destructive',
       'out-of-service': 'outline'
@@ -104,7 +172,7 @@ export const InventoryManagement = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="Ready for Deployment">Ready for Deployment</SelectItem>
               <SelectItem value="rented">Rented</SelectItem>
               <SelectItem value="maintenance">Maintenance</SelectItem>
               <SelectItem value="out-of-service">Out of Service</SelectItem>
@@ -117,51 +185,363 @@ export const InventoryManagement = () => {
                 Add Vehicle
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Vehicle</DialogTitle>
                 <DialogDescription>
-                  Register a new vehicle in your fleet inventory.
+                  Register a new vehicle in your fleet inventory. All fields are required.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="vehicleNumber" className="text-right">
-                    Vehicle Number
-                  </Label>
-                  <Input id="vehicleNumber" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="model" className="text-right">
-                    Model
-                  </Label>
-                  <Input id="model" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="location" className="text-right">
-                    Location
-                  </Label>
-                  <Input id="location" className="col-span-3" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">Add Vehicle</Button>
-              </DialogFooter>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="make"
+                      rules={{ required: "Vehicle make is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vehicle Make</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select make" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="EBlu">EBlu</SelectItem>
+                              <SelectItem value="Evolet">Evolet</SelectItem>
+                              <SelectItem value="IntuitEV">IntuitEV</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="model"
+                      rules={{ required: "Vehicle model is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vehicle Model</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select model" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Feo">Feo</SelectItem>
+                              <SelectItem value="Polo">Polo</SelectItem>
+                              <SelectItem value="BanaEV">BanaEV</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="color"
+                      rules={{ required: "Color is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Color</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select color" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Black">Black</SelectItem>
+                              <SelectItem value="White">White</SelectItem>
+                              <SelectItem value="Maroon">Maroon</SelectItem>
+                              <SelectItem value="Blue">Blue</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="deliveryDate"
+                      rules={{ required: "Delivery date is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Delivery Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="chassisNumber"
+                      rules={{ 
+                        required: "Chassis number is required",
+                        maxLength: { value: 20, message: "Maximum 20 characters allowed" },
+                        pattern: { value: /^[a-zA-Z0-9]*$/, message: "Only alphanumeric characters allowed" }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Chassis Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter chassis number" maxLength={20} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="motorSerialNumber"
+                      rules={{ 
+                        required: "Motor serial number is required",
+                        maxLength: { value: 20, message: "Maximum 20 characters allowed" },
+                        pattern: { value: /^[a-zA-Z0-9]*$/, message: "Only alphanumeric characters allowed" }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Motor Serial Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter motor serial number" maxLength={20} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="vendor"
+                      rules={{ required: "Vendor is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vendor</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select vendor" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Global Transatlantic">Global Transatlantic</SelectItem>
+                              <SelectItem value="Risalla EV">Risalla EV</SelectItem>
+                              <SelectItem value="IntuitEV">IntuitEV</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pdiDoneBy"
+                      rules={{ required: "PDI done by is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>PDI Done by</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select inspector" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Shubham">Shubham</SelectItem>
+                              <SelectItem value="Vaibhav">Vaibhav</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="registrationReceived"
+                      rules={{ required: "Registration status is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Registration Received?</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Yes">Yes</SelectItem>
+                              <SelectItem value="No">No</SelectItem>
+                              <SelectItem value="NA">N/A</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="insuranceReceived"
+                      rules={{ required: "Insurance status is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Insurance Received?</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Yes">Yes</SelectItem>
+                              <SelectItem value="No">No</SelectItem>
+                              <SelectItem value="NA">N/A</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="portableChargerReceived"
+                      rules={{ required: "Portable charger status is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Portable Charger Received?</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Yes">Yes</SelectItem>
+                              <SelectItem value="No">No</SelectItem>
+                              <SelectItem value="NA">N/A</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="vehicleType"
+                      rules={{ required: "Vehicle type is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vehicle Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="High Speed">High Speed</SelectItem>
+                              <SelectItem value="Low Speed">Low Speed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="batteryType"
+                      rules={{ required: "Battery type is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Battery Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select battery type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="Fixed">Fixed</SelectItem>
+                              <SelectItem value="Removable">Removable</SelectItem>
+                              <SelectItem value="Swappable">Swappable</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsAddVehicleOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Add Vehicle</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Confirmation Dialog */}
+        <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Vehicle Addition</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to add this vehicle to your fleet? The vehicle will be assigned ID: <strong>{generateVehicleId()}</strong> and marked as "Ready for Deployment".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => {
+                setShowConfirmation(false);
+                setPendingVehicleData(null);
+              }}>
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction onClick={confirmAddVehicle}>
+                Confirm & Add Vehicle
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Vehicles Table */}
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Vehicle Number</TableHead>
-              <TableHead>Model</TableHead>
+              <TableHead>Vehicle ID</TableHead>
+              <TableHead>Make & Model</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Current Rider</TableHead>
-              <TableHead>Rental Period</TableHead>
-              <TableHead>Next Maintenance</TableHead>
-              <TableHead>Location</TableHead>
+              <TableHead>Delivery Date</TableHead>
+              <TableHead>Vehicle Type</TableHead>
+              <TableHead>Battery Type</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -169,7 +549,12 @@ export const InventoryManagement = () => {
             {filteredVehicles.map((vehicle) => (
               <TableRow key={vehicle.id}>
                 <TableCell className="font-medium">{vehicle.vehicleNumber}</TableCell>
-                <TableCell>{vehicle.model}</TableCell>
+                <TableCell>
+                  <div>
+                    <div className="font-medium">{vehicle.make} {vehicle.model}</div>
+                    <div className="text-sm text-muted-foreground">{vehicle.color}</div>
+                  </div>
+                </TableCell>
                 <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
                 <TableCell>
                   {vehicle.riderName ? (
@@ -182,22 +567,14 @@ export const InventoryManagement = () => {
                   )}
                 </TableCell>
                 <TableCell>
-                  {vehicle.rentalStartDate && vehicle.rentalEndDate ? (
-                    <div className="text-sm">
-                      <div>{new Date(vehicle.rentalStartDate).toLocaleDateString()}</div>
-                      <div className="text-muted-foreground">to {new Date(vehicle.rentalEndDate).toLocaleDateString()}</div>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
+                  <div className="text-sm">{new Date(vehicle.deliveryDate).toLocaleDateString()}</div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    <span className="text-sm">{new Date(vehicle.nextMaintenanceDate).toLocaleDateString()}</span>
-                  </div>
+                  <Badge variant="outline">{vehicle.vehicleType}</Badge>
                 </TableCell>
-                <TableCell>{vehicle.location}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{vehicle.batteryType}</Badge>
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm">
