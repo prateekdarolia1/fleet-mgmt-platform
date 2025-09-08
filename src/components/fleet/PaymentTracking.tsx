@@ -1,0 +1,358 @@
+import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle } from "lucide-react";
+
+interface Payment {
+  id: string;
+  riderId: string;
+  riderName: string;
+  amount: number;
+  dueDate: string;
+  paymentDate?: string;
+  status: 'pending' | 'paid' | 'overdue' | 'partial';
+  paymentMode?: 'cash' | 'upi' | 'bank-transfer' | 'card';
+  rentalPeriod: string;
+  notes?: string;
+}
+
+export const PaymentTracking = () => {
+  const [payments, setPayments] = useState<Payment[]>([
+    {
+      id: "P001",
+      riderId: "R001",
+      riderName: "Arjun Kumar",
+      amount: 15000,
+      dueDate: "2024-02-01",
+      paymentDate: "2024-01-30",
+      status: "paid",
+      paymentMode: "upi",
+      rentalPeriod: "Jan 2024",
+      notes: "Monthly rental - Ather 450X"
+    },
+    {
+      id: "P002",
+      riderId: "R002", 
+      riderName: "Priya Singh",
+      amount: 4000,
+      dueDate: "2024-01-20",
+      status: "pending",
+      rentalPeriod: "Week 3 Jan 2024",
+      notes: "Weekly rental - TVS iQube"
+    },
+    {
+      id: "P003",
+      riderId: "R003",
+      riderName: "Rajesh Patel",
+      amount: 800,
+      dueDate: "2024-01-15",
+      status: "overdue",
+      rentalPeriod: "Jan 15, 2024",
+      notes: "Daily rental - Ola S1"
+    },
+    {
+      id: "P004",
+      riderId: "R001",
+      riderName: "Arjun Kumar",
+      amount: 15000,
+      dueDate: "2024-03-01", 
+      status: "pending",
+      rentalPeriod: "Feb 2024",
+      notes: "Monthly rental - Ather 450X"
+    }
+  ]);
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
+
+  const filteredPayments = payments.filter(payment => {
+    const matchesSearch = payment.riderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         payment.riderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         payment.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusBadge = (status: Payment['status']) => {
+    const variants = {
+      paid: 'default',
+      pending: 'secondary',
+      overdue: 'destructive',
+      partial: 'outline'
+    } as const;
+    
+    const icons = {
+      paid: <CheckCircle className="h-3 w-3 mr-1" />,
+      pending: <Calendar className="h-3 w-3 mr-1" />,
+      overdue: <AlertCircle className="h-3 w-3 mr-1" />,
+      partial: <AlertCircle className="h-3 w-3 mr-1" />
+    };
+    
+    return (
+      <Badge variant={variants[status]} className="flex items-center">
+        {icons[status]}
+        {status}
+      </Badge>
+    );
+  };
+
+  const getPaymentModeBadge = (mode?: Payment['paymentMode']) => {
+    if (!mode) return <span className="text-muted-foreground">-</span>;
+    
+    const colors = {
+      cash: 'bg-green-100 text-green-800',
+      upi: 'bg-blue-100 text-blue-800', 
+      'bank-transfer': 'bg-purple-100 text-purple-800',
+      card: 'bg-orange-100 text-orange-800'
+    };
+    
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs ${colors[mode]}`}>
+        {mode.toUpperCase()}
+      </span>
+    );
+  };
+
+  const getTotalStats = () => {
+    const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const paidAmount = payments
+      .filter(p => p.status === 'paid')
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    const pendingAmount = payments
+      .filter(p => p.status === 'pending' || p.status === 'overdue')
+      .reduce((sum, payment) => sum + payment.amount, 0);
+    const overdueCount = payments.filter(p => p.status === 'overdue').length;
+    
+    return { totalAmount, paidAmount, pendingAmount, overdueCount };
+  };
+
+  const stats = getTotalStats();
+
+  return (
+    <div className="space-y-6">
+      {/* Payment Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <IndianRupee className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{stats.totalAmount.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">All payment records</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Collected</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">₹{stats.paidAmount.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Successfully collected</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <AlertCircle className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-orange-600">₹{stats.pendingAmount.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">Awaiting payment</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{stats.overdueCount}</div>
+            <p className="text-xs text-muted-foreground">Payment(s) overdue</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Records</CardTitle>
+          <CardDescription>
+            Track and manage all rental payments and dues
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Filters and Actions */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by rider name, ID, or payment ID..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px]">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="partial">Partial</SelectItem>
+              </SelectContent>
+            </Select>
+            <Dialog open={isAddPaymentOpen} onOpenChange={setIsAddPaymentOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Record Payment
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Record New Payment</DialogTitle>
+                  <DialogDescription>
+                    Add a new payment record for a rider.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="paymentRider">Rider</Label>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select rider" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="R001">Arjun Kumar (R001)</SelectItem>
+                          <SelectItem value="R002">Priya Singh (R002)</SelectItem>
+                          <SelectItem value="R003">Rajesh Patel (R003)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="paymentAmount">Amount (₹)</Label>
+                      <Input id="paymentAmount" type="number" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="paymentDueDate">Due Date</Label>
+                      <Input id="paymentDueDate" type="date" />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="paymentMode">Payment Mode</Label>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select mode" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="upi">UPI</SelectItem>
+                          <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                          <SelectItem value="card">Card</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="paymentPeriod">Rental Period</Label>
+                    <Input id="paymentPeriod" placeholder="e.g., Jan 2024, Week 1 Feb 2024" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="paymentNotes">Notes</Label>
+                    <Input id="paymentNotes" placeholder="Additional notes..." />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="submit">Record Payment</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          {/* Payments Table */}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Payment ID</TableHead>
+                <TableHead>Rider Details</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Due Date</TableHead>
+                <TableHead>Payment Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Mode</TableHead>
+                <TableHead>Period</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredPayments.map((payment) => (
+                <TableRow key={payment.id}>
+                  <TableCell className="font-medium">{payment.id}</TableCell>
+                  <TableCell>
+                    <div>
+                      <div className="font-medium">{payment.riderName}</div>
+                      <div className="text-sm text-muted-foreground">{payment.riderId}</div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <IndianRupee className="h-3 w-3" />
+                      <span className="font-medium">{payment.amount.toLocaleString()}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span className="text-sm">{new Date(payment.dueDate).toLocaleDateString()}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {payment.paymentDate ? (
+                      <span className="text-sm">{new Date(payment.paymentDate).toLocaleDateString()}</span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                  <TableCell>{getPaymentModeBadge(payment.paymentMode)}</TableCell>
+                  <TableCell>
+                    <span className="text-sm">{payment.rentalPeriod}</span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm">
+                        Edit
+                      </Button>
+                      {payment.status === 'pending' && (
+                        <Button size="sm">
+                          Mark Paid
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
