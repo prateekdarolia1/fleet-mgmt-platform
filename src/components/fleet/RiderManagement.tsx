@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,75 +9,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Plus, Search, Filter, Phone, Mail, Calendar, User } from "lucide-react";
+import { useRiders, type Rider } from "@/hooks/useRiders";
 
-interface Rider {
-  id: string;
+interface RiderFormData {
   name: string;
   phone: string;
   email: string;
-  status: 'active' | 'inactive' | 'suspended';
-  vehicleAssigned?: string;
-  rentalPlan: 'daily' | 'weekly' | 'monthly';
-  joinDate: string;
-  lastPaymentDate?: string;
-  documents: {
-    license: boolean;
-    aadhar: boolean;
-    agreement: boolean;
-  };
   address: string;
+  rental_plan: 'daily' | 'weekly' | 'monthly';
+  join_date: string;
 }
 
 export const RiderManagement = () => {
-  const [riders, setRiders] = useState<Rider[]>([
-    {
-      id: "R001",
-      name: "Arjun Kumar",
-      phone: "+91 98765 43210",
-      email: "arjun.kumar@email.com",
-      status: "active",
-      vehicleAssigned: "EV001",
-      rentalPlan: "monthly",
-      joinDate: "2023-12-01",
-      lastPaymentDate: "2024-01-01",
-      documents: { license: true, aadhar: true, agreement: true },
-      address: "123 Main Street, Bangalore"
-    },
-    {
-      id: "R002",
-      name: "Priya Singh",
-      phone: "+91 87654 32109",
-      email: "priya.singh@email.com",
-      status: "active",
-      vehicleAssigned: "EV015",
-      rentalPlan: "weekly",
-      joinDate: "2024-01-10",
-      lastPaymentDate: "2024-01-15",
-      documents: { license: true, aadhar: true, agreement: false },
-      address: "456 Park Avenue, Bangalore"
-    },
-    {
-      id: "R003",
-      name: "Rajesh Patel",
-      phone: "+91 76543 21098",
-      email: "rajesh.patel@email.com",
-      status: "inactive",
-      rentalPlan: "daily",
-      joinDate: "2023-11-15",
-      documents: { license: true, aadhar: false, agreement: true },
-      address: "789 Garden Road, Bangalore"
-    }
-  ]);
-
+  const { riders, loading, addRider } = useRiders();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddRiderOpen, setIsAddRiderOpen] = useState(false);
 
+  const form = useForm<RiderFormData>();
+
+  const onSubmit = async (data: RiderFormData) => {
+    try {
+      await addRider(data);
+      setIsAddRiderOpen(false);
+      form.reset();
+    } catch (error) {
+      console.error('Error adding rider:', error);
+    }
+  };
+
   const filteredRiders = riders.filter(rider => {
     const matchesSearch = rider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          rider.phone.includes(searchTerm) ||
-                         rider.id.toLowerCase().includes(searchTerm.toLowerCase());
+                         rider.rider_id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || rider.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -91,7 +58,7 @@ export const RiderManagement = () => {
     return <Badge variant={variants[status]}>{status}</Badge>;
   };
 
-  const getPlanBadge = (plan: Rider['rentalPlan']) => {
+  const getPlanBadge = (plan: Rider['rental_plan']) => {
     const variants = {
       daily: 'outline',
       weekly: 'secondary',
@@ -101,7 +68,13 @@ export const RiderManagement = () => {
     return <Badge variant={variants[plan]}>{plan}</Badge>;
   };
 
-  const getDocumentStatus = (documents: Rider['documents']) => {
+  const getDocumentStatus = (rider: Rider) => {
+    const documents = {
+      license: rider.license_document,
+      aadhar: rider.aadhar_document,
+      agreement: rider.agreement_document
+    };
+    
     const total = Object.values(documents).length;
     const completed = Object.values(documents).filter(Boolean).length;
     
@@ -116,6 +89,18 @@ export const RiderManagement = () => {
       </div>
     );
   };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-8">
+          <div className="flex items-center justify-center">
+            <div className="text-muted-foreground">Loading riders...</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -163,48 +148,119 @@ export const RiderManagement = () => {
                   Register a new gig worker to your platform.
                 </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="riderName">Full Name</Label>
-                    <Input id="riderName" />
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      rules={{ required: "Full name is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Name</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      rules={{ 
+                        required: "Phone number is required",
+                        pattern: { value: /^\+?[\d\s-()]+$/, message: "Invalid phone number" }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number</FormLabel>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="riderPhone">Phone Number</Label>
-                    <Input id="riderPhone" />
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    rules={{ 
+                      required: "Email is required",
+                      pattern: { value: /\S+@\S+\.\S+/, message: "Invalid email address" }
+                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="address"
+                    rules={{ required: "Address is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="rental_plan"
+                      rules={{ required: "Rental plan is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Rental Plan</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select plan" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="daily">Daily</SelectItem>
+                              <SelectItem value="weekly">Weekly</SelectItem>
+                              <SelectItem value="monthly">Monthly</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="join_date"
+                      rules={{ required: "Join date is required" }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Join Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="riderEmail">Email Address</Label>
-                  <Input id="riderEmail" type="email" />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="riderAddress">Address</Label>
-                  <Textarea id="riderAddress" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="rentalPlan">Rental Plan</Label>
-                    <Select>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select plan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Daily</SelectItem>
-                        <SelectItem value="weekly">Weekly</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="joinDate">Join Date</Label>
-                    <Input id="joinDate" type="date" />
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">Add Rider</Button>
-              </DialogFooter>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsAddRiderOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit">Add Rider</Button>
+                  </DialogFooter>
+                </form>
+              </Form>
             </DialogContent>
           </Dialog>
         </div>
@@ -232,7 +288,7 @@ export const RiderManagement = () => {
                       <User className="h-3 w-3" />
                       {rider.name}
                     </div>
-                    <div className="text-sm text-muted-foreground">{rider.id}</div>
+                    <div className="text-sm text-muted-foreground">{rider.rider_id}</div>
                   </div>
                 </TableCell>
                 <TableCell>
@@ -249,18 +305,18 @@ export const RiderManagement = () => {
                 </TableCell>
                 <TableCell>{getStatusBadge(rider.status)}</TableCell>
                 <TableCell>
-                  {rider.vehicleAssigned ? (
-                    <Badge variant="outline">{rider.vehicleAssigned}</Badge>
+                  {rider.vehicle_assigned ? (
+                    <Badge variant="outline">{rider.vehicle_assigned}</Badge>
                   ) : (
                     <span className="text-muted-foreground">Not assigned</span>
                   )}
                 </TableCell>
-                <TableCell>{getPlanBadge(rider.rentalPlan)}</TableCell>
-                <TableCell>{getDocumentStatus(rider.documents)}</TableCell>
+                <TableCell>{getPlanBadge(rider.rental_plan)}</TableCell>
+                <TableCell>{getDocumentStatus(rider)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    <span className="text-sm">{new Date(rider.joinDate).toLocaleDateString()}</span>
+                    <span className="text-sm">{new Date(rider.join_date).toLocaleDateString()}</span>
                   </div>
                 </TableCell>
                 <TableCell>

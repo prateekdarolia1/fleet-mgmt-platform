@@ -14,16 +14,269 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          id: string
+          notes: string | null
+          payment_date: string | null
+          payment_id: string
+          payment_mode: Database["public"]["Enums"]["payment_mode"] | null
+          rental_period: string
+          rider_id: string
+          rider_name: string
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_id: string
+          payment_mode?: Database["public"]["Enums"]["payment_mode"] | null
+          rental_period: string
+          rider_id: string
+          rider_name: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_id?: string
+          payment_mode?: Database["public"]["Enums"]["payment_mode"] | null
+          rental_period?: string
+          rider_id?: string
+          rider_name?: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      riders: {
+        Row: {
+          aadhar_document: boolean
+          address: string
+          agreement_document: boolean
+          created_at: string
+          email: string
+          id: string
+          join_date: string
+          last_payment_date: string | null
+          license_document: boolean
+          name: string
+          phone: string
+          rental_plan: Database["public"]["Enums"]["rental_plan"]
+          rider_id: string
+          status: Database["public"]["Enums"]["rider_status"]
+          updated_at: string
+          vehicle_assigned: string | null
+        }
+        Insert: {
+          aadhar_document?: boolean
+          address: string
+          agreement_document?: boolean
+          created_at?: string
+          email: string
+          id?: string
+          join_date: string
+          last_payment_date?: string | null
+          license_document?: boolean
+          name: string
+          phone: string
+          rental_plan: Database["public"]["Enums"]["rental_plan"]
+          rider_id: string
+          status?: Database["public"]["Enums"]["rider_status"]
+          updated_at?: string
+          vehicle_assigned?: string | null
+        }
+        Update: {
+          aadhar_document?: boolean
+          address?: string
+          agreement_document?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          join_date?: string
+          last_payment_date?: string | null
+          license_document?: boolean
+          name?: string
+          phone?: string
+          rental_plan?: Database["public"]["Enums"]["rental_plan"]
+          rider_id?: string
+          status?: Database["public"]["Enums"]["rider_status"]
+          updated_at?: string
+          vehicle_assigned?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          battery_type: Database["public"]["Enums"]["battery_type"]
+          chassis_number: string
+          color: string
+          created_at: string
+          delivery_date: string
+          id: string
+          insurance_received: boolean
+          location: string | null
+          make: string
+          model: string
+          motor_serial_number: string
+          next_maintenance_date: string
+          pdi_done_by: string
+          portable_charger_received: boolean
+          registration_received: boolean
+          rental_end_date: string | null
+          rental_start_date: string | null
+          rider_id: string | null
+          rider_name: string | null
+          status: Database["public"]["Enums"]["vehicle_status"]
+          updated_at: string
+          vehicle_number: string
+          vehicle_type: Database["public"]["Enums"]["vehicle_type"]
+          vendor: string
+        }
+        Insert: {
+          battery_type: Database["public"]["Enums"]["battery_type"]
+          chassis_number: string
+          color: string
+          created_at?: string
+          delivery_date: string
+          id?: string
+          insurance_received?: boolean
+          location?: string | null
+          make: string
+          model: string
+          motor_serial_number: string
+          next_maintenance_date: string
+          pdi_done_by: string
+          portable_charger_received?: boolean
+          registration_received?: boolean
+          rental_end_date?: string | null
+          rental_start_date?: string | null
+          rider_id?: string | null
+          rider_name?: string | null
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          vehicle_number: string
+          vehicle_type: Database["public"]["Enums"]["vehicle_type"]
+          vendor: string
+        }
+        Update: {
+          battery_type?: Database["public"]["Enums"]["battery_type"]
+          chassis_number?: string
+          color?: string
+          created_at?: string
+          delivery_date?: string
+          id?: string
+          insurance_received?: boolean
+          location?: string | null
+          make?: string
+          model?: string
+          motor_serial_number?: string
+          next_maintenance_date?: string
+          pdi_done_by?: string
+          portable_charger_received?: boolean
+          registration_received?: boolean
+          rental_end_date?: string | null
+          rental_start_date?: string | null
+          rider_id?: string | null
+          rider_name?: string | null
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          vehicle_number?: string
+          vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
+          vendor?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "manager" | "user"
+      battery_type: "Fixed" | "Swappable"
+      payment_mode: "cash" | "upi" | "bank-transfer" | "card"
+      payment_status: "pending" | "paid" | "overdue" | "partial"
+      rental_plan: "daily" | "weekly" | "monthly"
+      rider_status: "active" | "inactive" | "suspended"
+      vehicle_status: "Ready for Deployment" | "Deployed" | "Under Maintenance"
+      vehicle_type: "High Speed" | "Low Speed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +403,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "manager", "user"],
+      battery_type: ["Fixed", "Swappable"],
+      payment_mode: ["cash", "upi", "bank-transfer", "card"],
+      payment_status: ["pending", "paid", "overdue", "partial"],
+      rental_plan: ["daily", "weekly", "monthly"],
+      rider_status: ["active", "inactive", "suspended"],
+      vehicle_status: ["Ready for Deployment", "Deployed", "Under Maintenance"],
+      vehicle_type: ["High Speed", "Low Speed"],
+    },
   },
 } as const

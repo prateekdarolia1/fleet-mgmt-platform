@@ -8,74 +8,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle } from "lucide-react";
-
-interface Payment {
-  id: string;
-  riderId: string;
-  riderName: string;
-  amount: number;
-  dueDate: string;
-  paymentDate?: string;
-  status: 'pending' | 'paid' | 'overdue' | 'partial';
-  paymentMode?: 'cash' | 'upi' | 'bank-transfer' | 'card';
-  rentalPeriod: string;
-  notes?: string;
-}
+import { usePayments, type Payment } from "@/hooks/usePayments";
 
 export const PaymentTracking = () => {
-  const [payments, setPayments] = useState<Payment[]>([
-    {
-      id: "P001",
-      riderId: "R001",
-      riderName: "Arjun Kumar",
-      amount: 15000,
-      dueDate: "2024-02-01",
-      paymentDate: "2024-01-30",
-      status: "paid",
-      paymentMode: "upi",
-      rentalPeriod: "Jan 2024",
-      notes: "Monthly rental - Ather 450X"
-    },
-    {
-      id: "P002",
-      riderId: "R002", 
-      riderName: "Priya Singh",
-      amount: 4000,
-      dueDate: "2024-01-20",
-      status: "pending",
-      rentalPeriod: "Week 3 Jan 2024",
-      notes: "Weekly rental - TVS iQube"
-    },
-    {
-      id: "P003",
-      riderId: "R003",
-      riderName: "Rajesh Patel",
-      amount: 800,
-      dueDate: "2024-01-15",
-      status: "overdue",
-      rentalPeriod: "Jan 15, 2024",
-      notes: "Daily rental - Ola S1"
-    },
-    {
-      id: "P004",
-      riderId: "R001",
-      riderName: "Arjun Kumar",
-      amount: 15000,
-      dueDate: "2024-03-01", 
-      status: "pending",
-      rentalPeriod: "Feb 2024",
-      notes: "Monthly rental - Ather 450X"
-    }
-  ]);
+  const { payments, loading, getTotalStats } = usePayments();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
 
   const filteredPayments = payments.filter(payment => {
-    const matchesSearch = payment.riderName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.riderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = payment.rider_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         payment.rider_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         payment.payment_id.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -121,16 +66,7 @@ export const PaymentTracking = () => {
   };
 
   const getTotalStats = () => {
-    const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
-    const paidAmount = payments
-      .filter(p => p.status === 'paid')
-      .reduce((sum, payment) => sum + payment.amount, 0);
-    const pendingAmount = payments
-      .filter(p => p.status === 'pending' || p.status === 'overdue')
-      .reduce((sum, payment) => sum + payment.amount, 0);
-    const overdueCount = payments.filter(p => p.status === 'overdue').length;
-    
-    return { totalAmount, paidAmount, pendingAmount, overdueCount };
+    return usePayments().getTotalStats();
   };
 
   const stats = getTotalStats();
@@ -304,37 +240,37 @@ export const PaymentTracking = () => {
             <TableBody>
               {filteredPayments.map((payment) => (
                 <TableRow key={payment.id}>
-                  <TableCell className="font-medium">{payment.id}</TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{payment.riderName}</div>
-                      <div className="text-sm text-muted-foreground">{payment.riderId}</div>
-                    </div>
-                  </TableCell>
+                 <TableCell className="font-medium">{payment.payment_id}</TableCell>
+                 <TableCell>
+                   <div>
+                     <div className="font-medium">{payment.rider_name}</div>
+                     <div className="text-sm text-muted-foreground">{payment.rider_id}</div>
+                   </div>
+                 </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <IndianRupee className="h-3 w-3" />
                       <span className="font-medium">{payment.amount.toLocaleString()}</span>
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      <span className="text-sm">{new Date(payment.dueDate).toLocaleDateString()}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {payment.paymentDate ? (
-                      <span className="text-sm">{new Date(payment.paymentDate).toLocaleDateString()}</span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
+                 <TableCell>
+                   <div className="flex items-center gap-1">
+                     <Calendar className="h-3 w-3" />
+                     <span className="text-sm">{new Date(payment.due_date).toLocaleDateString()}</span>
+                   </div>
+                 </TableCell>
+                 <TableCell>
+                   {payment.payment_date ? (
+                     <span className="text-sm">{new Date(payment.payment_date).toLocaleDateString()}</span>
+                   ) : (
+                     <span className="text-muted-foreground">-</span>
+                   )}
+                 </TableCell>
                   <TableCell>{getStatusBadge(payment.status)}</TableCell>
                   <TableCell>{getPaymentModeBadge(payment.paymentMode)}</TableCell>
-                  <TableCell>
-                    <span className="text-sm">{payment.rentalPeriod}</span>
-                  </TableCell>
+                 <TableCell>
+                   <span className="text-sm">{payment.rental_period}</span>
+                 </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm">
