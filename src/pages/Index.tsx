@@ -5,9 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { InventoryManagement } from "@/components/fleet/InventoryManagement";
 import { RiderManagement } from "@/components/fleet/RiderManagement";
 import { PaymentTracking } from "@/components/fleet/PaymentTracking";
-import UserManagement from "@/components/UserManagement";
-import { useAuth } from "@/hooks/useAuth";
-import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, UserCog, LogOut } from "lucide-react";
+import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -21,11 +19,6 @@ import {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("inventory");
-  const { user, userRole, signOut } = useAuth();
-
-  const handleSignOut = async () => {
-    await signOut();
-  };
 
   // Mock data for dashboard overview
   const overviewStats = {
@@ -49,18 +42,6 @@ const Index = () => {
               <p className="text-muted-foreground text-sm mt-1">EV Rental Business Dashboard</p>
             </div>
             <div className="flex items-center space-x-3 flex-shrink-0">
-              <div className="text-sm text-muted-foreground">
-                {user?.email} ({userRole})
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleSignOut}
-                className="flex items-center space-x-2"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </Button>
               <Badge variant="secondary" className="whitespace-nowrap">Single City</Badge>
               <Badge variant="outline" className="whitespace-nowrap">B2B Focused</Badge>
             </div>
@@ -183,23 +164,6 @@ const Index = () => {
                           <span className="text-sm">Payment Tracking</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                      {(userRole === 'super_admin' || userRole === 'admin') && (
-                        <SidebarMenuItem>
-                          <SidebarMenuButton 
-                            onClick={() => setActiveTab("users")}
-                            className={`
-                              w-full h-12 px-4 rounded-lg transition-all duration-200 
-                              ${activeTab === "users" 
-                                ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
-                                : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                              }
-                            `}
-                          >
-                            <UserCog className="mr-3 h-5 w-5" />
-                            <span className="text-sm">User Management</span>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      )}
                     </SidebarMenu>
                   </SidebarGroupContent>
                 </SidebarGroup>
@@ -222,12 +186,6 @@ const Index = () => {
               {activeTab === "payments" && (
                 <div className="space-y-4">
                   <PaymentTracking />
-                </div>
-              )}
-
-              {activeTab === "users" && (userRole === 'super_admin' || userRole === 'admin') && (
-                <div className="space-y-4">
-                  <UserManagement />
                 </div>
               )}
             </main>
