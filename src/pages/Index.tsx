@@ -36,14 +36,14 @@ const Index = () => {
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Fleet Management</h1>
-              <p className="text-muted-foreground">EV Rental Business Dashboard</p>
+          <div className="flex items-center justify-between min-h-[4rem]">
+            <div className="flex flex-col justify-center">
+              <h1 className="text-2xl font-bold text-foreground leading-tight">Fleet Management</h1>
+              <p className="text-muted-foreground text-sm mt-1">EV Rental Business Dashboard</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <Badge variant="secondary">Single City</Badge>
-              <Badge variant="outline">B2B Focused</Badge>
+            <div className="flex items-center space-x-3 flex-shrink-0">
+              <Badge variant="secondary" className="whitespace-nowrap">Single City</Badge>
+              <Badge variant="outline" className="whitespace-nowrap">B2B Focused</Badge>
             </div>
           </div>
         </div>
