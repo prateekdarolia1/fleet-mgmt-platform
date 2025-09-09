@@ -108,36 +108,60 @@ const Index = () => {
         {/* Main Content with Sidebar */}
         <SidebarProvider>
           <div className="flex min-h-screen w-full">
-            <Sidebar className="w-64">
-              <SidebarContent>
-                <SidebarGroup>
+            <Sidebar className="w-72 bg-sidebar border-r border-sidebar-border">
+              <SidebarContent className="bg-sidebar">
+                {/* Sidebar Header */}
+                <div className="p-6 border-b border-sidebar-border">
+                  <h2 className="text-lg font-semibold text-sidebar-foreground">Management</h2>
+                  <p className="text-sm text-sidebar-foreground/70 mt-1">Fleet Operations</p>
+                </div>
+                
+                <SidebarGroup className="px-4 py-6">
                   <SidebarGroupContent>
-                    <SidebarMenu>
+                    <SidebarMenu className="space-y-2">
                       <SidebarMenuItem>
                         <SidebarMenuButton 
                           onClick={() => setActiveTab("inventory")}
-                          className={activeTab === "inventory" ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"}
+                          className={`
+                            w-full h-12 px-4 rounded-lg transition-all duration-200 
+                            ${activeTab === "inventory" 
+                              ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                              : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                            }
+                          `}
                         >
-                          <Package className="mr-2 h-4 w-4" />
-                          <span>Inventory</span>
+                          <Package className="mr-3 h-5 w-5" />
+                          <span className="text-sm">Inventory Management</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
                         <SidebarMenuButton 
                           onClick={() => setActiveTab("riders")}
-                          className={activeTab === "riders" ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"}
+                          className={`
+                            w-full h-12 px-4 rounded-lg transition-all duration-200 
+                            ${activeTab === "riders" 
+                              ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                              : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                            }
+                          `}
                         >
-                          <UserCheck className="mr-2 h-4 w-4" />
-                          <span>Riders</span>
+                          <UserCheck className="mr-3 h-5 w-5" />
+                          <span className="text-sm">Rider Management</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       <SidebarMenuItem>
                         <SidebarMenuButton 
                           onClick={() => setActiveTab("payments")}
-                          className={activeTab === "payments" ? "bg-muted text-primary font-medium" : "hover:bg-muted/50"}
+                          className={`
+                            w-full h-12 px-4 rounded-lg transition-all duration-200 
+                            ${activeTab === "payments" 
+                              ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                              : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                            }
+                          `}
                         >
-                          <Receipt className="mr-2 h-4 w-4" />
-                          <span>Payment</span>
+                          <Receipt className="mr-3 h-5 w-5" />
+                          <span className="text-sm">Payment Tracking</span>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     </SidebarMenu>
