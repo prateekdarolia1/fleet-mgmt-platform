@@ -35,7 +35,7 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-4 py-4 ml-72">
           <div className="flex items-center justify-between min-h-[4rem]">
             <div className="flex flex-col justify-center">
               <h1 className="text-2xl font-bold text-foreground leading-tight">Fleet Management</h1>
