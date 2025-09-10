@@ -48,7 +48,7 @@ export const PaymentTracking = () => {
     );
   };
 
-  const getPaymentModeBadge = (mode?: Payment['paymentMode']) => {
+  const getPaymentModeBadge = (mode?: Payment['payment_mode']) => {
     if (!mode) return <span className="text-muted-foreground">-</span>;
     
     const colors = {
@@ -63,10 +63,6 @@ export const PaymentTracking = () => {
         {mode.toUpperCase()}
       </span>
     );
-  };
-
-  const getTotalStats = () => {
-    return usePayments().getTotalStats();
   };
 
   const stats = getTotalStats();
@@ -267,7 +263,7 @@ export const PaymentTracking = () => {
                    )}
                  </TableCell>
                   <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                  <TableCell>{getPaymentModeBadge(payment.paymentMode)}</TableCell>
+                  <TableCell>{getPaymentModeBadge(payment.payment_mode)}</TableCell>
                  <TableCell>
                    <span className="text-sm">{payment.rental_period}</span>
                  </TableCell>
