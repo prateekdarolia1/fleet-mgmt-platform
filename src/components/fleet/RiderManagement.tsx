@@ -266,7 +266,8 @@ export const RiderManagement = () => {
         </div>
 
         {/* Riders Table */}
-        <Table>
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Rider Details</TableHead>
@@ -332,7 +333,8 @@ export const RiderManagement = () => {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

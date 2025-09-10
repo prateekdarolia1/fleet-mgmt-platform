@@ -51,17 +51,17 @@ export const PaymentTracking = () => {
   const getPaymentModeBadge = (mode?: Payment['payment_mode']) => {
     if (!mode) return <span className="text-muted-foreground">-</span>;
     
-    const colors = {
-      cash: 'bg-green-100 text-green-800',
-      upi: 'bg-blue-100 text-blue-800', 
-      'bank-transfer': 'bg-purple-100 text-purple-800',
-      card: 'bg-orange-100 text-orange-800'
-    };
+    const variants = {
+      cash: 'default',
+      upi: 'secondary', 
+      'bank-transfer': 'outline',
+      card: 'outline'
+    } as const;
     
     return (
-      <span className={`px-2 py-1 rounded-full text-xs ${colors[mode]}`}>
+      <Badge variant={variants[mode]} className="text-xs">
         {mode.toUpperCase()}
-      </span>
+      </Badge>
     );
   };
 
@@ -85,10 +85,10 @@ export const PaymentTracking = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Collected</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">₹{stats.paidAmount.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-primary">₹{stats.paidAmount.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Successfully collected</p>
           </CardContent>
         </Card>
@@ -96,10 +96,10 @@ export const PaymentTracking = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <AlertCircle className="h-4 w-4 text-orange-500" />
+            <AlertCircle className="h-4 w-4 text-secondary-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">₹{stats.pendingAmount.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-secondary-foreground">₹{stats.pendingAmount.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Awaiting payment</p>
           </CardContent>
         </Card>
@@ -107,10 +107,10 @@ export const PaymentTracking = () => {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Overdue</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-500" />
+            <AlertCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{stats.overdueCount}</div>
+            <div className="text-2xl font-bold text-destructive">{stats.overdueCount}</div>
             <p className="text-xs text-muted-foreground">Payment(s) overdue</p>
           </CardContent>
         </Card>
@@ -219,7 +219,8 @@ export const PaymentTracking = () => {
           </div>
 
           {/* Payments Table */}
-          <Table>
+          <div className="overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Payment ID</TableHead>
@@ -282,7 +283,8 @@ export const PaymentTracking = () => {
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

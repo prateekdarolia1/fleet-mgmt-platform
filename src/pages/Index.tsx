@@ -32,167 +32,167 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4 ml-72">
-          <div className="flex items-center justify-between min-h-[4rem]">
-            <div className="flex flex-col justify-center">
-              <h1 className="text-2xl font-bold text-foreground leading-tight">Fleet Management</h1>
-              <p className="text-muted-foreground text-sm mt-1">EV Rental Business Dashboard</p>
-            </div>
-            <div className="flex items-center space-x-3 flex-shrink-0">
-              <Badge variant="secondary" className="whitespace-nowrap">Single City</Badge>
-              <Badge variant="outline" className="whitespace-nowrap">B2B Focused</Badge>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Dashboard Overview */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
-              <Bike className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{overviewStats.totalVehicles}</div>
-              <p className="text-xs text-muted-foreground">
-                {overviewStats.availableVehicles} available
-              </p>
-            </CardContent>
-          </Card>
+    <SidebarProvider>
+      <div className="min-h-screen w-full bg-background">
+        <div className="flex min-h-screen w-full">
+          <Sidebar className="w-64 bg-sidebar border-r border-sidebar-border">
+            <SidebarContent className="bg-sidebar">
+              {/* Sidebar Header */}
+              <div className="p-4 border-b border-sidebar-border">
+                <h2 className="text-lg font-semibold text-sidebar-foreground">Fleet Management</h2>
+                <p className="text-sm text-sidebar-foreground/70 mt-1">EV Rental Business</p>
+              </div>
+              
+              <SidebarGroup className="px-4 py-6">
+                <SidebarGroupContent>
+                  <SidebarMenu className="space-y-2">
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        onClick={() => setActiveTab("inventory")}
+                        className={`
+                          w-full h-12 px-4 rounded-lg transition-all duration-200 
+                          ${activeTab === "inventory" 
+                            ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                          }
+                        `}
+                      >
+                        <Package className="mr-3 h-5 w-5" />
+                        <span className="text-sm">Inventory Management</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        onClick={() => setActiveTab("riders")}
+                        className={`
+                          w-full h-12 px-4 rounded-lg transition-all duration-200 
+                          ${activeTab === "riders" 
+                            ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                          }
+                        `}
+                      >
+                        <UserCheck className="mr-3 h-5 w-5" />
+                        <span className="text-sm">Rider Management</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton 
+                        onClick={() => setActiveTab("payments")}
+                        className={`
+                          w-full h-12 px-4 rounded-lg transition-all duration-200 
+                          ${activeTab === "payments" 
+                            ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                          }
+                        `}
+                      >
+                        <Receipt className="mr-3 h-5 w-5" />
+                        <span className="text-sm">Payment Tracking</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            </SidebarContent>
+          </Sidebar>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Rentals</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{overviewStats.activeRentals}</div>
-              <p className="text-xs text-muted-foreground">
-                {Math.round((overviewStats.activeRentals / overviewStats.totalVehicles) * 100)}% utilization
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Riders</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{overviewStats.totalRiders}</div>
-              <p className="text-xs text-muted-foreground">
-                {overviewStats.activeRiders} currently active
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">₹{overviewStats.monthlyRevenue.toLocaleString()}</div>
-              <p className="text-xs text-muted-foreground">
-                {overviewStats.pendingPayments} pending payments
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content with Sidebar */}
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full">
-            <Sidebar className="w-72 bg-sidebar border-r border-sidebar-border">
-              <SidebarContent className="bg-sidebar">
-                {/* Sidebar Header */}
-                <div className="p-6 border-b border-sidebar-border">
-                  <h2 className="text-lg font-semibold text-sidebar-foreground">Management</h2>
-                  <p className="text-sm text-sidebar-foreground/70 mt-1">Fleet Operations</p>
+          <div className="flex-1 flex flex-col">
+            {/* Header */}
+            <header className="border-b bg-card p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <h1 className="text-2xl font-bold text-foreground">Fleet Management</h1>
+                  <p className="text-muted-foreground text-sm mt-1">EV Rental Business Dashboard</p>
                 </div>
+                <div className="flex items-center space-x-3">
+                  <Badge variant="secondary" className="hidden sm:inline-flex">Single City</Badge>
+                  <Badge variant="outline" className="hidden sm:inline-flex">B2B Focused</Badge>
+                </div>
+              </div>
+            </header>
+
+            {/* Dashboard Overview */}
+            <div className="flex-1 p-4 sm:p-6 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
+                    <Bike className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{overviewStats.totalVehicles}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {overviewStats.availableVehicles} available
+                    </p>
+                  </CardContent>
+                </Card>
                 
-                <SidebarGroup className="px-4 py-6">
-                  <SidebarGroupContent>
-                    <SidebarMenu className="space-y-2">
-                      <SidebarMenuItem>
-                        <SidebarMenuButton 
-                          onClick={() => setActiveTab("inventory")}
-                          className={`
-                            w-full h-12 px-4 rounded-lg transition-all duration-200 
-                            ${activeTab === "inventory" 
-                              ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
-                              : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                            }
-                          `}
-                        >
-                          <Package className="mr-3 h-5 w-5" />
-                          <span className="text-sm">Inventory Management</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton 
-                          onClick={() => setActiveTab("riders")}
-                          className={`
-                            w-full h-12 px-4 rounded-lg transition-all duration-200 
-                            ${activeTab === "riders" 
-                              ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
-                              : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                            }
-                          `}
-                        >
-                          <UserCheck className="mr-3 h-5 w-5" />
-                          <span className="text-sm">Rider Management</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton 
-                          onClick={() => setActiveTab("payments")}
-                          className={`
-                            w-full h-12 px-4 rounded-lg transition-all duration-200 
-                            ${activeTab === "payments" 
-                              ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
-                              : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                            }
-                          `}
-                        >
-                          <Receipt className="mr-3 h-5 w-5" />
-                          <span className="text-sm">Payment Tracking</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </SidebarContent>
-            </Sidebar>
-            
-            <main className="flex-1 p-6">
-              {activeTab === "inventory" && (
-                <div className="space-y-4">
-                  <InventoryManagement />
-                </div>
-              )}
-              
-              {activeTab === "riders" && (
-                <div className="space-y-4">
-                  <RiderManagement />
-                </div>
-              )}
-              
-              {activeTab === "payments" && (
-                <div className="space-y-4">
-                  <PaymentTracking />
-                </div>
-              )}
-            </main>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active Rentals</CardTitle>
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{overviewStats.activeRentals}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {Math.round((overviewStats.activeRentals / overviewStats.totalVehicles) * 100)}% utilization
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Riders</CardTitle>
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{overviewStats.totalRiders}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {overviewStats.activeRiders} currently active
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">₹{overviewStats.monthlyRevenue.toLocaleString()}</div>
+                    <p className="text-xs text-muted-foreground">
+                      {overviewStats.pendingPayments} pending payments
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Main Content */}
+              <div className="w-full">
+                {activeTab === "inventory" && (
+                  <div className="space-y-4">
+                    <InventoryManagement />
+                  </div>
+                )}
+                
+                {activeTab === "riders" && (
+                  <div className="space-y-4">
+                    <RiderManagement />
+                  </div>
+                )}
+                
+                {activeTab === "payments" && (
+                  <div className="space-y-4">
+                    <PaymentTracking />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </SidebarProvider>
+        </div>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 

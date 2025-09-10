@@ -124,11 +124,11 @@ export const InventoryManagement = () => {
 
   const getStatusBadge = (status: Vehicle['status']) => {
     if (status === 'Deployed') {
-      return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{status}</Badge>;
+      return <Badge variant="default">{status}</Badge>;
     }
     
     if (status === 'Ready for Deployment') {
-      return <Badge className="bg-yellow-600 text-yellow-50 hover:bg-yellow-600">{status}</Badge>;
+      return <Badge variant="secondary">{status}</Badge>;
     }
     
     const variants = {
@@ -160,7 +160,7 @@ export const InventoryManagement = () => {
       </CardHeader>
       <CardContent>
         {/* Filters and Actions */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-green-50 p-4 rounded-lg">
+        <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-accent/50 p-4 rounded-lg">
           <div className="relative flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -500,7 +500,8 @@ export const InventoryManagement = () => {
         </div>
 
         {/* Vehicles Table */}
-        <Table>
+        <div className="overflow-x-auto">
+          <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Vehicle Details</TableHead>
@@ -581,7 +582,8 @@ export const InventoryManagement = () => {
               </TableRow>
             ))}
           </TableBody>
-        </Table>
+          </Table>
+        </div>
 
         {/* Add Vehicle Confirmation Dialog */}
         <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
