@@ -363,7 +363,16 @@ export const InventoryManagement = () => {
                         <FormItem>
                           <FormLabel>PDI Done By</FormLabel>
                           <FormControl>
-                            <Input placeholder="Enter name" {...field} />
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select name" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Vaibhav">Vaibhav</SelectItem>
+                                <SelectItem value="Shubham">Shubham</SelectItem>
+                                <SelectItem value="Other">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </FormControl>
                           <FormMessage />
                         </FormItem>
