@@ -398,6 +398,7 @@ export const InventoryManagement = () => {
                             <SelectContent>
                               <SelectItem value="true">Yes</SelectItem>
                               <SelectItem value="false">No</SelectItem>
+                              <SelectItem value="na">NA</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -420,6 +421,7 @@ export const InventoryManagement = () => {
                             <SelectContent>
                               <SelectItem value="true">Yes</SelectItem>
                               <SelectItem value="false">No</SelectItem>
+                              <SelectItem value="na">NA</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -442,6 +444,7 @@ export const InventoryManagement = () => {
                             <SelectContent>
                               <SelectItem value="true">Yes</SelectItem>
                               <SelectItem value="false">No</SelectItem>
+                              <SelectItem value="na">NA</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
