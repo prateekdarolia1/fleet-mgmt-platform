@@ -22,9 +22,9 @@ interface VehicleFormData {
   delivery_date: string;
   vendor: string;
   pdi_done_by: string;
-  registration_received: boolean;
-  insurance_received: boolean;
-  portable_charger_received: boolean;
+  registration_received: boolean | string;
+  insurance_received: boolean | string;
+  portable_charger_received: boolean | string;
   vehicle_type: 'High Speed' | 'Low Speed';
   battery_type: 'Fixed' | 'Swappable';
   vehicle_number: string;
@@ -47,7 +47,14 @@ export const InventoryManagement = () => {
   const editForm = useForm<VehicleFormData>();
 
   const onSubmit = async (data: VehicleFormData) => {
-    setPendingVehicleData(data);
+    // Convert form data to match Vehicle interface
+    const vehicleData = {
+      ...data,
+      registration_received: data.registration_received === 'na' ? false : data.registration_received === 'true',
+      insurance_received: data.insurance_received === 'na' ? false : data.insurance_received === 'true',
+      portable_charger_received: data.portable_charger_received === 'na' ? false : data.portable_charger_received === 'true'
+    };
+    setPendingVehicleData(vehicleData);
     setShowConfirmation(true);
   };
 
@@ -55,7 +62,14 @@ export const InventoryManagement = () => {
     if (!pendingVehicleData) return;
 
     try {
-      await addVehicle(pendingVehicleData);
+      // Convert string values to boolean for backend
+      const vehicleData = {
+        ...pendingVehicleData,
+        registration_received: pendingVehicleData.registration_received === true,
+        insurance_received: pendingVehicleData.insurance_received === true,
+        portable_charger_received: pendingVehicleData.portable_charger_received === true
+      };
+      await addVehicle(vehicleData);
       setIsAddVehicleOpen(false);
       setShowConfirmation(false);
       setPendingVehicleData(null);
@@ -76,11 +90,12 @@ export const InventoryManagement = () => {
       delivery_date: vehicle.delivery_date,
       vendor: vehicle.vendor,
       pdi_done_by: vehicle.pdi_done_by,
-      registration_received: vehicle.registration_received,
-      insurance_received: vehicle.insurance_received,
-      portable_charger_received: vehicle.portable_charger_received,
+      registration_received: vehicle.registration_received ? 'true' : 'false',
+      insurance_received: vehicle.insurance_received ? 'true' : 'false',
+      portable_charger_received: vehicle.portable_charger_received ? 'true' : 'false',
       vehicle_type: vehicle.vehicle_type,
       battery_type: vehicle.battery_type,
+      vehicle_number: vehicle.vehicle_number,
     });
     setIsEditVehicleOpen(true);
   };
@@ -89,7 +104,14 @@ export const InventoryManagement = () => {
     if (!editingVehicle) return;
 
     try {
-      await updateVehicle(editingVehicle.id, data);
+      // Convert form data to match Vehicle interface
+      const vehicleData = {
+        ...data,
+        registration_received: data.registration_received === 'na' ? false : data.registration_received === 'true',
+        insurance_received: data.insurance_received === 'na' ? false : data.insurance_received === 'true',
+        portable_charger_received: data.portable_charger_received === 'na' ? false : data.portable_charger_received === 'true'
+      };
+      await updateVehicle(editingVehicle.id, vehicleData);
       setIsEditVehicleOpen(false);
       setEditingVehicle(null);
       editForm.reset();
@@ -426,7 +448,7 @@ export const InventoryManagement = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Registration Received?</FormLabel>
-                          <Select onValueChange={(value) => field.onChange(value === 'true')} value={field.value ? 'true' : 'false'}>
+                          <Select onValueChange={field.onChange} value={field.value?.toString()}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select" />
@@ -449,7 +471,7 @@ export const InventoryManagement = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Insurance Received?</FormLabel>
-                          <Select onValueChange={(value) => field.onChange(value === 'true')} value={field.value ? 'true' : 'false'}>
+                          <Select onValueChange={field.onChange} value={field.value?.toString()}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select" />
@@ -472,7 +494,7 @@ export const InventoryManagement = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Portable Charger Received?</FormLabel>
-                          <Select onValueChange={(value) => field.onChange(value === 'true')} value={field.value ? 'true' : 'false'}>
+                          <Select onValueChange={field.onChange} value={field.value?.toString()}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select" />
