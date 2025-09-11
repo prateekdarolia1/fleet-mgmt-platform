@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
 export const ConnectionTest = () => {
   const [testResult, setTestResult] = useState<string>('');
@@ -11,25 +12,18 @@ export const ConnectionTest = () => {
     setTestResult('');
     
     try {
-      console.log('Testing direct fetch to Supabase...');
+      console.log('Testing Supabase connection...');
       
-      const response = await fetch('https://kkxxnpfwvlbsqvmbirqa.supabase.co/rest/v1/vehicles?select=count', {
-        method: 'GET',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtreHhucGZ3dmxic3F2bWJpcnFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczOTQ2MDYsImV4cCI6MjA3Mjk3MDYwNn0.Z5JrrxfynbUkuoImR5mFaI1tIERkRRzMqj3Ncp0e02Q',
-          'accept-profile': 'public',
-          'Accept': 'application/json'
-        }
-      });
+      const { data, error, count } = await supabase
+        .from('vehicles')
+        .select('*', { count: 'exact', head: true });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
+      console.log('Supabase response:', { data, error, count });
       
-      if (response.ok) {
-        const data = await response.json();
-        setTestResult(`✅ Connection successful! Response: ${JSON.stringify(data)}`);
+      if (error) {
+        setTestResult(`❌ Supabase Error: ${error.message}`);
       } else {
-        setTestResult(`❌ HTTP Error: ${response.status} ${response.statusText}`);
+        setTestResult(`✅ Connection successful! Found ${count} vehicles in database.`);
       }
     } catch (error) {
       console.error('Connection test failed:', error);

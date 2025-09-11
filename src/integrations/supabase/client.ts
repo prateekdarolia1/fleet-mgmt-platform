@@ -13,16 +13,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
-  },
-  global: {
-    // Strip Authorization header to avoid CORS preflight issues in preview environments
-    fetch: (input: RequestInfo, init?: RequestInit) => {
-      const url = typeof input === 'string' ? input : (input as Request).url;
-      const headers = new Headers(init?.headers || {});
-      if (url.includes(SUPABASE_URL)) {
-        headers.delete('Authorization');
-      }
-      return fetch(input as any, { ...init, headers });
-    }
   }
 });
