@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { InventoryManagement } from "@/components/fleet/InventoryManagement";
 import { RiderManagement } from "@/components/fleet/RiderManagement";
 import { PaymentTracking } from "@/components/fleet/PaymentTracking";
+import { ConnectionTest } from "@/components/debug/ConnectionTest";
 import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt } from "lucide-react";
 import { 
   Sidebar, 
@@ -171,6 +172,7 @@ const Index = () => {
             <div className="w-full">
               {activeTab === "inventory" && (
                 <div className="space-y-4">
+                  <ConnectionTest />
                   <InventoryManagement />
                 </div>
               )}
