@@ -33,9 +33,9 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-background">
-        <Sidebar className="w-64 bg-sidebar border-r border-sidebar-border shrink-0">
-          <SidebarContent className="bg-sidebar">
+      <div className="min-h-screen flex w-full bg-background">
+        <Sidebar className="w-64 shrink-0">
+          <SidebarContent>
             {/* Sidebar Header */}
             <div className="p-4 border-b border-sidebar-border">
               <h2 className="text-lg font-semibold text-sidebar-foreground">Fleet Management</h2>
@@ -96,7 +96,7 @@ const Index = () => {
           </SidebarContent>
         </Sidebar>
         
-        <div className="flex-1 flex flex-col min-w-0">
+        <main className="flex-1 min-w-0 flex flex-col">
           {/* Header */}
           <header className="border-b bg-card p-4 shrink-0">
             <div className="flex items-center justify-between">
@@ -113,7 +113,7 @@ const Index = () => {
 
           {/* Dashboard Overview */}
           <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 w-full max-w-none">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
@@ -168,7 +168,7 @@ const Index = () => {
               </div>
 
             {/* Main Content */}
-            <div className="w-full max-w-none">
+            <div className="w-full">
               {activeTab === "inventory" && (
                 <div className="space-y-4">
                   <InventoryManagement />
@@ -188,7 +188,7 @@ const Index = () => {
               )}
             </div>
           </div>
-        </div>
+        </main>
       </div>
     </SidebarProvider>
   );
