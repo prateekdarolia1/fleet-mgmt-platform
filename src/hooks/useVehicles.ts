@@ -37,13 +37,18 @@ export const useVehicles = () => {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
+      console.log('Starting to fetch vehicles...');
+      
       const { data, error } = await supabase
         .from('vehicles')
         .select('*')
         .order('created_at', { ascending: false });
 
+      console.log('Supabase response:', { data, error });
+      
       if (error) throw error;
       setVehicles(data || []);
+      console.log('Successfully fetched vehicles:', data?.length || 0);
     } catch (err) {
       console.error('Error fetching vehicles:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
