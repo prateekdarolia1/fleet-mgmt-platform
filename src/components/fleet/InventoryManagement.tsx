@@ -27,6 +27,7 @@ interface VehicleFormData {
   portable_charger_received: boolean;
   vehicle_type: 'High Speed' | 'Low Speed';
   battery_type: 'Fixed' | 'Swappable';
+  vehicle_number: string;
 }
 
 export const InventoryManagement = () => {
@@ -289,6 +290,42 @@ export const InventoryManagement = () => {
                         </FormItem>
                       )}
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="vehicle_number"
+                      rules={{ 
+                        required: "Vehicle Registration Number is required",
+                        maxLength: {
+                          value: 12,
+                          message: "Maximum 12 characters allowed"
+                        },
+                        pattern: {
+                          value: /^[A-Z0-9]*$/,
+                          message: "Only uppercase letters and numbers allowed"
+                        }
+                      }}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vehicle Registration Number</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="e.g., MH12AB1234" 
+                              maxLength={12}
+                              {...field} 
+                              onChange={(e) => {
+                                const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                field.onChange(value);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div></div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
