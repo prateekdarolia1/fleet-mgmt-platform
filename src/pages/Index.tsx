@@ -34,7 +34,7 @@ const Index = () => {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <Sidebar className="w-64 shrink-0">
+        <Sidebar className="w-64 shrink-0 relative z-10 border-r border-sidebar-border">
           <SidebarContent>
             {/* Sidebar Header */}
             <div className="p-4 border-b border-sidebar-border">
@@ -96,7 +96,7 @@ const Index = () => {
           </SidebarContent>
         </Sidebar>
         
-        <main className="flex-1 min-w-0 flex flex-col">
+        <main className="flex-1 min-w-0 flex flex-col relative z-0">
           {/* Header */}
           <header className="border-b bg-card p-4 shrink-0">
             <div className="flex items-center justify-between">
