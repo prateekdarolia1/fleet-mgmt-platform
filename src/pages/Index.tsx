@@ -33,88 +33,87 @@ const Index = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full bg-background">
-        <div className="flex min-h-screen w-full">
-          <Sidebar className="w-64 bg-sidebar border-r border-sidebar-border">
-            <SidebarContent className="bg-sidebar">
-              {/* Sidebar Header */}
-              <div className="p-4 border-b border-sidebar-border">
-                <h2 className="text-lg font-semibold text-sidebar-foreground">Fleet Management</h2>
-                <p className="text-sm text-sidebar-foreground/70 mt-1">EV Rental Business</p>
+      <div className="flex min-h-screen w-full bg-background">
+        <Sidebar className="w-64 bg-sidebar border-r border-sidebar-border shrink-0">
+          <SidebarContent className="bg-sidebar">
+            {/* Sidebar Header */}
+            <div className="p-4 border-b border-sidebar-border">
+              <h2 className="text-lg font-semibold text-sidebar-foreground">Fleet Management</h2>
+              <p className="text-sm text-sidebar-foreground/70 mt-1">EV Rental Business</p>
+            </div>
+            
+            <SidebarGroup className="px-4 py-6">
+              <SidebarGroupContent>
+                <SidebarMenu className="space-y-2">
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveTab("inventory")}
+                      className={`
+                        w-full h-12 px-4 rounded-lg transition-all duration-200 
+                        ${activeTab === "inventory" 
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                        }
+                      `}
+                    >
+                      <Package className="mr-3 h-5 w-5" />
+                      <span className="text-sm">Inventory Management</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveTab("riders")}
+                      className={`
+                        w-full h-12 px-4 rounded-lg transition-all duration-200 
+                        ${activeTab === "riders" 
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                        }
+                      `}
+                    >
+                      <UserCheck className="mr-3 h-5 w-5" />
+                      <span className="text-sm">Rider Management</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveTab("payments")}
+                      className={`
+                        w-full h-12 px-4 rounded-lg transition-all duration-200 
+                        ${activeTab === "payments" 
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                        }
+                      `}
+                    >
+                      <Receipt className="mr-3 h-5 w-5" />
+                      <span className="text-sm">Payment Tracking</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
+        
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Header */}
+          <header className="border-b bg-card p-4 shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex flex-col">
+                <h1 className="text-2xl font-bold text-foreground">Fleet Management</h1>
+                <p className="text-muted-foreground text-sm mt-1">EV Rental Business Dashboard</p>
               </div>
-              
-              <SidebarGroup className="px-4 py-6">
-                <SidebarGroupContent>
-                  <SidebarMenu className="space-y-2">
-                    <SidebarMenuItem>
-                      <SidebarMenuButton 
-                        onClick={() => setActiveTab("inventory")}
-                        className={`
-                          w-full h-12 px-4 rounded-lg transition-all duration-200 
-                          ${activeTab === "inventory" 
-                            ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                          }
-                        `}
-                      >
-                        <Package className="mr-3 h-5 w-5" />
-                        <span className="text-sm">Inventory Management</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton 
-                        onClick={() => setActiveTab("riders")}
-                        className={`
-                          w-full h-12 px-4 rounded-lg transition-all duration-200 
-                          ${activeTab === "riders" 
-                            ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                          }
-                        `}
-                      >
-                        <UserCheck className="mr-3 h-5 w-5" />
-                        <span className="text-sm">Rider Management</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton 
-                        onClick={() => setActiveTab("payments")}
-                        className={`
-                          w-full h-12 px-4 rounded-lg transition-all duration-200 
-                          ${activeTab === "payments" 
-                            ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                          }
-                        `}
-                      >
-                        <Receipt className="mr-3 h-5 w-5" />
-                        <span className="text-sm">Payment Tracking</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              </SidebarGroup>
-            </SidebarContent>
-          </Sidebar>
-          
-          <div className="flex-1 flex flex-col">
-            {/* Header */}
-            <header className="border-b bg-card p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col">
-                  <h1 className="text-2xl font-bold text-foreground">Fleet Management</h1>
-                  <p className="text-muted-foreground text-sm mt-1">EV Rental Business Dashboard</p>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Badge variant="secondary" className="hidden sm:inline-flex">Single City</Badge>
-                  <Badge variant="outline" className="hidden sm:inline-flex">B2B Focused</Badge>
-                </div>
+              <div className="flex items-center space-x-3">
+                <Badge variant="secondary" className="hidden sm:inline-flex">Single City</Badge>
+                <Badge variant="outline" className="hidden sm:inline-flex">B2B Focused</Badge>
               </div>
-            </header>
+            </div>
+          </header>
 
-            {/* Dashboard Overview */}
-            <div className="flex-1 p-4 sm:p-6 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Dashboard Overview */}
+          <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 w-full max-w-none">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
@@ -168,26 +167,25 @@ const Index = () => {
                 </Card>
               </div>
 
-              {/* Main Content */}
-              <div className="w-full">
-                {activeTab === "inventory" && (
-                  <div className="space-y-4">
-                    <InventoryManagement />
-                  </div>
-                )}
-                
-                {activeTab === "riders" && (
-                  <div className="space-y-4">
-                    <RiderManagement />
-                  </div>
-                )}
-                
-                {activeTab === "payments" && (
-                  <div className="space-y-4">
-                    <PaymentTracking />
-                  </div>
-                )}
-              </div>
+            {/* Main Content */}
+            <div className="w-full max-w-none">
+              {activeTab === "inventory" && (
+                <div className="space-y-4">
+                  <InventoryManagement />
+                </div>
+              )}
+              
+              {activeTab === "riders" && (
+                <div className="space-y-4">
+                  <RiderManagement />
+                </div>
+              )}
+              
+              {activeTab === "payments" && (
+                <div className="space-y-4">
+                  <PaymentTracking />
+                </div>
+              )}
             </div>
           </div>
         </div>
