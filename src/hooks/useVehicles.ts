@@ -66,28 +66,13 @@ export const useVehicles = () => {
     portable_charger_received: boolean;
     vehicle_type: 'High Speed' | 'Low Speed';
     battery_type: 'Fixed' | 'Swappable';
+    vehicle_number: string;
   }) => {
     try {
-      // Generate vehicle number
-      const { data: existingVehicles } = await supabase
-        .from('vehicles')
-        .select('vehicle_number')
-        .like('vehicle_number', 'LP-01-%');
-
-      const existingNumbers = (existingVehicles || [])
-        .map(v => v.vehicle_number)
-        .filter(num => num.startsWith('LP-01-'))
-        .map(num => parseInt(num.split('-')[2]))
-        .filter(num => !isNaN(num));
-
-      const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-      const vehicleNumber = `LP-01-${nextNumber.toString().padStart(4, '0')}`;
-
       const { data, error } = await supabase
         .from('vehicles')
         .insert([{
           ...vehicleData,
-          vehicle_number: vehicleNumber,
           status: 'Ready for Deployment' as const,
           next_maintenance_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
         }])
@@ -97,7 +82,7 @@ export const useVehicles = () => {
       if (error) throw error;
 
       setVehicles(prev => [data, ...prev]);
-      toast.success(`Vehicle ${vehicleNumber} added successfully!`);
+      toast.success(`Vehicle ${vehicleData.vehicle_number} added successfully!`);
       return data;
     } catch (err) {
       console.error('Error adding vehicle:', err);
