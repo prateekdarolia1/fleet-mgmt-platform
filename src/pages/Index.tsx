@@ -113,7 +113,7 @@ const Index = () => {
 
           {/* Dashboard Overview */}
           <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 w-full max-w-screen-2xl mx-auto">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
