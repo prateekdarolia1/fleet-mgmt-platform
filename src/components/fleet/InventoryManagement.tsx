@@ -371,6 +371,7 @@ export const InventoryManagement = () => {
                                 <SelectItem value="Vaibhav">Vaibhav</SelectItem>
                                 <SelectItem value="Shubham">Shubham</SelectItem>
                                 <SelectItem value="Other">Other</SelectItem>
+                                <SelectItem value="NA">NA</SelectItem>
                               </SelectContent>
                             </Select>
                           </FormControl>
