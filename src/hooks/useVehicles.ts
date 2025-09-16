@@ -37,20 +37,137 @@ export const useVehicles = () => {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-      console.log('Starting to fetch vehicles...');
+      console.log('Loading dummy vehicles...');
       
-      const { data, error } = await supabase
-        .from('vehicles')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      console.log('Supabase response:', { data, error });
+      // Dummy vehicle data for demonstration
+      const dummyVehicles: Vehicle[] = [
+        {
+          id: '1',
+          vehicle_number: 'MH12AB1234',
+          make: 'EBlu',
+          model: 'Feo',
+          color: 'Black',
+          chassis_number: 'CH123456789',
+          motor_serial_number: 'MS987654321',
+          delivery_date: '2024-01-15',
+          vendor: 'TechnoElectric Mobility',
+          pdi_done_by: 'John Smith',
+          registration_received: true,
+          insurance_received: true,
+          portable_charger_received: true,
+          vehicle_type: 'High Speed',
+          battery_type: 'Swappable',
+          status: 'Deployed',
+          rider_id: 'rider_001',
+          rider_name: 'Rajesh Kumar',
+          rental_start_date: '2024-02-01',
+          rental_end_date: '2024-03-01',
+          next_maintenance_date: '2024-03-15',
+          location: 'Zone A - Central Mumbai',
+          created_at: '2024-01-15T10:00:00Z',
+          updated_at: '2024-02-01T10:00:00Z'
+        },
+        {
+          id: '2',
+          vehicle_number: 'MH12CD5678',
+          make: 'Evolet',
+          model: 'Polo',
+          color: 'White',
+          chassis_number: 'CH987654321',
+          motor_serial_number: 'MS123456789',
+          delivery_date: '2024-01-20',
+          vendor: 'GreenTech Solutions',
+          pdi_done_by: 'Sarah Johnson',
+          registration_received: true,
+          insurance_received: false,
+          portable_charger_received: true,
+          vehicle_type: 'Low Speed',
+          battery_type: 'Fixed',
+          status: 'Ready for Deployment',
+          next_maintenance_date: '2024-03-20',
+          location: 'Zone B - Andheri',
+          created_at: '2024-01-20T10:00:00Z',
+          updated_at: '2024-01-20T10:00:00Z'
+        },
+        {
+          id: '3',
+          vehicle_number: 'MH12EF9012',
+          make: 'IntuitEV',
+          model: 'BanaEV',
+          color: 'Blue',
+          chassis_number: 'CH555666777',
+          motor_serial_number: 'MS111222333',
+          delivery_date: '2024-01-25',
+          vendor: 'EcoRide Motors',
+          pdi_done_by: 'Mike Wilson',
+          registration_received: false,
+          insurance_received: true,
+          portable_charger_received: false,
+          vehicle_type: 'High Speed',
+          battery_type: 'Swappable',
+          status: 'Under Maintenance',
+          next_maintenance_date: '2024-02-25',
+          location: 'Zone C - Bandra',
+          created_at: '2024-01-25T10:00:00Z',
+          updated_at: '2024-02-10T10:00:00Z'
+        },
+        {
+          id: '4',
+          vehicle_number: 'MH12GH3456',
+          make: 'EBlu',
+          model: 'Feo',
+          color: 'Maroon',
+          chassis_number: 'CH444555666',
+          motor_serial_number: 'MS777888999',
+          delivery_date: '2024-02-01',
+          vendor: 'TechnoElectric Mobility',
+          pdi_done_by: 'Emily Davis',
+          registration_received: true,
+          insurance_received: true,
+          portable_charger_received: true,
+          vehicle_type: 'Low Speed',
+          battery_type: 'Fixed',
+          status: 'Deployed',
+          rider_id: 'rider_002',
+          rider_name: 'Priya Sharma',
+          rental_start_date: '2024-02-10',
+          rental_end_date: '2024-03-10',
+          next_maintenance_date: '2024-04-01',
+          location: 'Zone D - Powai',
+          created_at: '2024-02-01T10:00:00Z',
+          updated_at: '2024-02-10T10:00:00Z'
+        },
+        {
+          id: '5',
+          vehicle_number: 'MH12IJ7890',
+          make: 'Evolet',
+          model: 'Polo',
+          color: 'Black',
+          chassis_number: 'CH333444555',
+          motor_serial_number: 'MS666777888',
+          delivery_date: '2024-02-05',
+          vendor: 'GreenTech Solutions',
+          pdi_done_by: 'Robert Brown',
+          registration_received: true,
+          insurance_received: true,
+          portable_charger_received: true,
+          vehicle_type: 'High Speed',
+          battery_type: 'Swappable',
+          status: 'Ready for Deployment',
+          next_maintenance_date: '2024-04-05',
+          location: 'Zone E - Thane',
+          created_at: '2024-02-05T10:00:00Z',
+          updated_at: '2024-02-05T10:00:00Z'
+        }
+      ];
       
-      if (error) throw error;
-      setVehicles(data || []);
-      console.log('Successfully fetched vehicles:', data?.length || 0);
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      setVehicles(dummyVehicles);
+      console.log('Successfully loaded dummy vehicles:', dummyVehicles.length);
     } catch (err) {
-      console.error('Error fetching vehicles:', err);
+      console.error('Error loading vehicles:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
