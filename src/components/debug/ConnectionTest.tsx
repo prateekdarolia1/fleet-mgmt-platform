@@ -1,17 +1,19 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { Activity } from 'lucide-react';
 
 const SUPABASE_URL = 'https://kkxxnpfwvlbsqvmbirqa.supabase.co';
 
 export const ConnectionTest = () => {
   const [testResult, setTestResult] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [showResult, setShowResult] = useState(false);
 
   const testConnection = async () => {
     setLoading(true);
     setTestResult('');
+    setShowResult(true);
     
     try {
       console.log('Running connectivity diagnostics...');
@@ -52,21 +54,30 @@ export const ConnectionTest = () => {
       setLoading(false);
     }
   };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Supabase Connection Test</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <Button onClick={testConnection} disabled={loading}>
-          {loading ? 'Testing...' : 'Test Connection'}
-        </Button>
-        {testResult && (
-          <div className="p-3 bg-muted rounded-md text-sm font-mono">
-            {testResult}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div className="relative">
+      <Button 
+        onClick={testConnection} 
+        disabled={loading}
+        size="sm"
+        variant="outline"
+        className="gap-2"
+      >
+        <Activity className="h-4 w-4" />
+        {loading ? 'Testing...' : 'Test DB'}
+      </Button>
+      {showResult && testResult && (
+        <div className="absolute top-full right-0 mt-2 p-3 bg-background border rounded-md text-xs font-mono w-80 max-w-sm shadow-lg z-50">
+          <button 
+            onClick={() => setShowResult(false)}
+            className="absolute top-1 right-1 text-muted-foreground hover:text-foreground"
+          >
+            ×
+          </button>
+          {testResult}
+        </div>
+      )}
+    </div>
   );
 };

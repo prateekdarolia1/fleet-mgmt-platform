@@ -108,6 +108,7 @@ const Index = () => {
               <div className="flex items-center space-x-3">
                 <Badge variant="secondary" className="hidden sm:inline-flex">Single City</Badge>
                 <Badge variant="outline" className="hidden sm:inline-flex">B2B Focused</Badge>
+                <ConnectionTest />
               </div>
             </div>
           </header>
@@ -172,7 +173,6 @@ const Index = () => {
             <div className="w-full">
               {activeTab === "inventory" && (
                 <div className="space-y-4">
-                  <ConnectionTest />
                   <InventoryManagement />
                 </div>
               )}
