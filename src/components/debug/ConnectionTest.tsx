@@ -1,3 +1,8 @@
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Activity } from 'lucide-react';
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 export const ConnectionTest = () => {
