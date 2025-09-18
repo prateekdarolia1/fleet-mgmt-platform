@@ -34,7 +34,8 @@ const Login = () => {
       const newFailedAttempts = failedAttempts + 1;
       setFailedAttempts(newFailedAttempts);
       
-      if (newFailedAttempts >= 5 && import.meta.env.DEV) {
+      // Show bypass after 5 failed attempts in development
+      if (newFailedAttempts >= 5) {
         setShowBypass(true);
       }
       
@@ -42,6 +43,18 @@ const Login = () => {
         title: "Sign in failed",
         description: result.error.message,
         variant: "destructive",
+      });
+    }
+    setIsLoading(false);
+  };
+
+  const handleCreateAdmin = async () => {
+    setIsLoading(true);
+    const result = await signUp(email, password, 'Prateek', 'Admin');
+    if (!result.error) {
+      toast({
+        title: "Admin account created!",
+        description: "You can now sign in with these credentials.",
       });
     }
     setIsLoading(false);
@@ -87,11 +100,30 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {/* Admin Setup */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-center gap-2 text-blue-800 text-sm mb-2">
+              <Shield className="h-4 w-4" />
+              First Time Setup
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCreateAdmin}
+              disabled={isLoading}
+              className="w-full text-blue-700 border-blue-300 hover:bg-blue-100"
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Create Admin Account
+            </Button>
+          </div>
+
+          {/* Development Bypass */}
           {showBypass && (
             <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
               <div className="flex items-center gap-2 text-amber-800 text-sm mb-2">
                 <Bug className="h-4 w-4" />
-                Development Mode
+                Development Bypass ({failedAttempts}/5 attempts)
               </div>
               <Button
                 variant="outline"
@@ -99,7 +131,7 @@ const Login = () => {
                 onClick={handleDevBypass}
                 className="w-full text-amber-700 border-amber-300 hover:bg-amber-100"
               >
-                Bypass Authentication (Dev Only)
+                Skip Authentication
               </Button>
             </div>
           )}
