@@ -13,8 +13,8 @@ const Login = () => {
   const { user, loading, signIn, signUp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('test@example.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('prateek@lilypad.co.in');
+  const [password, setPassword] = useState('Lilypad@123');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
