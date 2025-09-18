@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { InventoryManagement } from "@/components/fleet/InventoryManagement";
 import { RiderManagement } from "@/components/fleet/RiderManagement";
 import { PaymentTracking } from "@/components/fleet/PaymentTracking";
 import UserManagement from "@/components/admin/UserManagement";
 import { ConnectionTest } from "@/components/debug/ConnectionTest";
-import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Navigate } from "react-router-dom";
+import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield, LogOut, Loader2 } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -19,7 +22,26 @@ import {
 } from "@/components/ui/sidebar";
 
 const Index = () => {
+  const { user, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("inventory");
+
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   // Mock data for dashboard overview
   const overviewStats = {
@@ -131,6 +153,10 @@ const Index = () => {
                 <Badge variant="secondary" className="hidden sm:inline-flex">Single City</Badge>
                 <Badge variant="outline" className="hidden sm:inline-flex">B2B Focused</Badge>
                 <ConnectionTest />
+                <Button variant="outline" size="sm" onClick={handleSignOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
               </div>
             </div>
           </header>

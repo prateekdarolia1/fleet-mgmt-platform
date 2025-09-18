@@ -1,20 +1,25 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
-import { Loader2, Shield } from 'lucide-react';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { Loader2, Shield, Bug } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
   const { user, loading, signIn, signUp } = useAuth();
-  const [email, setEmail] = useState('prateek@lilypad.co.in');
-  const [password, setPassword] = useState('Lilypad@123');
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('test@example.com');
+  const [password, setPassword] = useState('password123');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [showBypass, setShowBypass] = useState(false);
 
   // Redirect if already logged in
   if (!loading && user) {
@@ -24,15 +29,41 @@ const Login = () => {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await signIn(email, password);
+    const result = await signIn(email, password);
+    if (result.error) {
+      const newFailedAttempts = failedAttempts + 1;
+      setFailedAttempts(newFailedAttempts);
+      
+      if (newFailedAttempts >= 5 && import.meta.env.DEV) {
+        setShowBypass(true);
+      }
+      
+      toast({
+        title: "Sign in failed",
+        description: result.error.message,
+        variant: "destructive",
+      });
+    }
     setIsLoading(false);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    await signUp(email, password, firstName, lastName);
+    const result = await signUp(email, password, firstName, lastName);
+    if (result.error) {
+      toast({
+        title: "Sign up failed",
+        description: result.error.message,
+        variant: "destructive",
+      });
+    }
     setIsLoading(false);
+  };
+
+  const handleDevBypass = () => {
+    // In development, bypass authentication
+    navigate('/');
   };
 
   if (loading) {
@@ -56,6 +87,23 @@ const Login = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {showBypass && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+              <div className="flex items-center gap-2 text-amber-800 text-sm mb-2">
+                <Bug className="h-4 w-4" />
+                Development Mode
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDevBypass}
+                className="w-full text-amber-700 border-amber-300 hover:bg-amber-100"
+              >
+                Bypass Authentication (Dev Only)
+              </Button>
+            </div>
+          )}
+          
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
