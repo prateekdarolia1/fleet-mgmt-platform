@@ -9,6 +9,7 @@ interface AuthContextType {
   userRole: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error?: any }>;
+  signInWithOtp: (email: string) => Promise<{ error?: any }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error?: any }>;
   signOut: () => Promise<void>;
 }
@@ -106,6 +107,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const signInWithOtp = async (email: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/` }
+      });
+
+      if (error) {
+        toast({ title: "Magic link error", description: error.message, variant: "destructive" });
+        return { error };
+      }
+
+      toast({ title: "Magic link sent", description: "Check your email to continue." });
+      return {};
+    } catch (err) {
+      console.error('Magic link error:', err);
+      return { error: err };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
       setLoading(true);
@@ -168,6 +192,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     userRole,
     loading,
     signIn,
+    signInWithOtp,
     signUp,
     signOut,
   };

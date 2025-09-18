@@ -10,7 +10,7 @@ import { Loader2, Shield, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const Login = () => {
-  const { user, loading, signIn, signUp } = useAuth();
+  const { user, loading, signIn, signUp, signInWithOtp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [email, setEmail] = useState('prateek@lilypad.co.in');
@@ -35,7 +35,7 @@ const Login = () => {
       setFailedAttempts(newFailedAttempts);
       
       // Show bypass after 5 failed attempts in development
-      if (newFailedAttempts >= 5) {
+      if (newFailedAttempts >= 5 && import.meta.env.DEV) {
         setShowBypass(true);
       }
       
@@ -70,6 +70,16 @@ const Login = () => {
         description: result.error.message,
         variant: "destructive",
       });
+    }
+    setIsLoading(false);
+  };
+
+  const handleMagicLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const result = await signInWithOtp(email);
+    if (!result.error) {
+      toast({ title: 'Magic link sent', description: 'Check your inbox and follow the link.' });
     }
     setIsLoading(false);
   };
@@ -136,12 +146,33 @@ const Login = () => {
             </div>
           )}
           
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
+          <Tabs defaultValue="magic" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="magic">Magic Link</TabsTrigger>
+              <TabsTrigger value="signin">Password</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
             
+            <TabsContent value="magic">
+              <form onSubmit={handleMagicLink} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="magic-email">Email</Label>
+                  <Input
+                    id="magic-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Send Magic Link
+                </Button>
+              </form>
+            </TabsContent>
+
             <TabsContent value="signin">
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div className="space-y-2">
