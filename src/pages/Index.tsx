@@ -1,15 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { InventoryManagement } from "@/components/fleet/InventoryManagement";
 import { RiderManagement } from "@/components/fleet/RiderManagement";
 import { PaymentTracking } from "@/components/fleet/PaymentTracking";
 import UserManagement from "@/components/admin/UserManagement";
 import { ConnectionTest } from "@/components/debug/ConnectionTest";
-import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router-dom";
-import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield, LogOut, Loader2 } from "lucide-react";
+import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -22,45 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 
 const Index = () => {
-  const { user, userRole, loading, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState("inventory");
-
-  // Redirect to login if not authenticated
-  if (!loading && !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // Show loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  // Check if user has admin/super_admin role
-  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>
-              You need admin privileges to access this dashboard.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={signOut} className="w-full">
-              Sign Out
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   // Mock data for dashboard overview
   const overviewStats = {
@@ -151,25 +110,10 @@ const Index = () => {
               </SidebarGroupContent>
             </SidebarGroup>
             
-            {/* User Info & Logout */}
+            {/* User Info removed - no authentication */}
             <div className="mt-auto p-4 border-t border-sidebar-border">
-              <div className="space-y-2">
-                <div className="text-sm text-sidebar-foreground/70">
-                  Logged in as {user?.email}
-                </div>
-                <div className="flex items-center justify-between">
-                  <Badge variant={userRole === 'super_admin' ? 'destructive' : 'default'}>
-                    {userRole?.replace('_', ' ').toUpperCase()}
-                  </Badge>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={signOut}
-                    className="text-sidebar-foreground hover:text-sidebar-accent-foreground"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </div>
+              <div className="text-sm text-sidebar-foreground/70">
+                Fleet Management Dashboard
               </div>
             </div>
           </SidebarContent>
