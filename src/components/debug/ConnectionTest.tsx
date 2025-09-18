@@ -29,17 +29,77 @@ export const ConnectionTest = () => {
         supabaseDomainOk = res.ok || true;
       } catch (_) {}
 
-      const { error, count } = await supabase
+      // Test READ operation
+      const { data: readData, error: readError } = await supabase
         .from('vehicles')
-        .select('*', { count: 'exact', head: true });
+        .select('id, vehicle_number, status')
+        .limit(1);
+
+      if (readError) {
+        if (!mounted) return;
+        setTestResult(`Generic:${genericOk ? 'OK' : 'FAIL'} | Domain:${supabaseDomainOk ? 'OK' : 'FAIL'} | READ: ERROR - ${readError.message}`);
+        return;
+      }
+
+      // Test WRITE operations with a test vehicle
+      const testVehicle = {
+        make: 'TEST',
+        model: 'CONNECTION_TEST',
+        color: 'Test',
+        delivery_date: new Date().toISOString().split('T')[0],
+        vehicle_number: `TEST_${Date.now()}`,
+        chassis_number: `TEST_${Date.now()}`,
+        motor_serial_number: `TEST_${Date.now()}`,
+        vendor: 'Test Vendor',
+        pdi_done_by: 'Test',
+        vehicle_type: 'High Speed' as const,
+        battery_type: 'Fixed' as const,
+        next_maintenance_date: new Date().toISOString().split('T')[0]
+      };
+
+      // INSERT test
+      const { data: insertData, error: insertError } = await supabase
+        .from('vehicles')
+        .insert(testVehicle)
+        .select('id')
+        .single();
+
+      if (insertError) {
+        if (!mounted) return;
+        setTestResult(`Generic:${genericOk ? 'OK' : 'FAIL'} | Domain:${supabaseDomainOk ? 'OK' : 'FAIL'} | READ: OK | WRITE: ERROR - ${insertError.message}`);
+        return;
+      }
+
+      const testId = insertData.id;
+
+      // UPDATE test
+      const { error: updateError } = await supabase
+        .from('vehicles')
+        .update({ color: 'Updated Test Color' })
+        .eq('id', testId);
+
+      if (updateError) {
+        // Clean up the test record
+        await supabase.from('vehicles').delete().eq('id', testId);
+        if (!mounted) return;
+        setTestResult(`Generic:${genericOk ? 'OK' : 'FAIL'} | Domain:${supabaseDomainOk ? 'OK' : 'FAIL'} | READ: OK | INSERT: OK | UPDATE: ERROR - ${updateError.message}`);
+        return;
+      }
+
+      // DELETE test (cleanup)
+      const { error: deleteError } = await supabase
+        .from('vehicles')
+        .delete()
+        .eq('id', testId);
 
       if (!mounted) return;
 
-      if (error) {
-        setTestResult(`Generic:${genericOk ? 'OK' : 'FAIL'} | Supabase Domain:${supabaseDomainOk ? 'OK' : 'FAIL'} | DB: ERROR - ${error.message}`);
+      if (deleteError) {
+        setTestResult(`Generic:${genericOk ? 'OK' : 'FAIL'} | Domain:${supabaseDomainOk ? 'OK' : 'FAIL'} | READ: OK | INSERT: OK | UPDATE: OK | DELETE: ERROR - ${deleteError.message}`);
       } else {
-        setTestResult(`Generic:${genericOk ? 'OK' : 'FAIL'} | Supabase Domain:${supabaseDomainOk ? 'OK' : 'FAIL'} | DB: OK - ${count ?? 0} rows`);
+        setTestResult(`✅ All OK - Generic:${genericOk ? 'OK' : 'FAIL'} | Domain:${supabaseDomainOk ? 'OK' : 'FAIL'} | READ: OK | WRITE: OK (${readData?.length || 0} existing records)`);
       }
+
     } catch (error: unknown) {
       if (!mounted) return;
       setTestResult(`❌ Unexpected failure: ${error instanceof Error ? error.message : String(error)}`);
