@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, Shield, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AuthTester from '@/components/debug/AuthTester';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const { user, loading, signIn, signUp, signInWithOtp } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('prateek@lilypad.co.in');
   const [password, setPassword] = useState('Lilypad@123');
   const [firstName, setFirstName] = useState('');
@@ -21,6 +23,30 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showBypass, setShowBypass] = useState(false);
+
+  // Handle URL parameters for auth flows
+  useEffect(() => {
+    const type = searchParams.get('type');
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
+    
+    console.log('🔍 URL params detected:', { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+    
+    if (type === 'magiclink' && accessToken && refreshToken) {
+      console.log('🔗 Processing magic link login...');
+      toast({
+        title: "Magic link clicked!",
+        description: "Signing you in...",
+      });
+      // The auth state change will handle the rest
+    } else if (type === 'recovery' && accessToken && refreshToken) {
+      console.log('🔧 Processing password recovery...');
+      toast({
+        title: "Password reset link clicked!",
+        description: "You can now set a new password.",
+      });
+    }
+  }, [searchParams, toast]);
 
   // Redirect if already logged in
   if (!loading && user) {
@@ -50,14 +76,45 @@ const Login = () => {
   };
 
   const handleCreateAdmin = async () => {
+    console.log('🔧 Creating/Resetting admin account...');
     setIsLoading(true);
-    const result = await signUp(email, password, 'Prateek', 'Admin');
-    if (!result.error) {
+    
+    try {
+      // First try to reset password via admin API if user exists
+      const { data: resetData, error: resetError } = await supabase.auth.resetPasswordForEmail(
+        'prateek@lilypad.co.in',
+        { 
+          redirectTo: `${window.location.origin}/login?type=recovery`,
+        }
+      );
+      
+      if (!resetError) {
+        console.log('✅ Password reset email sent');
+        toast({
+          title: "Password Reset Sent",
+          description: "Check your email for password reset instructions.",
+          variant: "default",
+        });
+      } else {
+        console.log('⚠️ Reset failed, trying sign up:', resetError);
+        // If reset fails, try creating new account
+        const result = await signUp(email, password, 'Prateek', 'Admin');
+        if (!result.error) {
+          toast({
+            title: "Admin account created!",
+            description: "You can now sign in with these credentials.",
+          });
+        }
+      }
+    } catch (error) {
+      console.error('💥 Admin setup error:', error);
       toast({
-        title: "Admin account created!",
-        description: "You can now sign in with these credentials.",
+        title: "Setup Error",
+        description: "Failed to setup admin account. Try manual sign-up.",
+        variant: "destructive",
       });
     }
+    
     setIsLoading(false);
   };
 
@@ -113,22 +170,27 @@ const Login = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Admin Setup */}
+            {/* Admin Setup & Password Reset */}
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
               <div className="flex items-center gap-2 text-blue-800 text-sm mb-2">
                 <Shield className="h-4 w-4" />
-                First Time Setup
+                Admin Account Management
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleCreateAdmin}
-                disabled={isLoading}
-                className="w-full text-blue-700 border-blue-300 hover:bg-blue-100"
-              >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Admin Account
-              </Button>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCreateAdmin}
+                  disabled={isLoading}
+                  className="w-full text-blue-700 border-blue-300 hover:bg-blue-100"
+                >
+                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Reset Admin Password
+                </Button>
+                <p className="text-xs text-blue-600">
+                  Sends password reset email to prateek@lilypad.co.in
+                </p>
+              </div>
             </div>
 
             {/* Development Bypass */}

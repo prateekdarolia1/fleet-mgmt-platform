@@ -185,12 +185,18 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       setLoading(true);
       
-      const redirectTo = `${window.location.origin}/`;
+      // Use current page URL without query params for better redirect handling
+      const baseUrl = `${window.location.protocol}//${window.location.host}`;
+      const redirectTo = `${baseUrl}/login?type=magiclink`;
+      
       console.log('🔗 Magic link redirect URL:', redirectTo);
       
       const { data, error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: redirectTo }
+        options: { 
+          emailRedirectTo: redirectTo,
+          shouldCreateUser: true // Allow creating user if not exists
+        }
       });
 
       console.log('🔗 Magic link response:', { 
@@ -206,12 +212,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           name: error.name
         });
         
-        toast({ title: "Magic link error", description: error.message, variant: "destructive" });
+        toast({ 
+          title: "Magic link error", 
+          description: `${error.message}. Try password sign-in instead.`,
+          variant: "destructive" 
+        });
         return { error };
       }
 
       console.log('✅ Magic link sent successfully');
-      toast({ title: "Magic link sent", description: "Check your email to continue." });
+      toast({ 
+        title: "Magic link sent!", 
+        description: "Check your email. The link will open in the same window.",
+        duration: 6000
+      });
       return {};
     } catch (err) {
       console.error('💥 Magic link exception:', err);
