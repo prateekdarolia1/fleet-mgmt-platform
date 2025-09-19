@@ -74,8 +74,40 @@ export const InventoryManagement = () => {
       setShowConfirmation(false);
       setPendingVehicleData(null);
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding vehicle:', error);
+      setShowConfirmation(false);
+      
+      // Handle specific database constraint errors
+      if (error?.code === '23505') {
+        const details = error.details || '';
+        let errorMessage = 'This vehicle already exists in the system.';
+        
+        if (details.includes('chassis_number')) {
+          errorMessage = 'A vehicle with this chassis number already exists. Please check the chassis number and try again.';
+          form.setError('chassis_number', { 
+            type: 'manual', 
+            message: 'This chassis number is already registered' 
+          });
+        } else if (details.includes('vehicle_number')) {
+          errorMessage = 'A vehicle with this registration number already exists. Please check the vehicle number and try again.';
+          form.setError('vehicle_number', { 
+            type: 'manual', 
+            message: 'This vehicle number is already registered' 
+          });
+        } else if (details.includes('motor_serial_number')) {
+          errorMessage = 'A vehicle with this motor serial number already exists. Please check the motor serial number and try again.';
+          form.setError('motor_serial_number', { 
+            type: 'manual', 
+            message: 'This motor serial number is already registered' 
+          });
+        }
+        
+        // You can add a toast notification here if you have one available
+        alert(errorMessage);
+      } else {
+        alert('Failed to add vehicle. Please try again.');
+      }
     }
   };
 
@@ -115,8 +147,38 @@ export const InventoryManagement = () => {
       setIsEditVehicleOpen(false);
       setEditingVehicle(null);
       editForm.reset();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating vehicle:', error);
+      
+      // Handle specific database constraint errors
+      if (error?.code === '23505') {
+        const details = error.details || '';
+        let errorMessage = 'This vehicle information conflicts with an existing vehicle.';
+        
+        if (details.includes('chassis_number')) {
+          errorMessage = 'A vehicle with this chassis number already exists. Please check the chassis number and try again.';
+          editForm.setError('chassis_number', { 
+            type: 'manual', 
+            message: 'This chassis number is already registered' 
+          });
+        } else if (details.includes('vehicle_number')) {
+          errorMessage = 'A vehicle with this registration number already exists. Please check the vehicle number and try again.';
+          editForm.setError('vehicle_number', { 
+            type: 'manual', 
+            message: 'This vehicle number is already registered' 
+          });
+        } else if (details.includes('motor_serial_number')) {
+          errorMessage = 'A vehicle with this motor serial number already exists. Please check the motor serial number and try again.';
+          editForm.setError('motor_serial_number', { 
+            type: 'manual', 
+            message: 'This motor serial number is already registered' 
+          });
+        }
+        
+        alert(errorMessage);
+      } else {
+        alert('Failed to update vehicle. Please try again.');
+      }
     }
   };
 
