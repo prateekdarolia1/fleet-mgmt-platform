@@ -28,16 +28,36 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     let mounted = true;
+    
+    console.log('🚀 AuthProvider initializing...', {
+      timestamp: new Date().toISOString(),
+      currentURL: window.location.href,
+      userAgent: navigator.userAgent
+    });
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!mounted) return;
+        console.log('🔄 Auth state change detected:', { 
+          event, 
+          hasSession: !!session,
+          hasUser: !!session?.user,
+          userId: session?.user?.id,
+          userEmail: session?.user?.email,
+          timestamp: new Date().toISOString()
+        });
+        
+        if (!mounted) {
+          console.log('⚠️ Component unmounted, ignoring auth state change');
+          return;
+        }
         
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          console.log('👤 User authenticated, fetching role...', { userId: session.user.id });
+          
           // Fetch user role
           setTimeout(async () => {
             try {
@@ -47,14 +67,24 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 .eq('user_id', session.user.id)
                 .single();
 
+              console.log('🎭 User role query result:', { 
+                roleData, 
+                error: error?.message,
+                userId: session.user.id
+              });
+
               if (!error && roleData && mounted) {
                 setUserRole(roleData.role);
+                console.log('✅ User role set:', roleData.role);
+              } else if (error) {
+                console.error('❌ Failed to fetch user role:', error);
               }
             } catch (err) {
-              console.error('Error fetching user role:', err);
+              console.error('💥 Exception fetching user role:', err);
             }
           }, 0);
         } else {
+          console.log('👤 No user session, clearing role');
           setUserRole(null);
         }
 
@@ -63,14 +93,26 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
+    console.log('🔍 Checking for existing session...');
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      console.log('🔍 Initial session check result:', { 
+        hasSession: !!session,
+        hasUser: !!session?.user,
+        error: error?.message
+      });
+      
+      if (!mounted) {
+        console.log('⚠️ Component unmounted during session check');
+        return;
+      }
+      
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     return () => {
+      console.log('🧹 AuthProvider cleanup');
       mounted = false;
       subscription.unsubscribe();
     };
@@ -78,13 +120,35 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log('🔐 Starting password sign-in process...', { 
+        email, 
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        currentURL: window.location.href
+      });
+      
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      console.log('🔐 Password sign-in response:', { 
+        hasData: !!data,
+        hasUser: !!data?.user,
+        hasSession: !!data?.session,
+        error: error?.message,
+        errorCode: error?.status
+      });
+
       if (error) {
+        console.error('🚨 Password sign-in failed:', { 
+          error: error.message,
+          status: error.status,
+          name: error.name
+        });
+        
         toast({
           title: "Login Failed",
           description: error.message,
@@ -93,6 +157,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error };
       }
 
+      console.log('✅ Password sign-in successful');
       toast({
         title: "Login Successful",
         description: "Welcome back!",
@@ -100,7 +165,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       return {};
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('💥 Password sign-in exception:', err);
       return { error: err };
     } finally {
       setLoading(false);
@@ -109,21 +174,47 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signInWithOtp = async (email: string) => {
     try {
+      console.log('🔗 Starting magic link sign-in process...', { 
+        email, 
+        timestamp: new Date().toISOString(),
+        currentURL: window.location.href,
+        origin: window.location.origin,
+        hostname: window.location.hostname,
+        protocol: window.location.protocol
+      });
+      
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOtp({
+      
+      const redirectTo = `${window.location.origin}/`;
+      console.log('🔗 Magic link redirect URL:', redirectTo);
+      
+      const { data, error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: `${window.location.origin}/` }
+        options: { emailRedirectTo: redirectTo }
+      });
+
+      console.log('🔗 Magic link response:', { 
+        hasData: !!data,
+        error: error?.message,
+        errorCode: error?.status
       });
 
       if (error) {
+        console.error('🚨 Magic link failed:', { 
+          error: error.message,
+          status: error.status,
+          name: error.name
+        });
+        
         toast({ title: "Magic link error", description: error.message, variant: "destructive" });
         return { error };
       }
 
+      console.log('✅ Magic link sent successfully');
       toast({ title: "Magic link sent", description: "Check your email to continue." });
       return {};
     } catch (err) {
-      console.error('Magic link error:', err);
+      console.error('💥 Magic link exception:', err);
       return { error: err };
     } finally {
       setLoading(false);
@@ -132,12 +223,25 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   const signUp = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
+      console.log('📝 Starting sign-up process...', { 
+        email, 
+        firstName,
+        lastName,
+        timestamp: new Date().toISOString(),
+        currentURL: window.location.href,
+        origin: window.location.origin
+      });
+      
       setLoading(true);
-      const { error } = await supabase.auth.signUp({
+      
+      const redirectTo = `${window.location.origin}/`;
+      console.log('📝 Sign-up redirect URL:', redirectTo);
+      
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: redirectTo,
           data: {
             first_name: firstName,
             last_name: lastName,
@@ -145,7 +249,22 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       });
 
+      console.log('📝 Sign-up response:', { 
+        hasData: !!data,
+        hasUser: !!data?.user,
+        hasSession: !!data?.session,
+        userConfirmed: data?.user?.email_confirmed_at,
+        error: error?.message,
+        errorCode: error?.status
+      });
+
       if (error) {
+        console.error('🚨 Sign-up failed:', { 
+          error: error.message,
+          status: error.status,
+          name: error.name
+        });
+        
         toast({
           title: "Registration Failed",
           description: error.message,
@@ -154,6 +273,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         return { error };
       }
 
+      console.log('✅ Sign-up successful');
       toast({
         title: "Registration Successful",
         description: "Please check your email to verify your account.",
@@ -161,7 +281,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
       return {};
     } catch (err) {
-      console.error('Registration error:', err);
+      console.error('💥 Sign-up exception:', err);
       return { error: err };
     } finally {
       setLoading(false);
