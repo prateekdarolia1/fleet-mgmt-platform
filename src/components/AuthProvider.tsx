@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useState, useEffect } from 'react';
+import { createContext, ReactNode, useState, useEffect, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -12,6 +12,8 @@ interface AuthContextType {
   signInWithOtp: (email: string) => Promise<{ error?: any }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error?: any }>;
   signOut: () => Promise<void>;
+  resetInactivityTimer: () => void;
+  isRlsLifted: () => boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,6 +27,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes (1800 seconds)
 
   useEffect(() => {
     let mounted = true;
@@ -307,6 +311,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const signOut = async () => {
     try {
       setLoading(true);
+      clearInactivityTimer();
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
@@ -322,6 +327,57 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
+  const clearInactivityTimer = () => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+  };
+
+  const resetInactivityTimer = () => {
+    clearInactivityTimer();
+    
+    if (user) {
+      inactivityTimerRef.current = setTimeout(() => {
+        console.log('⏰ Auto-logout due to inactivity');
+        toast({
+          title: "Session Expired",
+          description: "You have been logged out due to inactivity.",
+          variant: "destructive",
+        });
+        signOut();
+      }, INACTIVITY_TIMEOUT);
+    }
+  };
+
+  const isRlsLifted = () => {
+    return !!user; // RLS is lifted (full access) when user is authenticated
+  };
+
+  // Set up inactivity timer when user logs in
+  useEffect(() => {
+    if (user) {
+      resetInactivityTimer();
+      
+      // Reset timer on user activity
+      const handleActivity = () => resetInactivityTimer();
+      const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+      
+      events.forEach(event => {
+        document.addEventListener(event, handleActivity, { passive: true });
+      });
+      
+      return () => {
+        clearInactivityTimer();
+        events.forEach(event => {
+          document.removeEventListener(event, handleActivity);
+        });
+      };
+    } else {
+      clearInactivityTimer();
+    }
+  }, [user]);
+
   const authState = {
     user,
     session,
@@ -331,6 +387,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     signInWithOtp,
     signUp,
     signOut,
+    resetInactivityTimer,
+    isRlsLifted,
   };
 
   return (
