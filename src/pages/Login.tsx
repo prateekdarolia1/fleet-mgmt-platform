@@ -10,6 +10,7 @@ import { Loader2, Shield, Bug } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AuthTester from '@/components/debug/AuthTester';
 import { supabase } from '@/integrations/supabase/client';
+import { ResetPasswordCard } from '@/components/auth/ResetPasswordCard';
 
 const Login = () => {
   const { user, loading, signIn, signUp, signInWithOtp } = useAuth();
@@ -47,6 +48,57 @@ const Login = () => {
       });
     }
   }, [searchParams, toast]);
+
+  // Handle password recovery flow
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      console.log('🔑 Attempting password reset...', { email, timestamp: new Date().toISOString() });
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login?type=recovery`,
+      });
+
+      if (error) {
+        console.error('❌ Password reset error:', error);
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        console.log('✅ Password reset email sent');
+        toast({
+          title: "Password reset sent!",
+          description: "Check your email for the password reset link.",
+        });
+      }
+    } catch (err) {
+      console.error('❌ Password reset exception:', err);
+      toast({
+        title: "Error",
+        description: "Failed to send password reset email",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle password recovery flow
+  const type = searchParams.get('type');
+  if (type === 'recovery') {
+    return <ResetPasswordCard />;
+  }
 
   // Redirect if already logged in
   if (!loading && user) {
@@ -269,6 +321,15 @@ const Login = () => {
                   >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Sign In
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="link" 
+                    className="w-full text-sm" 
+                    onClick={handleForgotPassword}
+                    disabled={isLoading}
+                  >
+                    Forgot password?
                   </Button>
                 </form>
               </TabsContent>

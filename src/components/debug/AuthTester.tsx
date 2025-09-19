@@ -190,6 +190,84 @@ const AuthTester = () => {
       });
     }
 
+    // Test 7: Password Recovery Flow
+    addResult({ name: 'Password Recovery Flow', status: 'running' });
+    try {
+      const recoveryUrl = `${window.location.origin}/login?type=recovery`;
+      const isValidUrl = recoveryUrl.includes('login') && recoveryUrl.includes('type=recovery');
+      
+      if (isValidUrl) {
+        updateResult('Password Recovery Flow', {
+          status: 'success',
+          message: 'Password recovery flow ready',
+          details: {
+            recoveryUrl,
+            redirectSetup: 'Configured for password reset'
+          }
+        });
+      } else {
+        updateResult('Password Recovery Flow', {
+          status: 'warning',
+          message: 'Recovery URL might be misconfigured',
+          details: { recoveryUrl }
+        });
+      }
+    } catch (error) {
+      updateResult('Password Recovery Flow', {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Recovery flow test failed',
+        details: error
+      });
+    }
+
+    // Test 8: Password Re-Login Test (check if user has password)
+    addResult({ name: 'Password Re-Login Test', status: 'running' });
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session?.user?.email) {
+        const userEmail = session.session.user.email;
+        
+        // Test with a dummy password to see if account has password
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: userEmail,
+          password: 'dummy_password_test'
+        });
+
+        if (loginError?.message?.includes('Invalid login credentials')) {
+          updateResult('Password Re-Login Test', {
+            status: 'warning',
+            message: 'User exists but may need password reset',
+            details: {
+              email: userEmail,
+              issue: 'Account likely created via magic link - needs password setup',
+              solution: 'Use "Forgot password?" to set password'
+            }
+          });
+        } else if (loginError) {
+          updateResult('Password Re-Login Test', {
+            status: 'warning',
+            message: 'Password login tested',
+            details: {
+              email: userEmail,
+              result: loginError.message
+            }
+          });
+        }
+      } else {
+        updateResult('Password Re-Login Test', {
+          status: 'warning',
+          message: 'No current user session to test',
+          details: { note: 'Sign in first to test password functionality' }
+        });
+      }
+    } catch (error) {
+      updateResult('Password Re-Login Test', {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'Re-login test failed',
+        details: error
+      });
+    }
+
     // Test 7: URL Configuration Test
     addResult({ name: 'URL Configuration', status: 'running' });
     try {

@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('🔄 Auth state change detected:', { 
           event, 
           hasSession: !!session,
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         if (session?.user) {
           console.log('👤 User authenticated, fetching role...', { userId: session.user.id });
           
-          // Fetch user role
+          // Use setTimeout to defer Supabase calls and prevent deadlock
           setTimeout(async () => {
             try {
               const { data: roleData, error } = await supabase
@@ -78,9 +78,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 console.log('✅ User role set:', roleData.role);
               } else if (error) {
                 console.error('❌ Failed to fetch user role:', error);
+                setUserRole('user'); // default fallback
               }
             } catch (err) {
               console.error('💥 Exception fetching user role:', err);
+              setUserRole('user'); // default fallback
             }
           }, 0);
         } else {
