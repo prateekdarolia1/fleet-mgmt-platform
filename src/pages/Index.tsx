@@ -7,7 +7,8 @@ import { RiderManagement } from "@/components/fleet/RiderManagement";
 import { PaymentTracking } from "@/components/fleet/PaymentTracking";
 import UserManagement from "@/components/admin/UserManagement";
 import { ConnectionTest } from "@/components/debug/ConnectionTest";
-import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield } from "lucide-react";
+import { useVehicleStats } from "@/hooks/useVehicleStats";
+import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield, Wrench, CheckCircle2, Clock } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -21,17 +22,7 @@ import {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("inventory");
-
-  // Mock data for dashboard overview
-  const overviewStats = {
-    totalVehicles: 100,
-    activeRentals: 67,
-    availableVehicles: 33,
-    totalRiders: 245,
-    activeRiders: 67,
-    monthlyRevenue: 125000,
-    pendingPayments: 15
-  };
+  const { stats: vehicleStats, loading: statsLoading } = useVehicleStats();
 
   return (
     <SidebarProvider>
@@ -138,55 +129,83 @@ const Index = () => {
 
           {/* Dashboard Overview */}
           <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 w-full max-w-screen-2xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 w-full max-w-screen-2xl mx-auto">
+                {/* Card 1 - Total Vehicles */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
                     <Bike className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{overviewStats.totalVehicles}</div>
+                    <div className="text-2xl font-bold">
+                      {statsLoading ? "..." : vehicleStats.total.count}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      {overviewStats.availableVehicles} available
+                      {statsLoading ? "Loading..." : `${vehicleStats.total.lowSpeed} Low Speed • ${vehicleStats.total.highSpeed} High Speed`}
                     </p>
                   </CardContent>
                 </Card>
                 
+                {/* Card 2 - Deployed */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Deployed</CardTitle>
+                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {statsLoading ? "..." : vehicleStats.deployed.count}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {statsLoading ? "Loading..." : `${vehicleStats.deployed.lowSpeed} Low Speed • ${vehicleStats.deployed.highSpeed} High Speed`}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Card 3 - Ready for Deployment */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Ready for Deployment</CardTitle>
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {statsLoading ? "..." : vehicleStats.readyForDeployment.count}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {statsLoading ? "Loading..." : `${vehicleStats.readyForDeployment.lowSpeed} Low Speed • ${vehicleStats.readyForDeployment.highSpeed} High Speed`}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Card 4 - Under Maintenance */}
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Under Maintenance</CardTitle>
+                    <Wrench className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">
+                      {statsLoading ? "..." : vehicleStats.underMaintenance.count}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {statsLoading ? "Loading..." : `${vehicleStats.underMaintenance.lowSpeed} Low Speed • ${vehicleStats.underMaintenance.highSpeed} High Speed`}
+                    </p>
+                  </CardContent>
+                </Card>
+
+                {/* Card 5 - Active Rentals */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Active Rentals</CardTitle>
                     <Activity className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{overviewStats.activeRentals}</div>
+                    <div className="text-2xl font-bold">
+                      {statsLoading ? "..." : vehicleStats.activeRentals.count}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      {Math.round((overviewStats.activeRentals / overviewStats.totalVehicles) * 100)}% utilization
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Riders</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{overviewStats.totalRiders}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {overviewStats.activeRiders} currently active
-                    </p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
-                    <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">₹{overviewStats.monthlyRevenue.toLocaleString()}</div>
-                    <p className="text-xs text-muted-foreground">
-                      {overviewStats.pendingPayments} pending payments
+                      {statsLoading ? "Loading..." : `${vehicleStats.activeRentals.utilizationRate}% utilization`}
                     </p>
                   </CardContent>
                 </Card>
