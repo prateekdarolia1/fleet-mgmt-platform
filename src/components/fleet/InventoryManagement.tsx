@@ -147,7 +147,7 @@ export const InventoryManagement = () => {
 
   const getStatusBadge = (status: Vehicle['status']) => {
     if (status === 'Deployed') {
-      return <Badge variant="default">{status}</Badge>;
+      return <Badge variant="success">{status}</Badge>;
     }
     
     if (status === 'Ready for Deployment') {
