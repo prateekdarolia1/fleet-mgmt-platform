@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,9 +15,18 @@ interface TestResult {
 }
 
 const AuthTester = () => {
-  const { signIn, signUp, signInWithOtp } = useAuth();
+  const { signIn, signUp, signInWithOtp, user, session, loading } = useAuth();
   const [results, setResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+
+  // Auto-run test on component mount
+  useEffect(() => {
+    const autoTest = async () => {
+      console.log("🧪 AUTO-RUNNING LOGIN TEST WITH TRACE VERBOSITY");
+      await runTests();
+    };
+    autoTest();
+  }, []);
 
   const updateResult = (name: string, update: Partial<TestResult>) => {
     setResults(prev => 
@@ -37,273 +46,280 @@ const AuthTester = () => {
     setIsRunning(true);
     setResults([]);
     
-    console.log('🧪 Starting automated auth tests...');
+    console.log("🧪 === STARTING COMPREHENSIVE LOGIN TEST ===", {
+      timestamp: new Date().toISOString(),
+      testEmail: "prateek@lilypad.co.in",
+      testPassword: "Lilypad@123",
+      location: window.location.href,
+      userAgent: navigator.userAgent
+    });
 
-    // Test 1: Environment Check
-    addResult({ name: 'Environment Check', status: 'running' });
+    // Environment Check
+    addResult({ name: "Environment Check", status: "running" });
     try {
-      const envData = {
-        url: window.location.href,
-        origin: window.location.origin,
-        hostname: window.location.hostname,
-        protocol: window.location.protocol,
-        userAgent: navigator.userAgent,
-        isHTTPS: window.location.protocol === 'https:',
-        isLocalhost: window.location.hostname === 'localhost',
-        supabaseUrl: 'Connected to Supabase',
-        timestamp: new Date().toISOString()
-      };
+      const supabaseUrl = "https://kkxxnpfwvlbsqvmbirqa.supabase.co";
+      const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtreHhucGZ3dmxic3F2bWJpcnFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTczOTQ2MDYsImV4cCI6MjA3Mjk3MDYwNn0.Z5JrrxfynbUkuoImR5mFaI1tIERkRRzMqj3Ncp0e02Q";
       
-      console.log('🌍 Environment data:', envData);
-      
-      updateResult('Environment Check', {
-        status: 'success',
-        message: `${envData.protocol}//${envData.hostname}`,
-        details: envData
+      console.log("🔧 Environment details", {
+        supabaseUrl,
+        supabaseKeyLength: supabaseKey.length,
+        supabaseKeyPrefix: supabaseKey.substring(0, 20),
+        clientInstance: !!supabase,
+        authInstance: !!supabase.auth
       });
+
+      if (!supabaseUrl || !supabaseKey) {
+        updateResult("Environment Check", { 
+          status: "error", 
+          message: "Missing Supabase configuration", 
+          details: "SUPABASE_URL or SUPABASE_ANON_KEY not found"
+        });
+      } else {
+        updateResult("Environment Check", { 
+          status: "success", 
+          message: "Environment configuration valid", 
+          details: `URL: ${supabaseUrl}\nKey: ${supabaseKey.substring(0, 20)}...`
+        });
+      }
     } catch (error) {
-      updateResult('Environment Check', {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        details: error
+      console.error("🔧 Environment check error", error);
+      updateResult("Environment Check", { 
+        status: "error", 
+        message: `Environment check failed: ${error}`, 
+        details: error instanceof Error ? error.stack : 'Unknown error'
       });
     }
 
-    // Test 2: Supabase Connection
-    addResult({ name: 'Supabase Connection', status: 'running' });
+    // Supabase Connection Test
+    addResult({ name: "Supabase Connection", status: "running" });
     try {
+      console.log("🔗 Testing Supabase connection");
       const { data, error } = await supabase.auth.getSession();
       
-      if (error) throw error;
-      
-      updateResult('Supabase Connection', {
-        status: 'success',
-        message: 'Connected successfully',
-        details: { hasSession: !!data.session }
+      console.log("🔗 Connection test result", {
+        hasData: !!data,
+        hasSession: !!data?.session,
+        hasUser: !!data?.session?.user,
+        error: error ? {
+          message: error.message,
+          name: error.name,
+          status: error.status
+        } : null
       });
+
+      if (error) {
+        updateResult("Supabase Connection", { 
+          status: "error", 
+          message: `Connection failed: ${error.message}`, 
+          details: `Error details: ${JSON.stringify(error, null, 2)}`
+        });
+      } else {
+        updateResult("Supabase Connection", { 
+          status: "success", 
+          message: "Successfully connected to Supabase", 
+          details: `Session: ${data.session ? 'Active' : 'None'}\nUser: ${data.session?.user ? data.session.user.email : 'None'}`
+        });
+      }
     } catch (error) {
-      updateResult('Supabase Connection', {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Connection failed',
-        details: error
+      console.error("🔗 Connection test error", error);
+      updateResult("Supabase Connection", { 
+        status: "error", 
+        message: `Connection test failed: ${error}`, 
+        details: error instanceof Error ? error.stack : 'Unknown error'
       });
     }
 
-    // Test 3: Test Email Validity
-    addResult({ name: 'Test Email Validation', status: 'running' });
-    const testEmail = 'prateek@lilypad.co.in';
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Pre-Login State Check
+    addResult({ name: "Pre-Login State", status: "running" });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { data: userData } = await supabase.auth.getUser();
+      
+      console.log("🔍 Pre-login state", {
+        hasSession: !!sessionData?.session,
+        hasUser: !!userData?.user,
+        sessionUser: sessionData?.session?.user?.email,
+        directUser: userData?.user?.email,
+        authProviderUser: user?.email,
+        authProviderSession: !!session,
+        authProviderLoading: loading
+      });
+
+      updateResult("Pre-Login State", { 
+        status: "success", 
+        message: "Auth state checked", 
+        details: `Session: ${sessionData?.session ? 'Present' : 'None'}\nUser: ${userData?.user?.email || 'None'}\nProvider State: ${user?.email || 'None'}`
+      });
+    } catch (error) {
+      console.error("🔍 Pre-login state error", error);
+      updateResult("Pre-Login State", { 
+        status: "error", 
+        message: `State check failed: ${error}`, 
+        details: error instanceof Error ? error.stack : 'Unknown error'
+      });
+    }
+
+    // Direct Supabase Sign-In Test
+    addResult({ name: "Direct Supabase Sign-In", status: "running" });
+    const testEmail = "prateek@lilypad.co.in";
+    const testPassword = "Lilypad@123";
     
-    if (emailRegex.test(testEmail)) {
-      updateResult('Test Email Validation', {
-        status: 'success',
-        message: `Email ${testEmail} is valid`,
-        details: { email: testEmail }
-      });
-    } else {
-      updateResult('Test Email Validation', {
-        status: 'error',
-        message: `Email ${testEmail} is invalid`,
-        details: { email: testEmail }
-      });
-    }
-
-    // Test 4: Password Sign-In Test
-    addResult({ name: 'Password Sign-In Test', status: 'running' });
     try {
-      const result = await signIn('prateek@lilypad.co.in', 'Lilypad@123');
-      
-      if (result.error) {
-        updateResult('Password Sign-In Test', {
-          status: 'error',
-          message: result.error.message,
-          details: result.error
-        });
-      } else {
-        updateResult('Password Sign-In Test', {
-          status: 'success',
-          message: 'Sign-in successful',
-          details: result
-        });
-      }
-    } catch (error) {
-      updateResult('Password Sign-In Test', {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Sign-in failed',
-        details: error
+      console.log("🔐 DIRECT SUPABASE SIGN-IN ATTEMPT", {
+        email: testEmail,
+        passwordLength: testPassword.length,
+        timestamp: new Date().toISOString(),
+        method: 'supabase.auth.signInWithPassword'
       });
-    }
 
-    // Wait a bit before testing magic link (to avoid rate limiting)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Test 5: Magic Link Test
-    addResult({ name: 'Magic Link Test', status: 'running' });
-    try {
-      const result = await signInWithOtp('prateek@lilypad.co.in');
-      
-      if (result.error) {
-        updateResult('Magic Link Test', {
-          status: 'error',
-          message: result.error.message,
-          details: result.error
-        });
-      } else {
-        updateResult('Magic Link Test', {
-          status: 'success',
-          message: 'Magic link sent successfully',
-          details: result
-        });
-      }
-    } catch (error) {
-      updateResult('Magic Link Test', {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Magic link failed',
-        details: error
+      const startTime = Date.now();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword
       });
-    }
+      const endTime = Date.now();
 
-    // Test 6: Sign-Up Test (with unique email)
-    addResult({ name: 'Sign-Up Test', status: 'running' });
-    try {
-      const testSignupEmail = `test+${Date.now()}@lilypad.co.in`;
-      const result = await signUp(testSignupEmail, 'TestPassword123!', 'Test', 'User');
-      
-      if (result.error) {
-        updateResult('Sign-Up Test', {
-          status: 'error',
-          message: result.error.message,
-          details: result.error
-        });
-      } else {
-        updateResult('Sign-Up Test', {
-          status: 'success',
-          message: 'Sign-up successful',
-          details: { email: testSignupEmail }
-        });
-      }
-    } catch (error) {
-      updateResult('Sign-Up Test', {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Sign-up failed',
-        details: error
+      console.log("🔐 DIRECT SIGN-IN COMPLETE", {
+        duration: `${endTime - startTime}ms`,
+        hasData: !!data,
+        hasUser: !!data?.user,
+        hasSession: !!data?.session,
+        userId: data?.user?.id,
+        userEmail: data?.user?.email,
+        userConfirmedAt: data?.user?.email_confirmed_at,
+        userCreatedAt: data?.user?.created_at,
+        userLastSignIn: data?.user?.last_sign_in_at,
+        sessionAccessToken: data?.session?.access_token ? `${data.session.access_token.substring(0, 20)}...` : "missing",
+        sessionRefreshToken: data?.session?.refresh_token ? `${data.session.refresh_token.substring(0, 20)}...` : "missing",
+        sessionExpiresAt: data?.session?.expires_at,
+        sessionTokenType: data?.session?.token_type,
+        error: error ? {
+          message: error.message,
+          name: error.name,
+          status: error.status,
+          details: error
+        } : null
       });
-    }
 
-    // Test 7: Password Recovery Flow
-    addResult({ name: 'Password Recovery Flow', status: 'running' });
-    try {
-      const recoveryUrl = `${window.location.origin}/login?type=recovery`;
-      const isValidUrl = recoveryUrl.includes('login') && recoveryUrl.includes('type=recovery');
-      
-      if (isValidUrl) {
-        updateResult('Password Recovery Flow', {
-          status: 'success',
-          message: 'Password recovery flow ready',
-          details: {
-            recoveryUrl,
-            redirectSetup: 'Configured for password reset'
-          }
+      if (error) {
+        updateResult("Direct Supabase Sign-In", { 
+          status: "error", 
+          message: `❌ SIGN-IN FAILED: ${error.message}`, 
+          details: `Status: ${error.status}\nName: ${error.name}\nMessage: ${error.message}\nFull Error: ${JSON.stringify(error, null, 2)}`
         });
-      } else {
-        updateResult('Password Recovery Flow', {
-          status: 'warning',
-          message: 'Recovery URL might be misconfigured',
-          details: { recoveryUrl }
+      } else if (data.user && data.session) {
+        updateResult("Direct Supabase Sign-In", { 
+          status: "success", 
+          message: "✅ DIRECT SIGN-IN SUCCESSFUL", 
+          details: `✅ User ID: ${data.user.id}\n✅ Email: ${data.user.email}\n✅ Confirmed: ${data.user.email_confirmed_at ? 'Yes' : 'No'}\n✅ Last Sign-In: ${data.user.last_sign_in_at}\n✅ Session Valid: ${!!data.session.access_token && !!data.session.refresh_token}\n✅ Expires: ${new Date(data.session.expires_at * 1000).toISOString()}`
         });
-      }
-    } catch (error) {
-      updateResult('Password Recovery Flow', {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Recovery flow test failed',
-        details: error
-      });
-    }
-
-    // Test 8: Password Re-Login Test (check if user has password)
-    addResult({ name: 'Password Re-Login Test', status: 'running' });
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (session?.session?.user?.email) {
-        const userEmail = session.session.user.email;
         
-        // Test with a dummy password to see if account has password
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-          email: userEmail,
-          password: 'dummy_password_test'
-        });
-
-        if (loginError?.message?.includes('Invalid login credentials')) {
-          updateResult('Password Re-Login Test', {
-            status: 'warning',
-            message: 'User exists but may need password reset',
-            details: {
-              email: userEmail,
-              issue: 'Account likely created via magic link - needs password setup',
-              solution: 'Use "Forgot password?" to set password'
-            }
-          });
-        } else if (loginError) {
-          updateResult('Password Re-Login Test', {
-            status: 'warning',
-            message: 'Password login tested',
-            details: {
-              email: userEmail,
-              result: loginError.message
-            }
-          });
+        // Test immediate sign out
+        console.log("🔐 Testing immediate sign-out...");
+        const { error: signOutError } = await supabase.auth.signOut();
+        if (signOutError) {
+          console.error("🔐 Sign-out failed", signOutError);
+        } else {
+          console.log("🔐 Sign-out successful");
         }
       } else {
-        updateResult('Password Re-Login Test', {
-          status: 'warning',
-          message: 'No current user session to test',
-          details: { note: 'Sign in first to test password functionality' }
+        updateResult("Direct Supabase Sign-In", { 
+          status: "warning", 
+          message: "⚠️ PARTIAL SUCCESS - Missing data", 
+          details: `User Present: ${!!data.user}\nSession Present: ${!!data.session}\nRaw Response: ${JSON.stringify(data, null, 2)}`
         });
       }
     } catch (error) {
-      updateResult('Password Re-Login Test', {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'Re-login test failed',
-        details: error
+      console.error("🔐 DIRECT SIGN-IN ERROR", error);
+      updateResult("Direct Supabase Sign-In", { 
+        status: "error", 
+        message: `💥 EXCEPTION: ${error}`, 
+        details: error instanceof Error ? error.stack : JSON.stringify(error, null, 2)
       });
     }
 
-    // Test 7: URL Configuration Test
-    addResult({ name: 'URL Configuration', status: 'running' });
+    // AuthProvider Sign-In Test
+    addResult({ name: "AuthProvider Sign-In", status: "running" });
     try {
-      const currentUrl = window.location.origin;
-      const expectedPatterns = [
-        /^https:\/\/.*\.lovable\.app$/,
-        /^https:\/\/.*\.vercel\.app$/,
-        /^https:\/\/.*\.netlify\.app$/,
-        /^http:\/\/localhost:\d+$/
-      ];
-      
-      const isValidUrl = expectedPatterns.some(pattern => pattern.test(currentUrl));
-      
-      if (isValidUrl) {
-        updateResult('URL Configuration', {
-          status: 'success',
-          message: `Valid deployment URL: ${currentUrl}`,
-          details: { url: currentUrl }
+      console.log("🔐 AUTH PROVIDER SIGN-IN ATTEMPT", {
+        email: testEmail,
+        passwordLength: testPassword.length,
+        timestamp: new Date().toISOString(),
+        method: 'AuthProvider.signIn',
+        authProviderAvailable: !!signIn,
+        currentUser: user?.email,
+        currentSession: !!session
+      });
+
+      const startTime = Date.now();
+      const result = await signIn(testEmail, testPassword);
+      const endTime = Date.now();
+
+      console.log("🔐 AUTH PROVIDER SIGN-IN COMPLETE", {
+        duration: `${endTime - startTime}ms`,
+        result,
+        hasError: !!result?.error,
+        errorMessage: result?.error?.message,
+        errorStatus: result?.error?.status,
+        success: !result?.error,
+        newUserState: user?.email,
+        newSessionState: !!session
+      });
+
+      if (result?.error) {
+        updateResult("AuthProvider Sign-In", { 
+          status: "error", 
+          message: `❌ PROVIDER FAILED: ${result.error.message}`, 
+          details: `Status: ${result.error.status || 'unknown'}\nName: ${result.error.name || 'unknown'}\nFull Error: ${JSON.stringify(result.error, null, 2)}`
         });
       } else {
-        updateResult('URL Configuration', {
-          status: 'warning',
-          message: `Unexpected URL pattern: ${currentUrl}`,
-          details: { url: currentUrl, expectedPatterns: expectedPatterns.map(p => p.toString()) }
+        updateResult("AuthProvider Sign-In", { 
+          status: "success", 
+          message: "✅ PROVIDER SIGN-IN SUCCESSFUL", 
+          details: `✅ No errors returned\n✅ Method completed\n✅ Result: ${JSON.stringify(result, null, 2)}`
         });
       }
     } catch (error) {
-      updateResult('URL Configuration', {
-        status: 'error',
-        message: error instanceof Error ? error.message : 'URL check failed',
-        details: error
+      console.error("🔐 AUTH PROVIDER SIGN-IN ERROR", error);
+      updateResult("AuthProvider Sign-In", { 
+        status: "error", 
+        message: `💥 PROVIDER EXCEPTION: ${error}`, 
+        details: error instanceof Error ? error.stack : JSON.stringify(error, null, 2)
       });
     }
 
+    // Post-Test State Check
+    addResult({ name: "Post-Test State", status: "running" });
+    try {
+      const { data: finalSessionData } = await supabase.auth.getSession();
+      const { data: finalUserData } = await supabase.auth.getUser();
+      
+      console.log("🔍 Post-test state", {
+        hasSession: !!finalSessionData?.session,
+        hasUser: !!finalUserData?.user,
+        sessionUser: finalSessionData?.session?.user?.email,
+        directUser: finalUserData?.user?.email,
+        authProviderUser: user?.email,
+        authProviderSession: !!session,
+        authProviderLoading: loading
+      });
+
+      updateResult("Post-Test State", { 
+        status: "success", 
+        message: "Final auth state checked", 
+        details: `Session: ${finalSessionData?.session ? 'Present' : 'None'}\nUser: ${finalUserData?.user?.email || 'None'}\nProvider: ${user?.email || 'None'}\nLoading: ${loading}`
+      });
+    } catch (error) {
+      console.error("🔍 Post-test state error", error);
+      updateResult("Post-Test State", { 
+        status: "error", 
+        message: `Final state check failed: ${error}`, 
+        details: error instanceof Error ? error.stack : 'Unknown error'
+      });
+    }
+
+    console.log("🧪 === LOGIN TEST COMPLETE ===");
     setIsRunning(false);
-    console.log('✅ Auth tests completed');
   };
 
   const getStatusIcon = (status: TestResult['status']) => {
