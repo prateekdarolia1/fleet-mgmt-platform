@@ -151,7 +151,7 @@ export const InventoryManagement = () => {
     }
     
     if (status === 'Ready for Deployment') {
-      return <Badge variant="secondary">{status}</Badge>;
+      return <Badge variant="warning">{status}</Badge>;
     }
     
     const variants = {
