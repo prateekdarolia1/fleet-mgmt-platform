@@ -214,8 +214,7 @@ export const RiderManagement = () => {
                       <User className="h-3 w-3" />
                       {rider.name}
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Phone className="h-3 w-3" />
+                    <div className="text-sm text-muted-foreground">
                       {rider.phone || rider.mobile_number}
                     </div>
                   </div>
