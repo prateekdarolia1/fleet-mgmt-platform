@@ -208,7 +208,7 @@ export const RiderManagement = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Rider ID</TableHead>
-              <TableHead>Rider Name + Mobile</TableHead>
+              <TableHead>Rider details</TableHead>
               <TableHead>Join Date</TableHead>
               <TableHead>Rider Status</TableHead>
               <TableHead>Duty Status</TableHead>
