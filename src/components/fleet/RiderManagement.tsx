@@ -214,7 +214,7 @@ export const RiderManagement = () => {
                       {rider.name}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {rider.phone || rider.mobile_number}
+                      {(rider.phone || rider.mobile_number)?.slice(-10)}
                     </div>
                   </div>
                 </TableCell>
