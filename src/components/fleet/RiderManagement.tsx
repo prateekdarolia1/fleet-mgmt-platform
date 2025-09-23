@@ -86,8 +86,11 @@ export const RiderManagement = () => {
       return <Badge className="bg-green-500 hover:bg-green-600 text-white">{statusText}</Badge>;
     }
     
+    if (status === 'inactive') {
+      return <Badge className="bg-orange-500 hover:bg-orange-600 text-white">{statusText}</Badge>;
+    }
+    
     const variants = {
-      inactive: 'secondary',
       suspended: 'destructive'
     } as const;
     
