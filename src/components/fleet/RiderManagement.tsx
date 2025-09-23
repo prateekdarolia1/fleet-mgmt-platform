@@ -210,8 +210,7 @@ export const RiderManagement = () => {
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-medium flex items-center gap-2">
-                      <User className="h-3 w-3" />
+                    <div className="font-medium">
                       {rider.name}
                     </div>
                     <div className="text-sm text-muted-foreground">
