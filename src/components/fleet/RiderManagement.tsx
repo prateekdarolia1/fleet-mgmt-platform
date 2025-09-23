@@ -58,8 +58,15 @@ export const RiderManagement = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddRiderOpen, setIsAddRiderOpen] = useState(false);
+  const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
+  const [isViewRiderOpen, setIsViewRiderOpen] = useState(false);
 
   const form = useForm<RiderFormData>();
+
+  const handleViewRider = (rider: Rider) => {
+    setSelectedRider(rider);
+    setIsViewRiderOpen(true);
+  };
 
   const onSubmit = async (data: RiderFormData) => {
     try {
@@ -242,7 +249,11 @@ export const RiderManagement = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleViewRider(rider)}
+                  >
                     View
                   </Button>
                 </TableCell>
@@ -251,6 +262,147 @@ export const RiderManagement = () => {
           </TableBody>
           </Table>
         </div>
+
+        {/* View Rider Details Modal */}
+        <Dialog open={isViewRiderOpen} onOpenChange={setIsViewRiderOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Rider Details - {selectedRider?.name}</DialogTitle>
+              <DialogDescription>
+                Complete information for rider {selectedRider?.rider_id}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {selectedRider && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Personal Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Personal Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div><strong>Rider ID:</strong> {selectedRider.rider_id}</div>
+                    <div><strong>Name:</strong> {selectedRider.name}</div>
+                    <div><strong>First Name:</strong> {selectedRider.first_name || 'N/A'}</div>
+                    <div><strong>Last Name:</strong> {selectedRider.last_name || 'N/A'}</div>
+                    <div><strong>Phone:</strong> {selectedRider.phone}</div>
+                    <div><strong>Mobile:</strong> {selectedRider.mobile_number || 'N/A'}</div>
+                    <div><strong>Email:</strong> {selectedRider.email}</div>
+                    <div><strong>Date of Birth:</strong> {selectedRider.dob ? new Date(selectedRider.dob).toLocaleDateString() : 'N/A'}</div>
+                    <div><strong>Aadhaar Number:</strong> {selectedRider.aadhaar_number || 'N/A'}</div>
+                    <div><strong>PAN Number:</strong> {selectedRider.pan_number || 'N/A'}</div>
+                    <div><strong>Marital Status:</strong> {selectedRider.marital_status || 'N/A'}</div>
+                  </CardContent>
+                </Card>
+
+                {/* Address Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Address Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div><strong>Address Line 1:</strong> {selectedRider.address_line1 || 'N/A'}</div>
+                    <div><strong>Address Line 2:</strong> {selectedRider.address_line2 || 'N/A'}</div>
+                    <div><strong>City:</strong> {selectedRider.city || 'N/A'}</div>
+                    <div><strong>State:</strong> {selectedRider.state || 'N/A'}</div>
+                    <div><strong>Pincode:</strong> {selectedRider.pincode || 'N/A'}</div>
+                    <div><strong>Full Address:</strong> {selectedRider.address}</div>
+                    <div><strong>Google Link:</strong> {selectedRider.address_google_link ? 
+                      <a href={selectedRider.address_google_link} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        View Location
+                      </a> : 'N/A'}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Banking Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Banking Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div><strong>Bank Name:</strong> {selectedRider.bank_name || 'N/A'}</div>
+                    <div><strong>Branch Name:</strong> {selectedRider.branch_name || 'N/A'}</div>
+                    <div><strong>IFSC Code:</strong> {selectedRider.ifsc_code || 'N/A'}</div>
+                    <div><strong>Account Number:</strong> {selectedRider.account_number || 'N/A'}</div>
+                  </CardContent>
+                </Card>
+
+                {/* Employment Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Employment Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div><strong>Aggregator:</strong> {selectedRider.aggregator || 'N/A'}</div>
+                    <div><strong>Aggregator Other:</strong> {selectedRider.aggregator_other || 'N/A'}</div>
+                    <div><strong>Aggregator ID:</strong> {selectedRider.aggregator_id || 'N/A'}</div>
+                    <div><strong>Joined Since:</strong> {selectedRider.joined_since ? new Date(selectedRider.joined_since).toLocaleDateString() : 'N/A'}</div>
+                    <div><strong>Avg Earnings (15 days):</strong> {selectedRider.avg_earnings_15_days ? `₹${selectedRider.avg_earnings_15_days}` : 'N/A'}</div>
+                  </CardContent>
+                </Card>
+
+                {/* Status & Rental Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Status & Rental</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div><strong>Status:</strong> {getStatusBadge(selectedRider.status)}</div>
+                    <div><strong>Duty Status:</strong> <Badge variant={selectedRider.duty_status === 'LIVE' ? 'default' : undefined} className={selectedRider.duty_status === 'LIVE' ? '' : 'bg-orange-500 hover:bg-orange-600 text-white'}>{selectedRider.duty_status || 'IDLE'}</Badge></div>
+                    <div><strong>Rental Plan:</strong> {getPlanBadge(selectedRider.rental_plan)}</div>
+                    <div><strong>Join Date:</strong> {new Date(selectedRider.join_date).toLocaleDateString()}</div>
+                    <div><strong>Last Payment Date:</strong> {selectedRider.last_payment_date ? new Date(selectedRider.last_payment_date).toLocaleDateString() : 'N/A'}</div>
+                    <div><strong>Vehicle Assigned:</strong> {selectedRider.vehicle_assigned || 'N/A'}</div>
+                  </CardContent>
+                </Card>
+
+                {/* Documents */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Documents</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div><strong>License Document:</strong> <Badge variant={selectedRider.license_document ? 'default' : 'destructive'}>{selectedRider.license_document ? 'Received' : 'Pending'}</Badge></div>
+                    <div><strong>Aadhaar Document:</strong> <Badge variant={selectedRider.aadhar_document ? 'default' : 'destructive'}>{selectedRider.aadhar_document ? 'Received' : 'Pending'}</Badge></div>
+                    <div><strong>Agreement Document:</strong> <Badge variant={selectedRider.agreement_document ? 'default' : 'destructive'}>{selectedRider.agreement_document ? 'Received' : 'Pending'}</Badge></div>
+                  </CardContent>
+                </Card>
+
+                {/* Family Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Family Information</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div><strong>Dependent Name:</strong> {selectedRider.dependent_name || 'N/A'}</div>
+                    <div><strong>Dependent Relation:</strong> {selectedRider.dependent_relation || 'N/A'}</div>
+                    <div><strong>Dependent Aadhaar:</strong> {selectedRider.dependent_aadhaar || 'N/A'}</div>
+                  </CardContent>
+                </Card>
+
+                {/* Office Use */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg">Office Use</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div><strong>Onboarded By:</strong> {selectedRider.onboarded_by || 'N/A'}</div>
+                    <div><strong>Aggregator Credentials Checked:</strong> <Badge variant={selectedRider.aggregator_credentials_checked ? 'default' : 'destructive'}>{selectedRider.aggregator_credentials_checked ? 'Yes' : 'No'}</Badge></div>
+                    <div><strong>ID Credentials Checked:</strong> <Badge variant={selectedRider.id_credentials_checked ? 'default' : 'destructive'}>{selectedRider.id_credentials_checked ? 'Yes' : 'No'}</Badge></div>
+                    <div><strong>Retained Document Details:</strong> {selectedRider.retained_document_details || 'N/A'}</div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsViewRiderOpen(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
