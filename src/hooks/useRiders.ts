@@ -218,6 +218,36 @@ export const useRiders = () => {
 
   useEffect(() => {
     fetchRiders();
+    
+    // Set up real-time subscription for duty status changes
+    const channel = supabase
+      .channel('riders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'riders'
+        },
+        (payload) => {
+          console.log('Real-time rider update:', payload);
+          
+          if (payload.eventType === 'INSERT') {
+            setRiders(prev => [payload.new as Rider, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            setRiders(prev => prev.map(rider => 
+              rider.id === payload.new.id ? { ...rider, ...payload.new } as Rider : rider
+            ));
+          } else if (payload.eventType === 'DELETE') {
+            setRiders(prev => prev.filter(rider => rider.id !== payload.old.id));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {
