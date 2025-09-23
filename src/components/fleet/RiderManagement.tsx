@@ -362,8 +362,8 @@ export const RiderManagement = () => {
                 <TableCell>{getStatusBadge(rider.status)}</TableCell>
                 <TableCell>
                   <Badge 
-                    variant={rider.duty_status === 'LIVE' ? 'default' : undefined}
-                    className={rider.duty_status === 'LIVE' ? '' : 'bg-orange-500 hover:bg-orange-600 text-white'}
+                    variant={rider.duty_status === 'LIVE' ? undefined : undefined}
+                    className={rider.duty_status === 'LIVE' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-orange-500 hover:bg-orange-600 text-white'}
                   >
                     {rider.duty_status || 'IDLE'}
                   </Badge>
@@ -478,7 +478,7 @@ export const RiderManagement = () => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div><strong>Status:</strong> {getStatusBadge(selectedRider.status)}</div>
-                    <div><strong>Duty Status:</strong> <Badge variant={selectedRider.duty_status === 'LIVE' ? 'default' : undefined} className={selectedRider.duty_status === 'LIVE' ? '' : 'bg-orange-500 hover:bg-orange-600 text-white'}>{selectedRider.duty_status || 'IDLE'}</Badge></div>
+                    <div><strong>Duty Status:</strong> <Badge variant={selectedRider.duty_status === 'LIVE' ? undefined : undefined} className={selectedRider.duty_status === 'LIVE' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-orange-500 hover:bg-orange-600 text-white'}>{selectedRider.duty_status || 'IDLE'}</Badge></div>
                     <div><strong>Rental Plan:</strong> {getPlanBadge(selectedRider.rental_plan)}</div>
                     <div><strong>Join Date:</strong> {new Date(selectedRider.join_date).toLocaleDateString()}</div>
                     <div><strong>Last Payment Date:</strong> {selectedRider.last_payment_date ? new Date(selectedRider.last_payment_date).toLocaleDateString() : 'N/A'}</div>
