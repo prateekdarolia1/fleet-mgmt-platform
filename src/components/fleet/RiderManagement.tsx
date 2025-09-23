@@ -54,18 +54,40 @@ interface RiderFormData {
 }
 
 export const RiderManagement = () => {
-  const { riders, loading, addRider } = useRiders();
+  const { riders, loading, addRider, updateRider } = useRiders();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddRiderOpen, setIsAddRiderOpen] = useState(false);
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
   const [isViewRiderOpen, setIsViewRiderOpen] = useState(false);
+  const [editingRider, setEditingRider] = useState<Rider | null>(null);
+  const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
 
   const form = useForm<RiderFormData>();
 
   const handleViewRider = (rider: Rider) => {
     setSelectedRider(rider);
     setIsViewRiderOpen(true);
+  };
+
+  const handleEditStatus = (rider: Rider) => {
+    setEditingRider(rider);
+    setIsEditStatusOpen(true);
+  };
+
+  const handleStatusUpdate = async (newStatus: Rider['status'], newDutyStatus: string) => {
+    if (!editingRider) return;
+    
+    try {
+      await updateRider(editingRider.id, {
+        status: newStatus,
+        duty_status: newDutyStatus
+      });
+      setIsEditStatusOpen(false);
+      setEditingRider(null);
+    } catch (error) {
+      console.error('Error updating rider status:', error);
+    }
   };
 
   const onSubmit = async (data: RiderFormData) => {
@@ -249,13 +271,22 @@ export const RiderManagement = () => {
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => handleViewRider(rider)}
-                  >
-                    View
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewRider(rider)}
+                    >
+                      View
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditStatus(rider)}
+                    >
+                      Edit Status
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -399,6 +430,67 @@ export const RiderManagement = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsViewRiderOpen(false)}>
                 Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Status Modal */}
+        <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Rider Status</DialogTitle>
+              <DialogDescription>
+                Update the rider and duty status for {editingRider?.name}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {editingRider && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="rider-status">Rider Status</Label>
+                  <Select
+                    defaultValue={editingRider.status}
+                    onValueChange={(value) => {
+                      const dutyStatus = editingRider.duty_status || 'IDLE';
+                      handleStatusUpdate(value as Rider['status'], dutyStatus);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select rider status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                      <SelectItem value="deboarded">Deboarded</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="duty-status">Duty Status</Label>
+                  <Select
+                    defaultValue={editingRider.duty_status || 'IDLE'}
+                    onValueChange={(value) => {
+                      handleStatusUpdate(editingRider.status, value);
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select duty status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LIVE">LIVE</SelectItem>
+                      <SelectItem value="IDLE">IDLE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditStatusOpen(false)}>
+                Cancel
               </Button>
             </DialogFooter>
           </DialogContent>
