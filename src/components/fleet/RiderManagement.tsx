@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Plus, Search, Filter, Phone, Mail, Calendar, User } from "lucide-react";
 import { useRiders, type Rider } from "@/hooks/useRiders";
+import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { AddRiderForm } from "./AddRiderForm";
 
 interface RiderFormData {
@@ -55,6 +56,7 @@ interface RiderFormData {
 
 export const RiderManagement = () => {
   const { riders, loading, addRider, updateRider } = useRiders();
+  const { vehicles, updateVehicle } = useVehicles();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddRiderOpen, setIsAddRiderOpen] = useState(false);
@@ -62,6 +64,13 @@ export const RiderManagement = () => {
   const [isViewRiderOpen, setIsViewRiderOpen] = useState(false);
   const [editingRider, setEditingRider] = useState<Rider | null>(null);
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
+  const [isVehicleSelectionOpen, setIsVehicleSelectionOpen] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{
+    riderStatus: Rider['status'];
+    dutyStatus: string;
+    originalDutyStatus: string;
+  } | null>(null);
 
   const form = useForm<RiderFormData>();
 
@@ -78,6 +87,26 @@ export const RiderManagement = () => {
   const handleStatusUpdate = async (newStatus: Rider['status'], newDutyStatus: string) => {
     if (!editingRider) return;
     
+    const currentDutyStatus = editingRider.duty_status || 'IDLE';
+    
+    // Check if changing from IDLE to LIVE
+    if (currentDutyStatus === 'IDLE' && newDutyStatus === 'LIVE') {
+      setPendingStatusUpdate({
+        riderStatus: newStatus,
+        dutyStatus: newDutyStatus,
+        originalDutyStatus: currentDutyStatus
+      });
+      setIsVehicleSelectionOpen(true);
+      return;
+    }
+    
+    // Check if changing from LIVE to IDLE - unassign vehicle
+    if (currentDutyStatus === 'LIVE' && newDutyStatus === 'IDLE') {
+      await handleVehicleUnassignment(newStatus, newDutyStatus);
+      return;
+    }
+    
+    // Regular status update (no vehicle assignment needed)
     try {
       await updateRider(editingRider.id, {
         status: newStatus,
@@ -88,6 +117,75 @@ export const RiderManagement = () => {
     } catch (error) {
       console.error('Error updating rider status:', error);
     }
+  };
+
+  const handleVehicleAssignment = async () => {
+    if (!editingRider || !selectedVehicleId || !pendingStatusUpdate) return;
+    
+    try {
+      const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+      if (!selectedVehicle) return;
+      
+      // Update rider with vehicle assignment and new status
+      await updateRider(editingRider.id, {
+        status: pendingStatusUpdate.riderStatus,
+        duty_status: pendingStatusUpdate.dutyStatus,
+        vehicle_assigned: selectedVehicle.vehicle_number
+      });
+      
+      // Update vehicle status and rider assignment
+      await updateVehicle(selectedVehicleId, {
+        status: 'Deployed' as const,
+        rider_id: editingRider.rider_id,
+        rider_name: editingRider.name
+      });
+      
+      // Close modals and reset state
+      setIsVehicleSelectionOpen(false);
+      setIsEditStatusOpen(false);
+      setEditingRider(null);
+      setSelectedVehicleId("");
+      setPendingStatusUpdate(null);
+    } catch (error) {
+      console.error('Error assigning vehicle:', error);
+    }
+  };
+
+  const handleVehicleUnassignment = async (newStatus: Rider['status'], newDutyStatus: string) => {
+    if (!editingRider) return;
+    
+    try {
+      // Find the vehicle assigned to this rider
+      const assignedVehicle = vehicles.find(v => v.rider_id === editingRider.rider_id);
+      
+      // Update rider status and remove vehicle assignment
+      await updateRider(editingRider.id, {
+        status: newStatus,
+        duty_status: newDutyStatus,
+        vehicle_assigned: null
+      });
+      
+      // Update vehicle status back to Ready for Deployment
+      if (assignedVehicle) {
+        await updateVehicle(assignedVehicle.id, {
+          status: 'Ready for Deployment' as const,
+          rider_id: null,
+          rider_name: null
+        });
+      }
+      
+      setIsEditStatusOpen(false);
+      setEditingRider(null);
+    } catch (error) {
+      console.error('Error unassigning vehicle:', error);
+    }
+  };
+
+  const handleVehicleSelectionCancel = () => {
+    setIsVehicleSelectionOpen(false);
+    setSelectedVehicleId("");
+    setPendingStatusUpdate(null);
+    // Status stays as original, no changes made
   };
 
   const onSubmit = async (data: RiderFormData) => {
@@ -491,6 +589,56 @@ export const RiderManagement = () => {
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsEditStatusOpen(false)}>
                 Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Vehicle Selection Modal */}
+        <Dialog open={isVehicleSelectionOpen} onOpenChange={setIsVehicleSelectionOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Assign Vehicle</DialogTitle>
+              <DialogDescription>
+                Select a vehicle to assign to {editingRider?.name} for LIVE duty
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="vehicle-selection">Available Vehicles</Label>
+                {vehicles.filter(v => v.status === 'Ready for Deployment').length === 0 ? (
+                  <div className="p-4 text-center text-muted-foreground border border-dashed rounded-md">
+                    No vehicles available for deployment
+                  </div>
+                ) : (
+                  <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a vehicle" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicles
+                        .filter(v => v.status === 'Ready for Deployment')
+                        .map((vehicle) => (
+                          <SelectItem key={vehicle.id} value={vehicle.id}>
+                            {vehicle.vehicle_number} - {vehicle.make} {vehicle.model}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={handleVehicleSelectionCancel}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleVehicleAssignment}
+                disabled={!selectedVehicleId || vehicles.filter(v => v.status === 'Ready for Deployment').length === 0}
+              >
+                Assign Vehicle
               </Button>
             </DialogFooter>
           </DialogContent>
