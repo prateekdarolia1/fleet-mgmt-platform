@@ -80,13 +80,18 @@ export const RiderManagement = () => {
   });
 
   const getStatusBadge = (status: Rider['status']) => {
+    const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+    
+    if (status === 'active') {
+      return <Badge className="bg-green-500 hover:bg-green-600 text-white">{statusText}</Badge>;
+    }
+    
     const variants = {
-      active: 'default',
       inactive: 'secondary',
       suspended: 'destructive'
     } as const;
     
-    return <Badge variant={variants[status]}>{status}</Badge>;
+    return <Badge variant={variants[status as keyof typeof variants]}>{statusText}</Badge>;
   };
 
   const getPlanBadge = (plan: Rider['rental_plan']) => {
