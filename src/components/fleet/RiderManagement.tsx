@@ -205,7 +205,7 @@ export const RiderManagement = () => {
               <TableRow key={rider.id}>
                 <TableCell>
                   <div className="font-medium text-sm">
-                    {rider.rider_id}
+                    {rider.rider_id || 'N/A'}
                   </div>
                 </TableCell>
                 <TableCell>
