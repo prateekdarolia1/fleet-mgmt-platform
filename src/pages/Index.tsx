@@ -8,7 +8,8 @@ import { PaymentTracking } from "@/components/fleet/PaymentTracking";
 import UserManagement from "@/components/admin/UserManagement";
 import { ConnectionTest } from "@/components/debug/ConnectionTest";
 import { useVehicleStats } from "@/hooks/useVehicleStats";
-import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield, Wrench, CheckCircle2, Clock } from "lucide-react";
+import { useRiders } from "@/hooks/useRiders";
+import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield, Wrench, CheckCircle2, Clock, User } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -23,6 +24,15 @@ import {
 const Index = () => {
   const [activeTab, setActiveTab] = useState("inventory");
   const { stats: vehicleStats, loading: statsLoading } = useVehicleStats();
+  const { riders, loading: ridersLoading } = useRiders();
+
+  // Calculate rider statistics
+  const riderStats = {
+    total: riders.length,
+    active: riders.filter(rider => rider.status === 'active').length,
+    live: riders.filter(rider => rider.duty_status === 'LIVE').length,
+    idle: riders.filter(rider => rider.duty_status === 'IDLE' || !rider.duty_status).length
+  };
 
   return (
     <SidebarProvider>
@@ -130,86 +140,160 @@ const Index = () => {
           {/* Dashboard Overview */}
           <div className="flex-1 p-4 sm:p-6 space-y-6 overflow-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 w-full max-w-screen-2xl mx-auto">
-                {/* Card 1 - Total Vehicles */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
-                    <Bike className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {statsLoading ? "..." : vehicleStats.total.count}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {statsLoading ? "Loading..." : `${vehicleStats.total.lowSpeed} Low Speed • ${vehicleStats.total.highSpeed} High Speed`}
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                {/* Card 2 - Deployed */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Deployed</CardTitle>
-                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {statsLoading ? "..." : vehicleStats.deployed.count}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {statsLoading ? "Loading..." : `${vehicleStats.deployed.lowSpeed} Low Speed • ${vehicleStats.deployed.highSpeed} High Speed`}
-                    </p>
-                  </CardContent>
-                </Card>
+              {/* Vehicle Statistics Cards - Show only for Inventory Management */}
+              {activeTab === "inventory" && (
+                <>
+                  {/* Card 1 - Total Vehicles */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Vehicles</CardTitle>
+                      <Bike className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {statsLoading ? "..." : vehicleStats.total.count}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {statsLoading ? "Loading..." : `${vehicleStats.total.lowSpeed} Low Speed • ${vehicleStats.total.highSpeed} High Speed`}
+                      </p>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Card 2 - Deployed */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Deployed</CardTitle>
+                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {statsLoading ? "..." : vehicleStats.deployed.count}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {statsLoading ? "Loading..." : `${vehicleStats.deployed.lowSpeed} Low Speed • ${vehicleStats.deployed.highSpeed} High Speed`}
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                {/* Card 3 - Ready for Deployment */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Ready for Deployment</CardTitle>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {statsLoading ? "..." : vehicleStats.readyForDeployment.count}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {statsLoading ? "Loading..." : `${vehicleStats.readyForDeployment.lowSpeed} Low Speed • ${vehicleStats.readyForDeployment.highSpeed} High Speed`}
-                    </p>
-                  </CardContent>
-                </Card>
+                  {/* Card 3 - Ready for Deployment */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Ready for Deployment</CardTitle>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {statsLoading ? "..." : vehicleStats.readyForDeployment.count}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {statsLoading ? "Loading..." : `${vehicleStats.readyForDeployment.lowSpeed} Low Speed • ${vehicleStats.readyForDeployment.highSpeed} High Speed`}
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                {/* Card 4 - Under Maintenance */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Under Maintenance</CardTitle>
-                    <Wrench className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {statsLoading ? "..." : vehicleStats.underMaintenance.count}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {statsLoading ? "Loading..." : `${vehicleStats.underMaintenance.lowSpeed} Low Speed • ${vehicleStats.underMaintenance.highSpeed} High Speed`}
-                    </p>
-                  </CardContent>
-                </Card>
+                  {/* Card 4 - Under Maintenance */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Under Maintenance</CardTitle>
+                      <Wrench className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {statsLoading ? "..." : vehicleStats.underMaintenance.count}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {statsLoading ? "Loading..." : `${vehicleStats.underMaintenance.lowSpeed} Low Speed • ${vehicleStats.underMaintenance.highSpeed} High Speed`}
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                {/* Card 5 - Active Rentals */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Active Rentals</CardTitle>
-                    <Activity className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {statsLoading ? "..." : vehicleStats.activeRentals.count}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {statsLoading ? "Loading..." : `${vehicleStats.activeRentals.utilizationRate}% utilization`}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+                  {/* Card 5 - Active Rentals */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Active Rentals</CardTitle>
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {statsLoading ? "..." : vehicleStats.activeRentals.count}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {statsLoading ? "Loading..." : `${vehicleStats.activeRentals.utilizationRate}% utilization`}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+
+              {/* Rider Statistics Cards - Show only for Rider Management */}
+              {activeTab === "riders" && (
+                <>
+                  {/* Card 1 - Total Riders */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Riders</CardTitle>
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {ridersLoading ? "..." : riderStats.total}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Registered riders
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card 2 - Total Active Riders */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Active Riders</CardTitle>
+                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {ridersLoading ? "..." : riderStats.active}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Active status riders
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card 3 - Total Live Riders */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Live Riders</CardTitle>
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {ridersLoading ? "..." : riderStats.live}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Currently on duty
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card 4 - Total Idle Riders */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Idle Riders</CardTitle>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {ridersLoading ? "..." : riderStats.idle}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Not on duty
+                      </p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </div>
 
             {/* Main Content */}
             <div className="w-full">
