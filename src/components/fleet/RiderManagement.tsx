@@ -192,13 +192,11 @@ export const RiderManagement = () => {
           <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Rider Details</TableHead>
-              <TableHead>Contact</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Vehicle</TableHead>
-              <TableHead>Plan</TableHead>
-              <TableHead>Documents</TableHead>
+              <TableHead>Rider ID</TableHead>
+              <TableHead>Rider Name + Mobile</TableHead>
               <TableHead>Join Date</TableHead>
+              <TableHead>Rider Status</TableHead>
+              <TableHead>Duty Status</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -206,51 +204,38 @@ export const RiderManagement = () => {
             {filteredRiders.map((rider) => (
               <TableRow key={rider.id}>
                 <TableCell>
+                  <div className="font-medium text-sm">
+                    {rider.rider_id}
+                  </div>
+                </TableCell>
+                <TableCell>
                   <div>
                     <div className="font-medium flex items-center gap-2">
                       <User className="h-3 w-3" />
                       {rider.name}
                     </div>
-                    <div className="text-sm text-muted-foreground">{rider.rider_id}</div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-sm">
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <Phone className="h-3 w-3" />
-                      {rider.phone}
-                    </div>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Mail className="h-3 w-3" />
-                      {rider.email}
+                      {rider.phone || rider.mobile_number}
                     </div>
                   </div>
                 </TableCell>
-                <TableCell>{getStatusBadge(rider.status)}</TableCell>
-                <TableCell>
-                  {rider.vehicle_assigned ? (
-                    <Badge variant="outline">{rider.vehicle_assigned}</Badge>
-                  ) : (
-                    <span className="text-muted-foreground">Not assigned</span>
-                  )}
-                </TableCell>
-                <TableCell>{getPlanBadge(rider.rental_plan)}</TableCell>
-                <TableCell>{getDocumentStatus(rider)}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     <span className="text-sm">{new Date(rider.join_date).toLocaleDateString()}</span>
                   </div>
                 </TableCell>
+                <TableCell>{getStatusBadge(rider.status)}</TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
-                      View
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Edit
-                    </Button>
-                  </div>
+                  <Badge variant={rider.duty_status === 'LIVE' ? 'default' : 'secondary'}>
+                    {rider.duty_status || 'IDLE'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <Button variant="outline" size="sm">
+                    View
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}
