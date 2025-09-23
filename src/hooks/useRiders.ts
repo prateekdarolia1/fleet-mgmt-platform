@@ -8,17 +8,57 @@ export interface Rider {
   name: string;
   phone: string;
   email: string;
-  status: 'active' | 'inactive' | 'suspended';
-  vehicle_assigned?: string;
+  status: 'active' | 'inactive' | 'suspended' | 'deboarded';
+  vehicle_assigned?: string | null;
   rental_plan: 'daily' | 'weekly' | 'monthly';
   join_date: string;
-  last_payment_date?: string;
+  last_payment_date?: string | null;
   license_document: boolean;
   aadhar_document: boolean;
   agreement_document: boolean;
   address: string;
   created_at: string;
   updated_at: string;
+  
+  // Section 1: Personal Information - these can be null from database
+  first_name?: string | null;
+  last_name?: string | null;
+  mobile_number?: string | null;
+  dob?: string | null;
+  aadhaar_number?: string | null;
+  pan_number?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  address_google_link?: string | null;
+  marital_status?: string | null;
+  dependent_name?: string | null;
+  dependent_relation?: string | null;
+  dependent_aadhaar?: string | null;
+  
+  // Section 2: Banking Information - these can be null from database
+  bank_name?: string | null;
+  branch_name?: string | null;
+  ifsc_code?: string | null;
+  account_number?: string | null;
+  
+  // Section 3: Employment Information - these can be null from database
+  aggregator?: string | null;
+  aggregator_other?: string | null;
+  aggregator_id?: string | null;
+  joined_since?: string | null;
+  avg_earnings_15_days?: number | null;
+  
+  // Section 4: Office Use - these can be null from database
+  onboarded_by?: string | null;
+  aggregator_credentials_checked?: boolean;
+  id_credentials_checked?: boolean;
+  retained_document_details?: string | null;
+  
+  // New status field
+  duty_status?: string | null;
 }
 
 export const useRiders = () => {
@@ -35,7 +75,7 @@ export const useRiders = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRiders(data || []);
+      setRiders(data as Rider[] || []);
     } catch (err) {
       console.error('Error fetching riders:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -45,35 +85,76 @@ export const useRiders = () => {
   };
 
   const addRider = async (riderData: {
-    name: string;
-    phone: string;
-    email: string;
-    address: string;
-    rental_plan: 'daily' | 'weekly' | 'monthly';
-    join_date: string;
+    // Section 1: Personal Information
+    first_name: string;
+    last_name: string;
+    mobile_number: string;
+    dob: string;
+    aadhaar_number: string;
+    pan_number: string;
+    address_line1: string;
+    address_line2: string;
+    city: string;
+    state: string;
+    pincode: string;
+    address_google_link: string;
+    marital_status: 'SINGLE' | 'MARRIED';
+    dependent_name?: string;
+    dependent_relation?: 'FATHER' | 'MOTHER' | 'BROTHER' | 'SPOUSE' | 'OTHER';
+    dependent_aadhaar?: string;
+    
+    // Section 2: Banking Information
+    bank_name: string;
+    branch_name: string;
+    ifsc_code: string;
+    account_number: string;
+    
+    // Section 3: Employment Information
+    aggregator: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
+    aggregator_other?: string;
+    aggregator_id: string;
+    joined_since: string;
+    avg_earnings_15_days: number;
+    
+    // Section 4: Office Use
+    onboarded_by: 'SHUBHAM' | 'VAIBHAV';
+    aggregator_credentials_checked: boolean;
+    id_credentials_checked: boolean;
+    retained_document_details: string;
   }) => {
     try {
-      // Generate rider ID
+      // Generate LPR rider ID
       const { data: existingRiders } = await supabase
         .from('riders')
         .select('rider_id')
-        .like('rider_id', 'R%');
+        .like('rider_id', 'LPR%');
 
       const existingNumbers = (existingRiders || [])
         .map(r => r.rider_id)
-        .filter(id => id.startsWith('R'))
-        .map(id => parseInt(id.substring(1)))
+        .filter(id => id.startsWith('LPR'))
+        .map(id => parseInt(id.substring(3)))
         .filter(num => !isNaN(num));
 
       const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
-      const riderId = `R${nextNumber.toString().padStart(3, '0')}`;
+      const riderId = `LPR${nextNumber.toString().padStart(4, '0')}`;
+
+      // Create full name and legacy fields for compatibility
+      const fullName = `${riderData.first_name} ${riderData.last_name}`;
+      const fullAddress = `${riderData.address_line1}, ${riderData.address_line2}, ${riderData.city}, ${riderData.state} - ${riderData.pincode}`;
 
       const { data, error } = await supabase
         .from('riders')
         .insert([{
           ...riderData,
           rider_id: riderId,
+          name: fullName, // For compatibility
+          phone: riderData.mobile_number, // For compatibility
+          email: `${riderData.first_name.toLowerCase()}.${riderData.last_name.toLowerCase()}@temp.com`, // Temp email
+          address: fullAddress, // For compatibility
+          rental_plan: 'daily' as const, // Default
+          join_date: new Date().toISOString().split('T')[0], // Today's date
           status: 'active' as const,
+          duty_status: 'IDLE' as const,
           license_document: false,
           aadhar_document: false,
           agreement_document: false
@@ -83,7 +164,7 @@ export const useRiders = () => {
 
       if (error) throw error;
 
-      setRiders(prev => [data, ...prev]);
+      setRiders(prev => [data as Rider, ...prev]);
       toast.success(`Rider ${riderId} added successfully!`);
       return data;
     } catch (err) {
@@ -105,7 +186,7 @@ export const useRiders = () => {
       if (error) throw error;
 
       setRiders(prev => prev.map(rider => 
-        rider.id === id ? { ...rider, ...data } : rider
+        rider.id === id ? { ...rider, ...data } as Rider : rider
       ));
 
       toast.success('Rider updated successfully!');

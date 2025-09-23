@@ -12,14 +12,45 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Plus, Search, Filter, Phone, Mail, Calendar, User } from "lucide-react";
 import { useRiders, type Rider } from "@/hooks/useRiders";
+import { AddRiderForm } from "./AddRiderForm";
 
 interface RiderFormData {
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-  rental_plan: 'daily' | 'weekly' | 'monthly';
-  join_date: string;
+  // Section 1: Personal Information
+  first_name: string;
+  last_name: string;
+  mobile_number: string;
+  dob: string;
+  aadhaar_number: string;
+  pan_number: string;
+  address_line1: string;
+  address_line2: string;
+  city: string;
+  state: string;
+  pincode: string;
+  address_google_link: string;
+  marital_status: 'SINGLE' | 'MARRIED';
+  dependent_name?: string;
+  dependent_relation?: 'FATHER' | 'MOTHER' | 'BROTHER' | 'SPOUSE' | 'OTHER';
+  dependent_aadhaar?: string;
+  
+  // Section 2: Banking Information
+  bank_name: string;
+  branch_name: string;
+  ifsc_code: string;
+  account_number: string;
+  
+  // Section 3: Employment Information
+  aggregator: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
+  aggregator_other?: string;
+  aggregator_id: string;
+  joined_since: string;
+  avg_earnings_15_days: number;
+  
+  // Section 4: Office Use
+  onboarded_by: 'SHUBHAM' | 'VAIBHAV';
+  aggregator_credentials_checked: boolean;
+  id_credentials_checked: boolean;
+  retained_document_details: string;
 }
 
 export const RiderManagement = () => {
@@ -141,126 +172,17 @@ export const RiderManagement = () => {
                 Add Rider
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add New Rider</DialogTitle>
                 <DialogDescription>
-                  Register a new gig worker to your platform.
+                  Complete rider registration with comprehensive information across all sections.
                 </DialogDescription>
               </DialogHeader>
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      rules={{ required: "Full name is required" }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Name</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      rules={{ 
-                        required: "Phone number is required",
-                        pattern: { value: /^\+?[\d\s-()]+$/, message: "Invalid phone number" }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
-                          <FormControl>
-                            <Input {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    rules={{ 
-                      required: "Email is required",
-                      pattern: { value: /\S+@\S+\.\S+/, message: "Invalid email address" }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl>
-                          <Input type="email" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="address"
-                    rules={{ required: "Address is required" }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Address</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="rental_plan"
-                      rules={{ required: "Rental plan is required" }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Rental Plan</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select plan" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="daily">Daily</SelectItem>
-                              <SelectItem value="weekly">Weekly</SelectItem>
-                              <SelectItem value="monthly">Monthly</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="join_date"
-                      rules={{ required: "Join date is required" }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Join Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsAddRiderOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit">Add Rider</Button>
-                  </DialogFooter>
-                </form>
-              </Form>
+              <AddRiderForm
+                onSubmit={onSubmit}
+                onCancel={() => setIsAddRiderOpen(false)}
+              />
             </DialogContent>
           </Dialog>
         </div>

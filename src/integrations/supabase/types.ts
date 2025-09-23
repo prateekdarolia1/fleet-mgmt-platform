@@ -94,55 +94,145 @@ export type Database = {
       }
       riders: {
         Row: {
+          aadhaar_number: string | null
           aadhar_document: boolean
+          account_number: string | null
           address: string
+          address_google_link: string | null
+          address_line1: string | null
+          address_line2: string | null
+          aggregator: string | null
+          aggregator_credentials_checked: boolean | null
+          aggregator_id: string | null
+          aggregator_other: string | null
           agreement_document: boolean
+          avg_earnings_15_days: number | null
+          bank_name: string | null
+          branch_name: string | null
+          city: string | null
           created_at: string
+          dependent_aadhaar: string | null
+          dependent_name: string | null
+          dependent_relation: string | null
+          dob: string | null
+          duty_status: string | null
           email: string
+          first_name: string | null
           id: string
+          id_credentials_checked: boolean | null
+          ifsc_code: string | null
           join_date: string
+          joined_since: string | null
+          last_name: string | null
           last_payment_date: string | null
           license_document: boolean
+          marital_status: string | null
+          mobile_number: string | null
           name: string
+          onboarded_by: string | null
+          pan_number: string | null
           phone: string
+          pincode: string | null
           rental_plan: Database["public"]["Enums"]["rental_plan"]
+          retained_document_details: string | null
           rider_id: string
+          state: string | null
           status: Database["public"]["Enums"]["rider_status"]
           updated_at: string
           vehicle_assigned: string | null
         }
         Insert: {
+          aadhaar_number?: string | null
           aadhar_document?: boolean
+          account_number?: string | null
           address: string
+          address_google_link?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          aggregator?: string | null
+          aggregator_credentials_checked?: boolean | null
+          aggregator_id?: string | null
+          aggregator_other?: string | null
           agreement_document?: boolean
+          avg_earnings_15_days?: number | null
+          bank_name?: string | null
+          branch_name?: string | null
+          city?: string | null
           created_at?: string
+          dependent_aadhaar?: string | null
+          dependent_name?: string | null
+          dependent_relation?: string | null
+          dob?: string | null
+          duty_status?: string | null
           email: string
+          first_name?: string | null
           id?: string
+          id_credentials_checked?: boolean | null
+          ifsc_code?: string | null
           join_date: string
+          joined_since?: string | null
+          last_name?: string | null
           last_payment_date?: string | null
           license_document?: boolean
+          marital_status?: string | null
+          mobile_number?: string | null
           name: string
+          onboarded_by?: string | null
+          pan_number?: string | null
           phone: string
+          pincode?: string | null
           rental_plan: Database["public"]["Enums"]["rental_plan"]
+          retained_document_details?: string | null
           rider_id: string
+          state?: string | null
           status?: Database["public"]["Enums"]["rider_status"]
           updated_at?: string
           vehicle_assigned?: string | null
         }
         Update: {
+          aadhaar_number?: string | null
           aadhar_document?: boolean
+          account_number?: string | null
           address?: string
+          address_google_link?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          aggregator?: string | null
+          aggregator_credentials_checked?: boolean | null
+          aggregator_id?: string | null
+          aggregator_other?: string | null
           agreement_document?: boolean
+          avg_earnings_15_days?: number | null
+          bank_name?: string | null
+          branch_name?: string | null
+          city?: string | null
           created_at?: string
+          dependent_aadhaar?: string | null
+          dependent_name?: string | null
+          dependent_relation?: string | null
+          dob?: string | null
+          duty_status?: string | null
           email?: string
+          first_name?: string | null
           id?: string
+          id_credentials_checked?: boolean | null
+          ifsc_code?: string | null
           join_date?: string
+          joined_since?: string | null
+          last_name?: string | null
           last_payment_date?: string | null
           license_document?: boolean
+          marital_status?: string | null
+          mobile_number?: string | null
           name?: string
+          onboarded_by?: string | null
+          pan_number?: string | null
           phone?: string
+          pincode?: string | null
           rental_plan?: Database["public"]["Enums"]["rental_plan"]
+          retained_document_details?: string | null
           rider_id?: string
+          state?: string | null
           status?: Database["public"]["Enums"]["rider_status"]
           updated_at?: string
           vehicle_assigned?: string | null
@@ -264,7 +354,7 @@ export type Database = {
       payment_mode: "cash" | "upi" | "bank-transfer" | "card"
       payment_status: "pending" | "paid" | "overdue" | "partial"
       rental_plan: "daily" | "weekly" | "monthly"
-      rider_status: "active" | "inactive" | "suspended"
+      rider_status: "active" | "inactive" | "suspended" | "deboarded"
       vehicle_status: "Ready for Deployment" | "Deployed" | "Under Maintenance"
       vehicle_type: "High Speed" | "Low Speed"
     }
@@ -399,7 +489,7 @@ export const Constants = {
       payment_mode: ["cash", "upi", "bank-transfer", "card"],
       payment_status: ["pending", "paid", "overdue", "partial"],
       rental_plan: ["daily", "weekly", "monthly"],
-      rider_status: ["active", "inactive", "suspended"],
+      rider_status: ["active", "inactive", "suspended", "deboarded"],
       vehicle_status: ["Ready for Deployment", "Deployed", "Under Maintenance"],
       vehicle_type: ["High Speed", "Low Speed"],
     },
