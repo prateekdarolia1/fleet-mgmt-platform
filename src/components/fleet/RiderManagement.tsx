@@ -234,7 +234,10 @@ export const RiderManagement = () => {
                 </TableCell>
                 <TableCell>{getStatusBadge(rider.status)}</TableCell>
                 <TableCell>
-                  <Badge variant={rider.duty_status === 'LIVE' ? 'default' : 'secondary'}>
+                  <Badge 
+                    variant={rider.duty_status === 'LIVE' ? 'default' : undefined}
+                    className={rider.duty_status === 'LIVE' ? '' : 'bg-orange-500 hover:bg-orange-600 text-white'}
+                  >
                     {rider.duty_status || 'IDLE'}
                   </Badge>
                 </TableCell>
