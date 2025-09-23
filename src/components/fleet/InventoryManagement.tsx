@@ -664,9 +664,6 @@ export const InventoryManagement = () => {
                       <span className="font-medium">{vehicle.vehicle_type}</span>
                       <span className="text-muted-foreground"> • {vehicle.battery_type}</span>
                     </div>
-                    <div className="text-xs text-muted-foreground">
-                      Chassis: {vehicle.chassis_number.substring(0, 8)}...
-                    </div>
                   </div>
                 </TableCell>
                 <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
