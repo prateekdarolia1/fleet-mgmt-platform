@@ -153,8 +153,7 @@ export const LedgerManagement = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3" />
+                        <div>
                           ₹{Number(ledger.security_deposit_amount).toLocaleString()}
                         </div>
                       </TableCell>
