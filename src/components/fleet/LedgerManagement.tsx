@@ -5,14 +5,20 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, Calendar, User, DollarSign } from "lucide-react";
+import { Plus, Search, Calendar, User, Eye } from "lucide-react";
 import { useRiderLedgers } from "@/hooks/useRiderLedgers";
 import { CreateLedgerForm } from "./CreateLedgerForm";
+import { PaymentHistoryDialog } from "./PaymentHistoryDialog";
 
 export const LedgerManagement = () => {
   const { ledgers, loading } = useRiderLedgers();
   const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [selectedRiderForHistory, setSelectedRiderForHistory] = useState<{
+    riderId: string;
+    riderName: string;
+    ledgerId?: string;
+  } | null>(null);
 
   const filteredLedgers = ledgers.filter(ledger => 
     ledger.rider_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -134,12 +140,13 @@ export const LedgerManagement = () => {
                   <TableHead>Rental Details</TableHead>
                   <TableHead>Start Date</TableHead>
                   <TableHead>Created</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredLedgers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       {searchTerm ? "No ledgers found matching your search." : "No ledgers created yet. Create your first ledger to get started."}
                     </TableCell>
                   </TableRow>
@@ -175,6 +182,21 @@ export const LedgerManagement = () => {
                           {new Date(ledger.created_at).toLocaleDateString()}
                         </div>
                       </TableCell>
+                      <TableCell>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedRiderForHistory({
+                            riderId: ledger.rider_id,
+                            riderName: ledger.rider_name,
+                            ledgerId: ledger.id
+                          })}
+                          className="flex items-center gap-2"
+                        >
+                          <Eye className="h-3 w-3" />
+                          View Payment History
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -183,6 +205,17 @@ export const LedgerManagement = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Payment History Dialog */}
+      {selectedRiderForHistory && (
+        <PaymentHistoryDialog
+          open={!!selectedRiderForHistory}
+          onOpenChange={(open) => !open && setSelectedRiderForHistory(null)}
+          riderId={selectedRiderForHistory.riderId}
+          riderName={selectedRiderForHistory.riderName}
+          ledgerId={selectedRiderForHistory.ledgerId}
+        />
+      )}
     </div>
   );
 };
