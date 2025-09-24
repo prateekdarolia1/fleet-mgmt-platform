@@ -20,10 +20,12 @@ export type Database = {
           created_at: string
           due_date: string
           id: string
+          ledger_id: string | null
           notes: string | null
           payment_date: string | null
           payment_id: string
           payment_mode: Database["public"]["Enums"]["payment_mode"] | null
+          payment_type: Database["public"]["Enums"]["payment_type"]
           rental_period: string
           rider_id: string
           rider_name: string
@@ -35,10 +37,12 @@ export type Database = {
           created_at?: string
           due_date: string
           id?: string
+          ledger_id?: string | null
           notes?: string | null
           payment_date?: string | null
           payment_id: string
           payment_mode?: Database["public"]["Enums"]["payment_mode"] | null
+          payment_type?: Database["public"]["Enums"]["payment_type"]
           rental_period: string
           rider_id: string
           rider_name: string
@@ -50,17 +54,27 @@ export type Database = {
           created_at?: string
           due_date?: string
           id?: string
+          ledger_id?: string | null
           notes?: string | null
           payment_date?: string | null
           payment_id?: string
           payment_mode?: Database["public"]["Enums"]["payment_mode"] | null
+          payment_type?: Database["public"]["Enums"]["payment_type"]
           rental_period?: string
           rider_id?: string
           rider_name?: string
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payments_ledger_id_fkey"
+            columns: ["ledger_id"]
+            isOneToOne: false
+            referencedRelation: "rider_ledgers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -89,6 +103,42 @@ export type Database = {
           last_name?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      rider_ledgers: {
+        Row: {
+          created_at: string
+          id: string
+          rental_amount: number
+          rental_frequency: Database["public"]["Enums"]["rental_frequency"]
+          rental_start_date: string
+          rider_id: string
+          rider_name: string
+          security_deposit_amount: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          rental_amount: number
+          rental_frequency: Database["public"]["Enums"]["rental_frequency"]
+          rental_start_date: string
+          rider_id: string
+          rider_name: string
+          security_deposit_amount: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          rental_amount?: number
+          rental_frequency?: Database["public"]["Enums"]["rental_frequency"]
+          rental_start_date?: string
+          rider_id?: string
+          rider_name?: string
+          security_deposit_amount?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -353,6 +403,8 @@ export type Database = {
       battery_type: "Fixed" | "Swappable"
       payment_mode: "cash" | "upi" | "bank-transfer" | "card"
       payment_status: "pending" | "paid" | "overdue" | "partial"
+      payment_type: "security_deposit" | "rental"
+      rental_frequency: "daily" | "weekly" | "monthly"
       rental_plan: "daily" | "weekly" | "monthly"
       rider_status: "active" | "inactive" | "suspended" | "deboarded"
       vehicle_status: "Ready for Deployment" | "Deployed" | "Under Maintenance"
@@ -488,6 +540,8 @@ export const Constants = {
       battery_type: ["Fixed", "Swappable"],
       payment_mode: ["cash", "upi", "bank-transfer", "card"],
       payment_status: ["pending", "paid", "overdue", "partial"],
+      payment_type: ["security_deposit", "rental"],
+      rental_frequency: ["daily", "weekly", "monthly"],
       rental_plan: ["daily", "weekly", "monthly"],
       rider_status: ["active", "inactive", "suspended", "deboarded"],
       vehicle_status: ["Ready for Deployment", "Deployed", "Under Maintenance"],
