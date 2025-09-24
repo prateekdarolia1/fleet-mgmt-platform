@@ -99,7 +99,9 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
                 </FormControl>
                 <SelectContent>
                   {availableRiders.length === 0 ? (
-                    <SelectItem value="" disabled>No riders available (all have ledgers)</SelectItem>
+                    <div className="p-2 text-sm text-muted-foreground">
+                      No riders available (all have ledgers)
+                    </div>
                   ) : (
                     availableRiders.map((rider) => (
                       <SelectItem key={rider.rider_id} value={rider.rider_id}>
