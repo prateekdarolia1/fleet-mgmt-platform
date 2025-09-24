@@ -243,32 +243,79 @@ export const AddRiderForm = ({ onSubmit, onCancel }: AddRiderFormProps) => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Date of Birth *</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Day Selector */}
+                      <Select
+                        value={field.value ? field.value.getDate().toString() : ""}
+                        onValueChange={(day) => {
+                          const currentDate = field.value || new Date();
+                          const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), parseInt(day));
+                          field.onChange(newDate);
+                        }}
+                      >
                         <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? format(field.value, "PPP") : <span>Pick date</span>}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Day" />
+                          </SelectTrigger>
                         </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                          initialFocus
-                          className="pointer-events-auto"
-                        />
-                      </PopoverContent>
-                    </Popover>
+                        <SelectContent>
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                            <SelectItem key={day} value={day.toString()}>
+                              {day}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Month Selector */}
+                      <Select
+                        value={field.value ? field.value.getMonth().toString() : ""}
+                        onValueChange={(month) => {
+                          const currentDate = field.value || new Date();
+                          const newDate = new Date(currentDate.getFullYear(), parseInt(month), currentDate.getDate());
+                          field.onChange(newDate);
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Month" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {[
+                            'January', 'February', 'March', 'April', 'May', 'June',
+                            'July', 'August', 'September', 'October', 'November', 'December'
+                          ].map((month, index) => (
+                            <SelectItem key={index} value={index.toString()}>
+                              {month}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+
+                      {/* Year Selector */}
+                      <Select
+                        value={field.value ? field.value.getFullYear().toString() : ""}
+                        onValueChange={(year) => {
+                          const currentDate = field.value || new Date();
+                          const newDate = new Date(parseInt(year), currentDate.getMonth(), currentDate.getDate());
+                          field.onChange(newDate);
+                        }}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Year" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
