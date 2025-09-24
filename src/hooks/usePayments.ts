@@ -14,6 +14,8 @@ export interface Payment {
   payment_mode?: 'cash' | 'upi' | 'bank-transfer' | 'card';
   rental_period: string;
   notes?: string;
+  payment_type: 'security_deposit' | 'rental';
+  ledger_id?: string;
   created_at: string;
   updated_at: string;
 }
