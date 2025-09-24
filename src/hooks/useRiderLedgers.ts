@@ -18,6 +18,8 @@ export interface CreateLedgerData {
   rider_id: string;
   rider_name: string;
   security_deposit_amount: number;
+  payment_date: string;
+  transaction_id: string;
   rental_frequency: 'daily' | 'weekly' | 'monthly';
   rental_amount: number;
   rental_start_date: string;
@@ -48,10 +50,11 @@ export const useRiderLedgers = () => {
 
   const createLedger = async (ledgerData: CreateLedgerData) => {
     try {
-      // First create the ledger
+      // First create the ledger (exclude payment fields that don't belong in ledger table)
+      const { payment_date, transaction_id, ...ledgerOnlyData } = ledgerData;
       const { data: ledger, error: ledgerError } = await supabase
         .from('rider_ledgers')
-        .insert([ledgerData])
+        .insert([ledgerOnlyData])
         .select()
         .single();
 
@@ -75,18 +78,19 @@ export const useRiderLedgers = () => {
       const securityDepositId = `P${nextNumber.toString().padStart(3, '0')}`;
       const { error: securityDepositError } = await supabase
         .from('payments')
-        .insert([{
-          payment_id: securityDepositId,
+        .insert({
+          payment_id: ledgerData.transaction_id || securityDepositId,
           rider_id: ledgerData.rider_id,
           rider_name: ledgerData.rider_name,
           amount: ledgerData.security_deposit_amount,
           due_date: ledgerData.rental_start_date,
-          status: 'pending' as const,
+          payment_date: ledgerData.payment_date,
+          status: 'paid' as const,
           payment_type: 'security_deposit' as const,
           rental_period: 'Security Deposit',
           ledger_id: ledger.id,
           notes: 'Security deposit payment'
-        }]);
+        });
 
       if (securityDepositError) throw securityDepositError;
       nextNumber++;

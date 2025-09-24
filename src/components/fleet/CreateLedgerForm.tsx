@@ -17,6 +17,10 @@ import { useRiderLedgers, CreateLedgerData } from "@/hooks/useRiderLedgers";
 const ledgerSchema = z.object({
   rider_id: z.string().min(1, "Please select a rider"),
   security_deposit_amount: z.number().min(1, "Security deposit must be greater than 0"),
+  payment_date: z.date({
+    required_error: "Please select a payment date"
+  }),
+  transaction_id: z.string().min(1, "Transaction ID is required").max(100, "Transaction ID must be less than 100 characters"),
   rental_frequency: z.enum(['daily', 'weekly', 'monthly'], {
     required_error: "Please select a rental frequency"
   }),
@@ -66,6 +70,8 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
         rider_id: data.rider_id,
         rider_name: selectedRider.name,
         security_deposit_amount: data.security_deposit_amount,
+        payment_date: data.payment_date.toISOString().split('T')[0],
+        transaction_id: data.transaction_id,
         rental_frequency: data.rental_frequency,
         rental_amount: data.rental_amount,
         rental_start_date: data.rental_start_date.toISOString().split('T')[0]
@@ -129,6 +135,66 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
                   placeholder="Enter security deposit amount"
                   {...field}
                   onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Payment Date */}
+        <FormField
+          control={form.control}
+          name="payment_date"
+          render={({ field }) => (
+            <FormItem className="flex flex-col">
+              <FormLabel>Payment Date</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "w-full pl-3 text-left font-normal",
+                        !field.value && "text-muted-foreground"
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, "PPP")
+                      ) : (
+                        <span>Pick a payment date</span>
+                      )}
+                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Transaction ID */}
+        <FormField
+          control={form.control}
+          name="transaction_id"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Transaction ID</FormLabel>
+              <FormControl>
+                <Input
+                  type="text"
+                  placeholder="Enter transaction ID"
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
