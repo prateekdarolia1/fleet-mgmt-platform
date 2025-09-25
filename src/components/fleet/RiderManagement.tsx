@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Plus, Search, Filter, Phone, Mail, Calendar, User } from "lucide-react";
+import { Plus, Search, Filter, Phone, Mail, Calendar, User, Edit } from "lucide-react";
 import { useRiders, type Rider } from "@/hooks/useRiders";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { AddRiderForm } from "./AddRiderForm";
@@ -64,6 +64,7 @@ export const RiderManagement = () => {
   const [isViewRiderOpen, setIsViewRiderOpen] = useState(false);
   const [editingRider, setEditingRider] = useState<Rider | null>(null);
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
+  const [isEditDetailsOpen, setIsEditDetailsOpen] = useState(false);
   const [isVehicleSelectionOpen, setIsVehicleSelectionOpen] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{
@@ -82,6 +83,11 @@ export const RiderManagement = () => {
   const handleEditStatus = (rider: Rider) => {
     setEditingRider(rider);
     setIsEditStatusOpen(true);
+  };
+
+  const handleEditRiderDetails = (rider: Rider) => {
+    setEditingRider(rider);
+    setIsEditDetailsOpen(true);
   };
 
   const handleStatusUpdate = async (newStatus: Rider['status'], newDutyStatus: string) => {
@@ -380,6 +386,15 @@ export const RiderManagement = () => {
                     <Button 
                       variant="outline" 
                       size="sm"
+                      onClick={() => handleEditRiderDetails(rider)}
+                      className="flex items-center gap-1"
+                    >
+                      <Edit size={14} />
+                      Edit Details
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
                       onClick={() => handleEditStatus(rider)}
                     >
                       Edit Status
@@ -591,6 +606,34 @@ export const RiderManagement = () => {
                 Cancel
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Rider Details Modal */}
+        <Dialog open={isEditDetailsOpen} onOpenChange={setIsEditDetailsOpen}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Rider Details - {editingRider?.name}</DialogTitle>
+              <DialogDescription>
+                Update the rider's information
+              </DialogDescription>
+            </DialogHeader>
+            
+            {editingRider && (
+              <div className="mt-4">
+                <AddRiderForm 
+                  onSubmit={(updatedData) => {
+                    updateRider(editingRider.id, updatedData);
+                    setIsEditDetailsOpen(false);
+                    setEditingRider(null);
+                  }}
+                  onCancel={() => {
+                    setIsEditDetailsOpen(false);
+                    setEditingRider(null);
+                  }}
+                />
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
