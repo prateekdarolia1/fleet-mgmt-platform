@@ -6,6 +6,7 @@ import { InventoryManagement } from "@/components/fleet/InventoryManagement";
 import { RiderManagement } from "@/components/fleet/RiderManagement";
 import { PaymentTracking } from "@/components/fleet/PaymentTracking";
 import UserManagement from "@/components/admin/UserManagement";
+import { PlacesSeeder } from "@/components/admin/PlacesSeeder";
 import { ConnectionTest } from "@/components/debug/ConnectionTest";
 import { useVehicleStats } from "@/hooks/useVehicleStats";
 import { useRiders } from "@/hooks/useRiders";
@@ -318,6 +319,7 @@ const Index = () => {
               {activeTab === "users" && (
                 <div className="space-y-4">
                   <UserManagement />
+                  <PlacesSeeder />
                 </div>
               )}
             </div>

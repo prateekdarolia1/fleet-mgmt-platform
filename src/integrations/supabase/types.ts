@@ -76,6 +76,36 @@ export type Database = {
           },
         ]
       }
+      places: {
+        Row: {
+          cities: Json
+          created_at: string
+          id: string
+          pincodes: Json
+          state_or_ut: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          cities?: Json
+          created_at?: string
+          id?: string
+          pincodes?: Json
+          state_or_ut: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          cities?: Json
+          created_at?: string
+          id?: string
+          pincodes?: Json
+          state_or_ut?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
