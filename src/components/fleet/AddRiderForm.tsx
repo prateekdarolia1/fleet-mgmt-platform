@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 
 interface RiderFormData {
   // Section 1: Personal Information
@@ -59,6 +60,16 @@ interface AddRiderFormProps {
 export const AddRiderForm = ({ onSubmit, onCancel }: AddRiderFormProps) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formData, setFormData] = useState<RiderFormData | null>(null);
+  const [locationSuggestions, setLocationSuggestions] = useState<{pincode?: string, city?: string, state?: string}>({});
+  
+  const { 
+    loading: placesLoading, 
+    filteredStates, 
+    filteredCities, 
+    filterByPincode, 
+    extractLocationSuggestions,
+    getPincodeSuggestions 
+  } = usePlacesSearch();
 
   const form = useForm<{
     // Use Date for form fields that are actual dates
@@ -93,19 +104,17 @@ export const AddRiderForm = ({ onSubmit, onCancel }: AddRiderFormProps) => {
     retained_document_details: string;
   }>();
 
-  const indianCities = [
-    "MUMBAI", "DELHI", "BANGALORE", "HYDERABAD", "AHMEDABAD", "CHENNAI", "KOLKATA", 
-    "SURAT", "PUNE", "JAIPUR", "LUCKNOW", "KANPUR", "NAGPUR", "INDORE", "THANE",
-    "BHOPAL", "VISAKHAPATNAM", "PIMPRI-CHINCHWAD", "PATNA", "VADODARA", "GHAZIABAD"
-  ];
-
-  const indianStates = [
-    "ANDHRA PRADESH", "ARUNACHAL PRADESH", "ASSAM", "BIHAR", "CHHATTISGARH", 
-    "GOA", "GUJARAT", "HARYANA", "HIMACHAL PRADESH", "JHARKHAND", "KARNATAKA", 
-    "KERALA", "MADHYA PRADESH", "MAHARASHTRA", "MANIPUR", "MEGHALAYA", "MIZORAM", 
-    "NAGALAND", "ODISHA", "PUNJAB", "RAJASTHAN", "SIKKIM", "TAMIL NADU", 
-    "TELANGANA", "TRIPURA", "UTTAR PRADESH", "UTTARAKHAND", "WEST BENGAL"
-  ];
+  // Watch address fields for location extraction
+  const addressLine1 = form.watch("address_line1") || "";
+  const addressLine2 = form.watch("address_line2") || "";
+  
+  // Extract suggestions when address changes
+  useEffect(() => {
+    if (addressLine1 || addressLine2) {
+      const suggestions = extractLocationSuggestions(addressLine1, addressLine2);
+      setLocationSuggestions(suggestions);
+    }
+  }, [addressLine1, addressLine2, extractLocationSuggestions]);
 
   const indianBanks = [
     "STATE BANK OF INDIA", "HDFC BANK", "ICICI BANK", "PUNJAB NATIONAL BANK", 
@@ -402,19 +411,70 @@ export const AddRiderForm = ({ onSubmit, onCancel }: AddRiderFormProps) => {
               <div className="grid grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
+                  name="pincode"
+                  rules={{ 
+                    required: "Pincode is required",
+                    pattern: { value: /^\d{6}$/, message: "Must be 6 digits" }
+                  }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pincode *
+                        {locationSuggestions.pincode && (
+                          <Button 
+                            type="button" 
+                            variant="link" 
+                            size="sm" 
+                            className="ml-2 h-4 p-0 text-xs text-primary"
+                            onClick={() => {
+                              field.onChange(locationSuggestions.pincode);
+                              filterByPincode(locationSuggestions.pincode!);
+                            }}
+                          >
+                            Suggested: {locationSuggestions.pincode}
+                          </Button>
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          maxLength={6} 
+                          onChange={(e) => {
+                            field.onChange(e.target.value);
+                            filterByPincode(e.target.value);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
                   name="city"
                   rules={{ required: "City is required" }}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>City *</FormLabel>
+                      <FormLabel>City *
+                        {locationSuggestions.city && (
+                          <Button 
+                            type="button" 
+                            variant="link" 
+                            size="sm" 
+                            className="ml-2 h-4 p-0 text-xs text-primary"
+                            onClick={() => field.onChange(locationSuggestions.city)}
+                          >
+                            Suggested: {locationSuggestions.city}
+                          </Button>
+                        )}
+                      </FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select city" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          {indianCities.map(city => (
+                        <SelectContent className="max-h-[200px] overflow-y-auto">
+                          {filteredCities.map(city => (
                             <SelectItem key={city} value={city}>{city}</SelectItem>
                           ))}
                         </SelectContent>
@@ -429,36 +489,31 @@ export const AddRiderForm = ({ onSubmit, onCancel }: AddRiderFormProps) => {
                   rules={{ required: "State is required" }}
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>State *</FormLabel>
+                      <FormLabel>State *
+                        {locationSuggestions.state && (
+                          <Button 
+                            type="button" 
+                            variant="link" 
+                            size="sm" 
+                            className="ml-2 h-4 p-0 text-xs text-primary"
+                            onClick={() => field.onChange(locationSuggestions.state)}
+                          >
+                            Suggested: {locationSuggestions.state}
+                          </Button>
+                        )}
+                      </FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select state" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          {indianStates.map(state => (
+                        <SelectContent className="max-h-[200px] overflow-y-auto">
+                          {filteredStates.map(state => (
                             <SelectItem key={state} value={state}>{state}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="pincode"
-                  rules={{ 
-                    required: "Pincode is required",
-                    pattern: { value: /^\d{6}$/, message: "Must be 6 digits" }
-                  }}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Pincode *</FormLabel>
-                      <FormControl>
-                        <Input {...field} maxLength={6} />
-                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
