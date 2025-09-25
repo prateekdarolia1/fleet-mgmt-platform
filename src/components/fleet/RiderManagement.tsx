@@ -387,9 +387,7 @@ export const RiderManagement = () => {
                       variant="outline" 
                       size="sm"
                       onClick={() => handleEditRiderDetails(rider)}
-                      className="flex items-center gap-1"
                     >
-                      <Edit size={14} />
                       Edit Details
                     </Button>
                     <Button 
@@ -631,6 +629,7 @@ export const RiderManagement = () => {
                     setIsEditDetailsOpen(false);
                     setEditingRider(null);
                   }}
+                  initialData={editingRider}
                 />
               </div>
             )}

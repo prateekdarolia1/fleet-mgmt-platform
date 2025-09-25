@@ -55,9 +55,10 @@ interface RiderFormData {
 interface AddRiderFormProps {
   onSubmit: (data: RiderFormData) => void;
   onCancel: () => void;
+  initialData?: any;
 }
 
-export const AddRiderForm = ({ onSubmit, onCancel }: AddRiderFormProps) => {
+export const AddRiderForm = ({ onSubmit, onCancel, initialData }: AddRiderFormProps) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formData, setFormData] = useState<RiderFormData | null>(null);
   const [locationSuggestions, setLocationSuggestions] = useState<{pincode?: string, city?: string, state?: string}>({});
@@ -102,11 +103,44 @@ export const AddRiderForm = ({ onSubmit, onCancel }: AddRiderFormProps) => {
     aggregator_credentials_checked: boolean;
     id_credentials_checked: boolean;
     retained_document_details: string;
-  }>();
+  }>({
+    defaultValues: initialData ? {
+      first_name: initialData.first_name || '',
+      last_name: initialData.last_name || '',
+      mobile_number: initialData.mobile_number || '',
+      dob: initialData.dob ? new Date(initialData.dob) : new Date(),
+      aadhaar_number: initialData.aadhaar_number || '',
+      pan_number: initialData.pan_number || '',
+      address_line1: initialData.address_line1 || '',
+      address_line2: initialData.address_line2 || '',
+      city: initialData.city || '',
+      state: initialData.state || '',
+      pincode: initialData.pincode || '',
+      address_google_link: initialData.address_google_link || '',
+      marital_status: initialData.marital_status || 'SINGLE',
+      dependent_name: initialData.dependent_name || '',
+      dependent_relation: initialData.dependent_relation || 'FATHER',
+      dependent_aadhaar: initialData.dependent_aadhaar || '',
+      bank_name: initialData.bank_name || '',
+      branch_name: initialData.branch_name || '',
+      ifsc_code: initialData.ifsc_code || '',
+      account_number: initialData.account_number || '',
+      aggregator: initialData.aggregator || 'SWIGGY',
+      aggregator_other: initialData.aggregator_other || '',
+      aggregator_id: initialData.aggregator_id || '',
+      joined_since: initialData.joined_since ? new Date(initialData.joined_since) : new Date(),
+      avg_earnings_15_days: initialData.avg_earnings_15_days || 0,
+      onboarded_by: initialData.onboarded_by || 'SHUBHAM',
+      aggregator_credentials_checked: initialData.aggregator_credentials_checked || false,
+      id_credentials_checked: initialData.id_credentials_checked || false,
+      retained_document_details: initialData.retained_document_details || ''
+    } : {}
+  });
 
   // Watch address fields for location extraction
   const addressLine1 = form.watch("address_line1") || "";
   const addressLine2 = form.watch("address_line2") || "";
+  const pincodeValue = form.watch("pincode") || "";
   
   // Extract suggestions when address changes
   useEffect(() => {
@@ -115,6 +149,13 @@ export const AddRiderForm = ({ onSubmit, onCancel }: AddRiderFormProps) => {
       setLocationSuggestions(suggestions);
     }
   }, [addressLine1, addressLine2, extractLocationSuggestions]);
+
+  // Filter places when pincode changes or on initial load
+  useEffect(() => {
+    if (pincodeValue || initialData?.pincode) {
+      filterByPincode(pincodeValue || initialData?.pincode || '');
+    }
+  }, [pincodeValue, filterByPincode, initialData?.pincode]);
 
   const indianBanks = [
     "STATE BANK OF INDIA", "HDFC BANK", "ICICI BANK", "PUNJAB NATIONAL BANK", 
