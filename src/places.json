@@ -1,1 +1,615 @@
-[]
+[[
+  {
+    "state_or_ut": "Andhra Pradesh",
+    "type": "State",
+    "cities": [
+      "Visakhapatnam",
+      "Vijayawada",
+      "Guntur",
+      "Nellore",
+      "Kurnool",
+      "Rajahmundry",
+      "Tirupati",
+      "Kakinada",
+      "Anantapur",
+      "Eluru"
+    ],
+    "pincodes": [ "530001", "520001", "522002", "524001", "518001", "533101", "517501", "533001", "515001", "534001" ]
+  },
+  {
+    "state_or_ut": "Arunachal Pradesh",
+    "type": "State",
+    "cities": [
+      "Itanagar",
+      "Naharlagun",
+      "Tawang",
+      "Pasighat",
+      "Ziro",
+      "Bomdila",
+      "Tezu",
+      "Daporijo",
+      "Aalo (Along)",
+      "Roing"
+    ],
+    "pincodes": [ "791111", "791110", "790104", "791102", "791120", "790001", "792001", "791122", "791001", "792110" ]
+  },
+  {
+    "state_or_ut": "Assam",
+    "type": "State",
+    "cities": [
+      "Guwahati",
+      "Dibrugarh",
+      "Silchar",
+      "Jorhat",
+      "Tinsukia",
+      "Tezpur",
+      "Nagaon",
+      "Sivasagar",
+      "Bongaigaon",
+      "Dhubri"
+    ],
+    "pincodes": [ "781001", "786001", "788001", "785001", "786125", "784001", "782001", "785640", "783380", "783301" ]
+  },
+  {
+    "state_or_ut": "Bihar",
+    "type": "State",
+    "cities": [
+      "Patna",
+      "Gaya",
+      "Bhagalpur",
+      "Muzaffarpur",
+      "Purnia",
+      "Darbhanga",
+      "Arrah",
+      "Begusarai",
+      "Katihar",
+      "Munger"
+    ],
+    "pincodes": [ "800001", "823001", "812001", "842001", "854301", "846004", "802301", "851101", "854105", "811201" ]
+  },
+  {
+    "state_or_ut": "Chhattisgarh",
+    "type": "State",
+    "cities": [
+      "Raipur",
+      "Bhilai",
+      "Korba",
+      "Bilaspur",
+      "Durg",
+      "Rajnandgaon",
+      "Raigarh",
+      "Jagdalpur",
+      "Ambikapur",
+      "Dhamtari"
+    ],
+    "pincodes": [ "492001", "490020", "495677", "495001", "491001", "491441", "496001", "494001", "497001", "493773" ]
+  },
+  {
+    "state_or_ut": "Goa",
+    "type": "State",
+    "cities": [
+      "Panaji",
+      "Margao",
+      "Vasco da Gama",
+      "Mapusa",
+      "Ponda",
+      "Bicholim",
+      "Curchorem",
+      "Sanquelim",
+      "Canacona",
+      "Cuncolim"
+    ],
+    "pincodes": [ "403001", "403601", "403802", "403507", "403401", "403504", "403706", "403505", "403702", "403703" ]
+  },
+  {
+    "state_or_ut": "Gujarat",
+    "type": "State",
+    "cities": [
+      "Ahmedabad",
+      "Surat",
+      "Vadodara",
+      "Rajkot",
+      "Bhavnagar",
+      "Jamnagar",
+      "Junagadh",
+      "Gandhinagar",
+      "Anand",
+      "Mehsana"
+    ],
+    "pincodes": [ "380001", "395003", "390001", "360001", "364001", "361001", "362001", "382010", "388001", "384001" ]
+  },
+  {
+    "state_or_ut": "Haryana",
+    "type": "State",
+    "cities": [
+      "Faridabad",
+      "Gurugram",
+      "Panipat",
+      "Ambala",
+      "Yamunanagar",
+      "Rohtak",
+      "Hisar",
+      "Karnal",
+      "Sonipat",
+      "Panchkula"
+    ],
+    "pincodes": [ "121001", "122001", "132103", "134003", "135001", "124001", "125001", "132001", "131001", "134109" ]
+  },
+  {
+    "state_or_ut": "Himachal Pradesh",
+    "type": "State",
+    "cities": [
+      "Shimla",
+      "Manali",
+      "Dharamshala",
+      "Solan",
+      "Mandi",
+      "Kullu",
+      "Chamba",
+      "Hamirpur",
+      "Una",
+      "Dalhousie"
+    ],
+    "pincodes": [ "171001", "175131", "176215", "173212", "175001", "175101", "176310", "177001", "174303", "176304" ]
+  },
+  {
+    "state_or_ut": "Jharkhand",
+    "type": "State",
+    "cities": [
+      "Ranchi",
+      "Jamshedpur",
+      "Dhanbad",
+      "Bokaro Steel City",
+      "Deoghar",
+      "Hazaribagh",
+      "Giridih",
+      "Ramgarh",
+      "Medininagar (Daltonganj)",
+      "Chas"
+    ],
+    "pincodes": [ "834001", "831001", "826001", "827001", "814112", "825301", "815301", "829122", "822101", "827013" ]
+  },
+  {
+    "state_or_ut": "Karnataka",
+    "type": "State",
+    "cities": [
+      "Bengaluru",
+      "Mysuru",
+      "Mangaluru",
+      "Hubballi-Dharwad",
+      "Belagavi",
+      "Shivamogga",
+      "Davangere",
+      "Ballari",
+      "Vijayapura",
+      "Udupi"
+    ],
+    "pincodes": [ "560001", "570001", "575001", "580020", "590001", "577201", "577001", "583101", "586101", "576101" ]
+  },
+  {
+    "state_or_ut": "Kerala",
+    "type": "State",
+    "cities": [
+      "Thiruvananthapuram",
+      "Kochi",
+      "Kozhikode",
+      "Thrissur",
+      "Kollam",
+      "Kannur",
+      "Alappuzha",
+      "Kottayam",
+      "Palakkad",
+      "Malappuram"
+    ],
+    "pincodes": [ "695001", "682011", "673001", "680001", "691001", "670001", "688001", "686001", "678001", "676505" ]
+  },
+  {
+    "state_or_ut": "Madhya Pradesh",
+    "type": "State",
+    "cities": [
+      "Indore",
+      "Bhopal",
+      "Jabalpur",
+      "Gwalior",
+      "Ujjain",
+      "Sagar",
+      "Dewas",
+      "Satna",
+      "Ratlam",
+      "Rewa"
+    ],
+    "pincodes": [ "452001", "462001", "482001", "474001", "456001", "470001", "455001", "485001", "457001", "486001" ]
+  },
+  {
+    "state_or_ut": "Maharashtra",
+    "type": "State",
+    "cities": [
+      "Mumbai",
+      "Pune",
+      "Nagpur",
+      "Thane",
+      "Nashik",
+      "Aurangabad",
+      "Solapur",
+      "Kolhapur",
+      "Amravati",
+      "Navi Mumbai"
+    ],
+    "pincodes": [ "400001", "411001", "440001", "400601", "422001", "431001", "413001", "416001", "444601", "400703" ]
+  },
+  {
+    "state_or_ut": "Manipur",
+    "type": "State",
+    "cities": [
+      "Imphal",
+      "Churachandpur",
+      "Thoubal",
+      "Bishnupur",
+      "Senapati",
+      "Ukhrul",
+      "Kakching",
+      "Tamenglong",
+      "Jiribam",
+      "Kangpokpi"
+    ],
+    "pincodes": [ "795001", "795128", "795138", "795126", "795106", "795142", "795103", "795141", "795115", "795129" ]
+  },
+  {
+    "state_or_ut": "Meghalaya",
+    "type": "State",
+    "cities": [
+      "Shillong",
+      "Tura",
+      "Jowai",
+      "Nongpoh",
+      "Williamnagar",
+      "Baghmara",
+      "Nongstoin",
+      "Mairang",
+      "Resubelpara",
+      "Cherrapunji"
+    ],
+    "pincodes": [ "793001", "794001", "793150", "793102", "794111", "794102", "793119", "793120", "794108", "793108" ]
+  },
+  {
+    "state_or_ut": "Mizoram",
+    "type": "State",
+    "cities": [
+      "Aizawl",
+      "Lunglei",
+      "Champhai",
+      "Saiha",
+      "Kolasib",
+      "Serchhip",
+      "Lawngtlai",
+      "Mamit",
+      "Hnahthial",
+      "Khawzawl"
+    ],
+    "pincodes": [ "796001", "796701", "796321", "796901", "796081", "796181", "796891", "796441", "796571", "796310" ]
+  },
+  {
+    "state_or_ut": "Nagaland",
+    "type": "State",
+    "cities": [
+      "Kohima",
+      "Dimapur",
+      "Mokokchung",
+      "Tuensang",
+      "Wokha",
+      "Zunheboto",
+      "Mon",
+      "Phek",
+      "Kiphire",
+      "Longleng"
+    ],
+    "pincodes": [ "797001", "797112", "798601", "798612", "797111", "798620", "798621", "797108", "798611", "798625" ]
+  },
+  {
+    "state_or_ut": "Odisha",
+    "type": "State",
+    "cities": [
+      "Bhubaneswar",
+      "Cuttack",
+      "Rourkela",
+      "Berhampur",
+      "Sambalpur",
+      "Puri",
+      "Balasore",
+      "Bhadrak",
+      "Baripada",
+      "Jharsuguda"
+    ],
+    "pincodes": [ "751001", "753001", "769001", "760001", "768001", "752001", "756001", "756100", "757001", "768201" ]
+  },
+  {
+    "state_or_ut": "Punjab",
+    "type": "State",
+    "cities": [
+      "Ludhiana",
+      "Amritsar",
+      "Jalandhar",
+      "Patiala",
+      "Bathinda",
+      "Mohali",
+      "Hoshiarpur",
+      "Batala",
+      "Pathankot",
+      "Moga"
+    ],
+    "pincodes": [ "141001", "143001", "144001", "147001", "151001", "160055", "146001", "143505", "145001", "142001" ]
+  },
+  {
+    "state_or_ut": "Rajasthan",
+    "type": "State",
+    "cities": [
+      "Jaipur",
+      "Jodhpur",
+      "Udaipur",
+      "Kota",
+      "Bikaner",
+      "Ajmer",
+      "Alwar",
+      "Bhilwara",
+      "Sikar",
+      "Pali"
+    ],
+    "pincodes": [ "302001", "342001", "313001", "324001", "334001", "305001", "301001", "311001", "332001", "306401" ]
+  },
+  {
+    "state_or_ut": "Sikkim",
+    "type": "State",
+    "cities": [
+      "Gangtok",
+      "Namchi",
+      "Geyzing",
+      "Mangan",
+      "Rangpo",
+      "Jorethang",
+      "Singtam",
+      "Pelling",
+      "Lachung",
+      "Yuksom"
+    ],
+    "pincodes": [ "737101", "737126", "737111", "737116", "737132", "737121", "737134", "737113", "737120", "737113" ]
+  },
+  {
+    "state_or_ut": "Tamil Nadu",
+    "type": "State",
+    "cities": [
+      "Chennai",
+      "Coimbatore",
+      "Madurai",
+      "Tiruchirappalli",
+      "Salem",
+      "Tirunelveli",
+      "Tiruppur",
+      "Erode",
+      "Vellore",
+      "Thoothukudi"
+    ],
+    "pincodes": [ "600001", "641001", "625001", "620001", "636001", "627001", "641601", "638001", "632001", "628001" ]
+  },
+  {
+    "state_or_ut": "Telangana",
+    "type": "State",
+    "cities": [
+      "Hyderabad",
+      "Warangal",
+      "Nizamabad",
+      "Karimnagar",
+      "Khammam",
+      "Ramagundam",
+      "Mahbubnagar",
+      "Nalgonda",
+      "Adilabad",
+      "Siddipet"
+    ],
+    "pincodes": [ "500001", "506001", "503001", "505001", "507001", "505208", "509001", "508001", "504001", "502103" ]
+  },
+  {
+    "state_or_ut": "Tripura",
+    "type": "State",
+    "cities": [
+      "Agartala",
+      "Udaipur",
+      "Dharmanagar",
+      "Kailasahar",
+      "Belonia",
+      "Khowai",
+      "Ambassa",
+      "Teliamura",
+      "Sabroom",
+      "Sonamura"
+    ],
+    "pincodes": [ "799001", "799120", "799250", "799277", "799155", "799201", "799289", "799205", "799145", "799131" ]
+  },
+  {
+    "state_or_ut": "Uttar Pradesh",
+    "type": "State",
+    "cities": [
+      "Lucknow",
+      "Kanpur",
+      "Ghaziabad",
+      "Agra",
+      "Varanasi",
+      "Meerut",
+      "Allahabad (Prayagraj)",
+      "Bareilly",
+      "Aligarh",
+      "Noida"
+    ],
+    "pincodes": [ "226001", "208001", "201001", "282001", "221001", "250001", "211001", "243001", "202001", "201301" ]
+  },
+  {
+    "state_or_ut": "Uttarakhand",
+    "type": "State",
+    "cities": [
+      "Dehradun",
+      "Haridwar",
+      "Roorkee",
+      "Haldwani",
+      "Rudrapur",
+      "Kashipur",
+      "Rishikesh",
+      "Nainital",
+      "Mussoorie",
+      "Pithoragarh"
+    ],
+    "pincodes": [ "248001", "249401", "247667", "263139", "263153", "244713", "249201", "263001", "248179", "262501" ]
+  },
+  {
+    "state_or_ut": "West Bengal",
+    "type": "State",
+    "cities": [
+      "Kolkata",
+      "Howrah",
+      "Asansol",
+      "Siliguri",
+      "Durgapur",
+      "Darjeeling",
+      "Kharagpur",
+      "Haldia",
+      "Malda",
+      "Baharampur"
+    ],
+    "pincodes": [ "700001", "711101", "713301", "734001", "713201", "734101", "721301", "721602", "732101", "742101" ]
+  },
+  {
+    "state_or_ut": "Andaman and Nicobar Islands",
+    "type": "Union Territory",
+    "cities": [
+      "Port Blair",
+      "Havelock Island",
+      "Neil Island",
+      "Diglipur",
+      "Rangat",
+      "Mayabunder",
+      "Car Nicobar",
+      "Campbell Bay",
+      "Wandoor",
+      "Baratang"
+    ],
+    "pincodes": [ "744101", "744211", "744104", "744202", "744205", "744204", "744301", "744302", "744103", "744201" ]
+  },
+  {
+    "state_or_ut": "Chandigarh",
+    "type": "Union Territory",
+    "cities": [
+      "Chandigarh Sector 17",
+      "Chandigarh Sector 22",
+      "Chandigarh Sector 35",
+      "Manimajra",
+      "Industrial Area Phase 1",
+      "Industrial Area Phase 2",
+      "Dhanas",
+      "Maloya",
+      "Kishangarh",
+      "Daria"
+    ],
+    "pincodes": [ "160017", "160022", "160035", "160101", "160002", "160002", "160014", "160025", "160101", "160101" ]
+  },
+  {
+    "state_or_ut": "Dadra and Nagar Haveli and Daman and Diu",
+    "type": "Union Territory",
+    "cities": [
+      "Daman",
+      "Diu",
+      "Silvassa",
+      "Amli",
+      "Dadra",
+      "Naroli",
+      "Vapi (nearby)",
+      "Bhilad (nearby)",
+      "Khanvel",
+      "Rakholi"
+    ],
+    "pincodes": [ "396210", "362520", "396230", "396230", "396230", "396235", "396191", "396105", "396230", "396230" ]
+  },
+  {
+    "state_or_ut": "Delhi",
+    "type": "National Capital Territory",
+    "cities": [
+      "New Delhi",
+      "Connaught Place",
+      "Karol Bagh",
+      "Dwarka",
+      "Rohini",
+      "Shahdara",
+      "Saket",
+      "Lajpat Nagar",
+      "Mayur Vihar",
+      "Vasant Kunj"
+    ],
+    "pincodes": [ "110001", "110001", "110005", "110075", "110085", "110032", "110017", "110024", "110091", "110070" ]
+  },
+  {
+    "state_or_ut": "Jammu and Kashmir",
+    "type": "Union Territory",
+    "cities": [
+      "Srinagar",
+      "Jammu",
+      "Anantnag",
+      "Baramulla",
+      "Udhampur",
+      "Kathua",
+      "Sopore",
+      "Pulwama",
+      "Kupwara",
+      "Poonch"
+    ],
+    "pincodes": [ "190001", "180001", "192101", "193101", "182101", "184101", "193201", "192301", "193222", "185101" ]
+  },
+  {
+    "state_or_ut": "Ladakh",
+    "type": "Union Territory",
+    "cities": [
+      "Leh",
+      "Kargil",
+      "Diskit",
+      "Nubra",
+      "Padum",
+      "Zanskar",
+      "Khaltsi",
+      "Lamayuru",
+      "Drass",
+      "Spituk"
+    ],
+    "pincodes": [ "194101", "194103", "194401", "194401", "194302", "194302", "194106", "194106", "194102", "194105" ]
+  },
+  {
+    "state_or_ut": "Lakshadweep",
+    "type": "Union Territory",
+    "cities": [
+      "Kavaratti",
+      "Agatti",
+      "Minicoy",
+      "Amini",
+      "Andrott",
+      "Kalpeni",
+      "Chetlat",
+      "Kiltan",
+      "Kadmat",
+      "Bitra"
+    ],
+    "pincodes": [ "682555", "682553", "682559", "682552", "682551", "682557", "682554", "682558", "682556", "682554" ]
+  },
+  {
+    "state_or_ut": "Puducherry",
+    "type": "Union Territory",
+    "cities": [
+      "Puducherry",
+      "Karaikal",
+      "Mahe",
+      "Yanam",
+      "Ozhukarai",
+      "Villianur",
+      "Ariankuppam",
+      "Manavely",
+      "Thirunallar",
+      "Nedungadu"
+    ],
+    "pincodes": [ "605001", "609602", "673310", "533464", "605010", "605110", "605007", "605009", "609607", "609603" ]
+  }
+]
+]
