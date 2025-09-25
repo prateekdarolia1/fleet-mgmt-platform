@@ -154,8 +154,11 @@ export const AddRiderForm = ({ onSubmit, onCancel, initialData }: AddRiderFormPr
   useEffect(() => {
     if (pincodeValue || initialData?.pincode) {
       filterByPincode(pincodeValue || initialData?.pincode || '');
+    } else if (!placesLoading && filteredStates.length === 0 && filteredCities.length === 0) {
+      // Initialize with all data if no pincode and arrays are empty
+      filterByPincode('');
     }
-  }, [pincodeValue, filterByPincode, initialData?.pincode]);
+  }, [pincodeValue, filterByPincode, initialData?.pincode, placesLoading, filteredStates.length, filteredCities.length]);
 
   const indianBanks = [
     "STATE BANK OF INDIA", "HDFC BANK", "ICICI BANK", "PUNJAB NATIONAL BANK", 

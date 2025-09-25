@@ -44,6 +44,10 @@ export const usePlacesSearch = () => {
         }));
         
         setPlaces(transformedData);
+        
+        // Initialize filtered arrays with all data
+        setFilteredStates(transformedData.map(p => p.state_or_ut));
+        setFilteredCities(transformedData.flatMap(p => p.cities));
       } catch (error) {
         console.error('Error fetching places:', error);
       } finally {
