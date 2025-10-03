@@ -437,8 +437,7 @@ export const InventoryManagement = () => {
                       name="motor_serial_number"
                       rules={{ 
                         required: "Motor serial number is required",
-                        maxLength: { value: 20, message: "Maximum 20 characters allowed" },
-                        pattern: { value: /^[a-zA-Z0-9]*$/, message: "Only alphanumeric characters allowed" }
+                        maxLength: { value: 20, message: "Maximum 20 characters allowed" }
                       }}
                       render={({ field }) => (
                         <FormItem>
