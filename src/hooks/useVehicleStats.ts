@@ -109,6 +109,28 @@ export const useVehicleStats = () => {
 
   useEffect(() => {
     fetchStats();
+
+    // Subscribe to real-time changes on vehicles table
+    const channel = supabase
+      .channel('vehicle-stats-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vehicles'
+        },
+        () => {
+          // Refetch stats whenever vehicles table changes
+          fetchStats();
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on unmount
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return {

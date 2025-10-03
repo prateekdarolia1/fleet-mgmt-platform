@@ -87,7 +87,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          cities?: Json
+          cities: Json
           created_at?: string
           id?: string
           pincodes?: Json
