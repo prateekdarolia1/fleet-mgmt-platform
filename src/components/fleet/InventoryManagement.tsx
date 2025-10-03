@@ -211,9 +211,11 @@ export const InventoryManagement = () => {
         const rider = availableRiders.find(r => r.id === selectedRider);
         updates.rider_id = rider?.rider_id;
         updates.rider_name = rider?.name;
+        updates.rental_start_date = new Date().toISOString().split('T')[0];
       } else if (selectedStatus !== 'Deployed') {
         updates.rider_id = null;
         updates.rider_name = null;
+        updates.rental_start_date = null;
       }
 
       await updateVehicle(statusChangeVehicle.id, updates);
