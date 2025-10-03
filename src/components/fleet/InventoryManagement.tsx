@@ -633,6 +633,366 @@ export const InventoryManagement = () => {
           </Dialog>
         </div>
 
+        {/* Edit Vehicle Dialog */}
+        <Dialog open={isEditVehicleOpen} onOpenChange={setIsEditVehicleOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Vehicle</DialogTitle>
+              <DialogDescription>
+                Update vehicle information in your fleet inventory.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="make"
+                    rules={{ required: "Vehicle make is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Make</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select make" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="EBlu">EBlu</SelectItem>
+                            <SelectItem value="Evolet">Evolet</SelectItem>
+                            <SelectItem value="IntuitEV">IntuitEV</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="model"
+                    rules={{ required: "Vehicle model is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Model</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select model" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Feo">Feo</SelectItem>
+                            <SelectItem value="Polo">Polo</SelectItem>
+                            <SelectItem value="BanaEV">BanaEV</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="color"
+                    rules={{ required: "Color is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Color</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select color" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Black">Black</SelectItem>
+                            <SelectItem value="White">White</SelectItem>
+                            <SelectItem value="Red">Red</SelectItem>
+                            <SelectItem value="Maroon">Maroon</SelectItem>
+                            <SelectItem value="Blue">Blue</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="delivery_date"
+                    rules={{ required: "Delivery date is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Delivery Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="vehicle_number"
+                    rules={{ 
+                      required: "Vehicle Registration Number is required",
+                      maxLength: {
+                        value: 12,
+                        message: "Maximum 12 characters allowed"
+                      },
+                      pattern: {
+                        value: /^[A-Z0-9]*$/,
+                        message: "Only uppercase letters and numbers allowed"
+                      }
+                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Registration Number</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="e.g., MH12AB1234" 
+                            maxLength={12}
+                            {...field} 
+                            onChange={(e) => {
+                              const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                              field.onChange(value);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="chassis_number"
+                    rules={{ 
+                      required: "Chassis number is required",
+                      maxLength: { value: 20, message: "Maximum 20 characters allowed" },
+                      pattern: { value: /^[a-zA-Z0-9]*$/, message: "Only alphanumeric characters allowed" }
+                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Chassis Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter chassis number" maxLength={20} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="motor_serial_number"
+                    rules={{ 
+                      required: "Motor serial number is required",
+                      maxLength: { value: 20, message: "Maximum 20 characters allowed" }
+                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Motor Serial Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter motor serial number" maxLength={20} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="vendor"
+                    rules={{ required: "Vendor is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vendor</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select vendor" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Global Transatlantic">Global Transatlantic</SelectItem>
+                            <SelectItem value="Risalla EV">Risalla EV</SelectItem>
+                            <SelectItem value="IntuitEV">IntuitEV</SelectItem>
+                            <SelectItem value="Other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="pdi_done_by"
+                    rules={{ required: "PDI done by is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>PDI Done By</FormLabel>
+                        <FormControl>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select name" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Vaibhav">Vaibhav</SelectItem>
+                              <SelectItem value="Shubham">Shubham</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                              <SelectItem value="NA">NA</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="registration_received"
+                    rules={{ required: "Registration status is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Registration Received?</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="true">Yes</SelectItem>
+                            <SelectItem value="false">No</SelectItem>
+                            <SelectItem value="na">NA</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="insurance_received"
+                    rules={{ required: "Insurance status is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Insurance Received?</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="true">Yes</SelectItem>
+                            <SelectItem value="false">No</SelectItem>
+                            <SelectItem value="na">NA</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="portable_charger_received"
+                    rules={{ required: "Portable charger status is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Portable Charger Received?</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value?.toString()}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="true">Yes</SelectItem>
+                            <SelectItem value="false">No</SelectItem>
+                            <SelectItem value="na">NA</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={editForm.control}
+                    name="vehicle_type"
+                    rules={{ required: "Vehicle type is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="High Speed">High Speed</SelectItem>
+                            <SelectItem value="Low Speed">Low Speed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={editForm.control}
+                    name="battery_type"
+                    rules={{ required: "Battery type is required" }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Battery Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select battery type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Fixed">Fixed</SelectItem>
+                            <SelectItem value="Swappable">Swappable</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsEditVehicleOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button type="submit">Update Vehicle</Button>
+                </DialogFooter>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
         {/* Vehicles Table */}
         <div className="overflow-x-auto">
           <Table>
