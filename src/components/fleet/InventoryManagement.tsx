@@ -1002,7 +1002,6 @@ export const InventoryManagement = () => {
               <TableHead>Technical Info</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Rental Info</TableHead>
-              <TableHead>Maintenance</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -1041,12 +1040,6 @@ export const InventoryManagement = () => {
                   ) : (
                     <span className="text-muted-foreground">Not assigned</span>
                   )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1 text-sm">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(vehicle.next_maintenance_date).toLocaleDateString()}
-                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
