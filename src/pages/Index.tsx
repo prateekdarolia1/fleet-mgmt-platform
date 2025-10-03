@@ -126,7 +126,9 @@ const Index = () => {
           <header className="border-b bg-card p-4 shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <h1 className="text-2xl font-bold text-foreground">Fleet Management</h1>
+                <h1 className="text-2xl font-bold text-foreground">
+                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                </h1>
                 <p className="text-muted-foreground text-sm mt-1">EV Rental Business Dashboard</p>
               </div>
               <div className="flex items-center space-x-3">
