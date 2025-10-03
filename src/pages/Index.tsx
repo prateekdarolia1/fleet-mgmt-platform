@@ -43,7 +43,6 @@ const Index = () => {
             {/* Sidebar Header */}
             <div className="p-4 border-b border-sidebar-border">
               <h2 className="text-lg font-semibold text-sidebar-foreground">Lilypad Fleet Manager</h2>
-              <p className="text-sm text-sidebar-foreground/70 mt-1">EV Rental Business</p>
             </div>
             
             <SidebarGroup className="px-4 py-6">
