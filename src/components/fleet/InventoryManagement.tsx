@@ -351,6 +351,7 @@ export const InventoryManagement = () => {
                             <SelectContent>
                               <SelectItem value="Black">Black</SelectItem>
                               <SelectItem value="White">White</SelectItem>
+                              <SelectItem value="Red">Red</SelectItem>
                               <SelectItem value="Maroon">Maroon</SelectItem>
                               <SelectItem value="Blue">Blue</SelectItem>
                               <SelectItem value="Other">Other</SelectItem>
