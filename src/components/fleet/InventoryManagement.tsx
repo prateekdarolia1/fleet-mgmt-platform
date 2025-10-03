@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Plus, Search, Filter, Calendar, Wrench, Edit, Trash2, RotateCcw } from "lucide-react";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
+import { useAvailableRiders } from "@/hooks/useAvailableRiders";
+import { toast } from "sonner";
 
 interface VehicleFormData {
   make: string;
@@ -32,6 +34,7 @@ interface VehicleFormData {
 
 export const InventoryManagement = () => {
   const { vehicles, loading, addVehicle, updateVehicle, deleteVehicle, toggleVehicleStatus } = useVehicles();
+  const { riders: availableRiders, loading: ridersLoading } = useAvailableRiders();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -42,6 +45,10 @@ export const InventoryManagement = () => {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
   const [pendingVehicleData, setPendingVehicleData] = useState<VehicleFormData | null>(null);
+  const [statusChangeVehicle, setStatusChangeVehicle] = useState<Vehicle | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedRider, setSelectedRider] = useState<string>("");
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
 
   const form = useForm<VehicleFormData>();
   const editForm = useForm<VehicleFormData>();
@@ -179,6 +186,45 @@ export const InventoryManagement = () => {
       } else {
         alert('Failed to update vehicle. Please try again.');
       }
+    }
+  };
+
+  const handleStatusChange = (vehicle: Vehicle) => {
+    setStatusChangeVehicle(vehicle);
+    setSelectedStatus(vehicle.status);
+    setSelectedRider("");
+    setShowStatusDialog(true);
+  };
+
+  const confirmStatusChange = async () => {
+    if (!statusChangeVehicle || !selectedStatus) return;
+
+    if (selectedStatus === 'Deployed' && !selectedRider) {
+      toast.error('Please select a rider for deployed status');
+      return;
+    }
+
+    try {
+      const updates: any = { status: selectedStatus };
+      
+      if (selectedStatus === 'Deployed' && selectedRider) {
+        const rider = availableRiders.find(r => r.id === selectedRider);
+        updates.rider_id = rider?.rider_id;
+        updates.rider_name = rider?.name;
+      } else if (selectedStatus !== 'Deployed') {
+        updates.rider_id = null;
+        updates.rider_name = null;
+      }
+
+      await updateVehicle(statusChangeVehicle.id, updates);
+      setShowStatusDialog(false);
+      setStatusChangeVehicle(null);
+      setSelectedStatus("");
+      setSelectedRider("");
+      toast.success('Vehicle status updated successfully');
+    } catch (error) {
+      console.error('Error updating vehicle status:', error);
+      toast.error('Failed to update vehicle status');
     }
   };
 
@@ -1046,7 +1092,7 @@ export const InventoryManagement = () => {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => toggleVehicleStatus(vehicle.id)}
+                      onClick={() => handleStatusChange(vehicle)}
                     >
                       <RotateCcw className="h-3 w-3 mr-1" />
                       Status
@@ -1119,6 +1165,70 @@ export const InventoryManagement = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Status Change Dialog */}
+        <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Vehicle Status</DialogTitle>
+              <DialogDescription>
+                Update the status of {statusChangeVehicle?.vehicle_number}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background z-50">
+                    <SelectItem value="Ready for Deployment">Ready for Deployment</SelectItem>
+                    <SelectItem value="Deployed">Deployed</SelectItem>
+                    <SelectItem value="Under Maintenance">Under Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedStatus === 'Deployed' && (
+                <div className="space-y-2">
+                  <Label htmlFor="rider">Select Rider</Label>
+                  <Select value={selectedRider} onValueChange={setSelectedRider}>
+                    <SelectTrigger id="rider">
+                      <SelectValue placeholder="Choose a rider" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background z-50">
+                      {ridersLoading ? (
+                        <SelectItem value="loading" disabled>Loading riders...</SelectItem>
+                      ) : availableRiders.length === 0 ? (
+                        <SelectItem value="none" disabled>No available riders</SelectItem>
+                      ) : (
+                        availableRiders.map((rider) => (
+                          <SelectItem key={rider.id} value={rider.id}>
+                            {rider.name} ({rider.rider_id})
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {selectedStatus === 'Deployed' && availableRiders.length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      No riders with Active status and IDLE duty status available
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowStatusDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={confirmStatusChange}>
+                Update Status
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
