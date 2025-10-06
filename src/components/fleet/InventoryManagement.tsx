@@ -14,7 +14,6 @@ import { Plus, Search, Filter, Calendar, Wrench, Edit, Trash2, RotateCcw } from 
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { useAvailableRiders } from "@/hooks/useAvailableRiders";
 import { toast } from "sonner";
-
 interface VehicleFormData {
   make: string;
   model: string;
@@ -31,11 +30,19 @@ interface VehicleFormData {
   battery_type: 'Fixed' | 'Swappable';
   vehicle_number: string;
 }
-
 export const InventoryManagement = () => {
-  const { vehicles, loading, addVehicle, updateVehicle, deleteVehicle, toggleVehicleStatus } = useVehicles();
-  const { riders: availableRiders, loading: ridersLoading } = useAvailableRiders();
-
+  const {
+    vehicles,
+    loading,
+    addVehicle,
+    updateVehicle,
+    deleteVehicle,
+    toggleVehicleStatus
+  } = useVehicles();
+  const {
+    riders: availableRiders,
+    loading: ridersLoading
+  } = useAvailableRiders();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
@@ -49,10 +56,8 @@ export const InventoryManagement = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedRider, setSelectedRider] = useState<string>("");
   const [showStatusDialog, setShowStatusDialog] = useState(false);
-
   const form = useForm<VehicleFormData>();
   const editForm = useForm<VehicleFormData>();
-
   const onSubmit = async (data: VehicleFormData) => {
     // Convert form data to match Vehicle interface
     const vehicleData = {
@@ -64,10 +69,8 @@ export const InventoryManagement = () => {
     setPendingVehicleData(vehicleData);
     setShowConfirmation(true);
   };
-
   const confirmAddVehicle = async () => {
     if (!pendingVehicleData) return;
-
     try {
       // Convert string values to boolean for backend
       const vehicleData = {
@@ -84,32 +87,31 @@ export const InventoryManagement = () => {
     } catch (error: any) {
       console.error('Error adding vehicle:', error);
       setShowConfirmation(false);
-      
+
       // Handle specific database constraint errors
       if (error?.code === '23505') {
         const details = error.details || '';
         let errorMessage = 'This vehicle already exists in the system.';
-        
         if (details.includes('chassis_number')) {
           errorMessage = 'A vehicle with this chassis number already exists. Please check the chassis number and try again.';
-          form.setError('chassis_number', { 
-            type: 'manual', 
-            message: 'This chassis number is already registered' 
+          form.setError('chassis_number', {
+            type: 'manual',
+            message: 'This chassis number is already registered'
           });
         } else if (details.includes('vehicle_number')) {
           errorMessage = 'A vehicle with this registration number already exists. Please check the vehicle number and try again.';
-          form.setError('vehicle_number', { 
-            type: 'manual', 
-            message: 'This vehicle number is already registered' 
+          form.setError('vehicle_number', {
+            type: 'manual',
+            message: 'This vehicle number is already registered'
           });
         } else if (details.includes('motor_serial_number')) {
           errorMessage = 'A vehicle with this motor serial number already exists. Please check the motor serial number and try again.';
-          form.setError('motor_serial_number', { 
-            type: 'manual', 
-            message: 'This motor serial number is already registered' 
+          form.setError('motor_serial_number', {
+            type: 'manual',
+            message: 'This motor serial number is already registered'
           });
         }
-        
+
         // You can add a toast notification here if you have one available
         alert(errorMessage);
       } else {
@@ -117,7 +119,6 @@ export const InventoryManagement = () => {
       }
     }
   };
-
   const startEditVehicle = (vehicle: Vehicle) => {
     setEditingVehicle(vehicle);
     editForm.reset({
@@ -134,14 +135,12 @@ export const InventoryManagement = () => {
       portable_charger_received: vehicle.portable_charger_received ? 'true' : 'false',
       vehicle_type: vehicle.vehicle_type,
       battery_type: vehicle.battery_type,
-      vehicle_number: vehicle.vehicle_number,
+      vehicle_number: vehicle.vehicle_number
     });
     setIsEditVehicleOpen(true);
   };
-
   const onEditSubmit = async (data: VehicleFormData) => {
     if (!editingVehicle) return;
-
     try {
       // Convert form data to match Vehicle interface
       const vehicleData = {
@@ -156,57 +155,52 @@ export const InventoryManagement = () => {
       editForm.reset();
     } catch (error: any) {
       console.error('Error updating vehicle:', error);
-      
+
       // Handle specific database constraint errors
       if (error?.code === '23505') {
         const details = error.details || '';
         let errorMessage = 'This vehicle information conflicts with an existing vehicle.';
-        
         if (details.includes('chassis_number')) {
           errorMessage = 'A vehicle with this chassis number already exists. Please check the chassis number and try again.';
-          editForm.setError('chassis_number', { 
-            type: 'manual', 
-            message: 'This chassis number is already registered' 
+          editForm.setError('chassis_number', {
+            type: 'manual',
+            message: 'This chassis number is already registered'
           });
         } else if (details.includes('vehicle_number')) {
           errorMessage = 'A vehicle with this registration number already exists. Please check the vehicle number and try again.';
-          editForm.setError('vehicle_number', { 
-            type: 'manual', 
-            message: 'This vehicle number is already registered' 
+          editForm.setError('vehicle_number', {
+            type: 'manual',
+            message: 'This vehicle number is already registered'
           });
         } else if (details.includes('motor_serial_number')) {
           errorMessage = 'A vehicle with this motor serial number already exists. Please check the motor serial number and try again.';
-          editForm.setError('motor_serial_number', { 
-            type: 'manual', 
-            message: 'This motor serial number is already registered' 
+          editForm.setError('motor_serial_number', {
+            type: 'manual',
+            message: 'This motor serial number is already registered'
           });
         }
-        
         alert(errorMessage);
       } else {
         alert('Failed to update vehicle. Please try again.');
       }
     }
   };
-
   const handleStatusChange = (vehicle: Vehicle) => {
     setStatusChangeVehicle(vehicle);
     setSelectedStatus(vehicle.status);
     setSelectedRider("");
     setShowStatusDialog(true);
   };
-
   const confirmStatusChange = async () => {
     if (!statusChangeVehicle || !selectedStatus) return;
-
     if (selectedStatus === 'Deployed' && !selectedRider) {
       toast.error('Please select a rider for deployed status');
       return;
     }
-
     try {
-      const updates: any = { status: selectedStatus };
-      
+      const updates: any = {
+        status: selectedStatus
+      };
       if (selectedStatus === 'Deployed' && selectedRider) {
         const rider = availableRiders.find(r => r.id === selectedRider);
         updates.rider_id = rider?.rider_id;
@@ -217,7 +211,6 @@ export const InventoryManagement = () => {
         updates.rider_name = null;
         updates.rental_start_date = null;
       }
-
       await updateVehicle(statusChangeVehicle.id, updates);
       setShowStatusDialog(false);
       setStatusChangeVehicle(null);
@@ -229,15 +222,12 @@ export const InventoryManagement = () => {
       toast.error('Failed to update vehicle status');
     }
   };
-
   const confirmRemoveVehicle = (vehicle: Vehicle) => {
     setVehicleToDelete(vehicle);
     setShowDeleteConfirmation(true);
   };
-
   const removeVehicle = async () => {
     if (!vehicleToDelete) return;
-
     try {
       await deleteVehicle(vehicleToDelete.id);
       setShowDeleteConfirmation(false);
@@ -246,46 +236,33 @@ export const InventoryManagement = () => {
       console.error('Error deleting vehicle:', error);
     }
   };
-
   const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesSearch = vehicle.vehicle_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.chassis_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         vehicle.rider_name?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = vehicle.vehicle_number.toLowerCase().includes(searchTerm.toLowerCase()) || vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) || vehicle.rider_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || vehicle.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
-
   const getStatusBadge = (status: Vehicle['status']) => {
     if (status === 'Deployed') {
       return <Badge variant="success">{status}</Badge>;
     }
-    
     if (status === 'Ready for Deployment') {
       return <Badge variant="warning">{status}</Badge>;
     }
-    
     const variants = {
       'Under Maintenance': 'destructive'
     } as const;
-    
     return <Badge variant={variants[status]}>{status}</Badge>;
   };
-
   if (loading) {
-    return (
-      <Card>
+    return <Card>
         <CardContent className="p-8">
           <div className="flex items-center justify-center">
             <div className="text-muted-foreground">Loading vehicles...</div>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
-  return (
-    <Card>
+  return <Card>
       <CardHeader>
         <CardTitle>Vehicle Inventory</CardTitle>
         <CardDescription>
@@ -297,12 +274,7 @@ export const InventoryManagement = () => {
         <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-accent/50 p-4 rounded-lg">
           <div className="relative flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by vehicle number, model, chassis number, or rider name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
+            <Input placeholder="Search by vehicle number, model, or rider name..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
@@ -333,12 +305,11 @@ export const InventoryManagement = () => {
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="make"
-                      rules={{ required: "Vehicle make is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="make" rules={{
+                    required: "Vehicle make is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Vehicle Make</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -354,15 +325,12 @@ export const InventoryManagement = () => {
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="model"
-                      rules={{ required: "Vehicle model is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                        </FormItem>} />
+                    <FormField control={form.control} name="model" rules={{
+                    required: "Vehicle model is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Vehicle Model</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -378,18 +346,15 @@ export const InventoryManagement = () => {
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="color"
-                      rules={{ required: "Color is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="color" rules={{
+                    required: "Color is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Color</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -407,106 +372,89 @@ export const InventoryManagement = () => {
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="delivery_date"
-                      rules={{ required: "Delivery date is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                        </FormItem>} />
+                    <FormField control={form.control} name="delivery_date" rules={{
+                    required: "Delivery date is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Delivery Date</FormLabel>
                           <FormControl>
                             <Input type="date" {...field} />
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="vehicle_number"
-                      rules={{ 
-                        required: "Vehicle Registration Number is required",
-                        maxLength: {
-                          value: 12,
-                          message: "Maximum 12 characters allowed"
-                        },
-                        pattern: {
-                          value: /^[A-Z0-9]*$/,
-                          message: "Only uppercase letters and numbers allowed"
-                        }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="vehicle_number" rules={{
+                    required: "Vehicle Registration Number is required",
+                    maxLength: {
+                      value: 12,
+                      message: "Maximum 12 characters allowed"
+                    },
+                    pattern: {
+                      value: /^[A-Z0-9]*$/,
+                      message: "Only uppercase letters and numbers allowed"
+                    }
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Vehicle Registration Number</FormLabel>
                           <FormControl>
-                            <Input 
-                              placeholder="e.g., MH12AB1234" 
-                              maxLength={12}
-                              {...field} 
-                              onChange={(e) => {
-                                const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                                field.onChange(value);
-                              }}
-                            />
+                            <Input placeholder="e.g., MH12AB1234" maxLength={12} {...field} onChange={e => {
+                        const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                        field.onChange(value);
+                      }} />
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
                     <div></div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="chassis_number"
-                      rules={{ 
-                        required: "Chassis number is required",
-                        maxLength: { value: 20, message: "Maximum 20 characters allowed" },
-                        pattern: { value: /^[a-zA-Z0-9]*$/, message: "Only alphanumeric characters allowed" }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="chassis_number" rules={{
+                    required: "Chassis number is required",
+                    maxLength: {
+                      value: 20,
+                      message: "Maximum 20 characters allowed"
+                    },
+                    pattern: {
+                      value: /^[a-zA-Z0-9]*$/,
+                      message: "Only alphanumeric characters allowed"
+                    }
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Chassis Number</FormLabel>
                           <FormControl>
                             <Input placeholder="Enter chassis number" maxLength={20} {...field} />
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="motor_serial_number"
-                      rules={{ 
-                        required: "Motor serial number is required",
-                        maxLength: { value: 20, message: "Maximum 20 characters allowed" }
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
+                        </FormItem>} />
+                    <FormField control={form.control} name="motor_serial_number" rules={{
+                    required: "Motor serial number is required",
+                    maxLength: {
+                      value: 20,
+                      message: "Maximum 20 characters allowed"
+                    }
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Motor Serial Number</FormLabel>
                           <FormControl>
                             <Input placeholder="Enter motor serial number" maxLength={20} {...field} />
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="vendor"
-                      rules={{ required: "Vendor is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="vendor" rules={{
+                    required: "Vendor is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Vendor</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -522,15 +470,12 @@ export const InventoryManagement = () => {
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="pdi_done_by"
-                      rules={{ required: "PDI done by is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                        </FormItem>} />
+                    <FormField control={form.control} name="pdi_done_by" rules={{
+                    required: "PDI done by is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>PDI Done By</FormLabel>
                           <FormControl>
                             <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -546,18 +491,15 @@ export const InventoryManagement = () => {
                             </Select>
                           </FormControl>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="registration_received"
-                      rules={{ required: "Registration status is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="registration_received" rules={{
+                    required: "Registration status is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Registration Received?</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value?.toString()}>
                             <FormControl>
@@ -572,15 +514,12 @@ export const InventoryManagement = () => {
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="insurance_received"
-                      rules={{ required: "Insurance status is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                        </FormItem>} />
+                    <FormField control={form.control} name="insurance_received" rules={{
+                    required: "Insurance status is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Insurance Received?</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value?.toString()}>
                             <FormControl>
@@ -595,15 +534,12 @@ export const InventoryManagement = () => {
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="portable_charger_received"
-                      rules={{ required: "Portable charger status is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                        </FormItem>} />
+                    <FormField control={form.control} name="portable_charger_received" rules={{
+                    required: "Portable charger status is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Portable Charger Received?</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value?.toString()}>
                             <FormControl>
@@ -618,18 +554,15 @@ export const InventoryManagement = () => {
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="vehicle_type"
-                      rules={{ required: "Vehicle type is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                    <FormField control={form.control} name="vehicle_type" rules={{
+                    required: "Vehicle type is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Vehicle Type</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -643,15 +576,12 @@ export const InventoryManagement = () => {
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="battery_type"
-                      rules={{ required: "Battery type is required" }}
-                      render={({ field }) => (
-                        <FormItem>
+                        </FormItem>} />
+                    <FormField control={form.control} name="battery_type" rules={{
+                    required: "Battery type is required"
+                  }} render={({
+                    field
+                  }) => <FormItem>
                           <FormLabel>Battery Type</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
@@ -665,9 +595,7 @@ export const InventoryManagement = () => {
                             </SelectContent>
                           </Select>
                           <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        </FormItem>} />
                   </div>
 
                   <DialogFooter>
@@ -694,12 +622,11 @@ export const InventoryManagement = () => {
             <Form {...editForm}>
               <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="make"
-                    rules={{ required: "Vehicle make is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={editForm.control} name="make" rules={{
+                  required: "Vehicle make is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Vehicle Make</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -715,15 +642,12 @@ export const InventoryManagement = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="model"
-                    rules={{ required: "Vehicle model is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                      </FormItem>} />
+                  <FormField control={editForm.control} name="model" rules={{
+                  required: "Vehicle model is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Vehicle Model</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -739,18 +663,15 @@ export const InventoryManagement = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="color"
-                    rules={{ required: "Color is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={editForm.control} name="color" rules={{
+                  required: "Color is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Color</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -768,106 +689,89 @@ export const InventoryManagement = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="delivery_date"
-                    rules={{ required: "Delivery date is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                      </FormItem>} />
+                  <FormField control={editForm.control} name="delivery_date" rules={{
+                  required: "Delivery date is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Delivery Date</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="vehicle_number"
-                    rules={{ 
-                      required: "Vehicle Registration Number is required",
-                      maxLength: {
-                        value: 12,
-                        message: "Maximum 12 characters allowed"
-                      },
-                      pattern: {
-                        value: /^[A-Z0-9]*$/,
-                        message: "Only uppercase letters and numbers allowed"
-                      }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={editForm.control} name="vehicle_number" rules={{
+                  required: "Vehicle Registration Number is required",
+                  maxLength: {
+                    value: 12,
+                    message: "Maximum 12 characters allowed"
+                  },
+                  pattern: {
+                    value: /^[A-Z0-9]*$/,
+                    message: "Only uppercase letters and numbers allowed"
+                  }
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Vehicle Registration Number</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="e.g., MH12AB1234" 
-                            maxLength={12}
-                            {...field} 
-                            onChange={(e) => {
-                              const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-                              field.onChange(value);
-                            }}
-                          />
+                          <Input placeholder="e.g., MH12AB1234" maxLength={12} {...field} onChange={e => {
+                      const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                      field.onChange(value);
+                    }} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                   <div></div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="chassis_number"
-                    rules={{ 
-                      required: "Chassis number is required",
-                      maxLength: { value: 20, message: "Maximum 20 characters allowed" },
-                      pattern: { value: /^[a-zA-Z0-9]*$/, message: "Only alphanumeric characters allowed" }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={editForm.control} name="chassis_number" rules={{
+                  required: "Chassis number is required",
+                  maxLength: {
+                    value: 20,
+                    message: "Maximum 20 characters allowed"
+                  },
+                  pattern: {
+                    value: /^[a-zA-Z0-9]*$/,
+                    message: "Only alphanumeric characters allowed"
+                  }
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Chassis Number</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter chassis number" maxLength={20} {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="motor_serial_number"
-                    rules={{ 
-                      required: "Motor serial number is required",
-                      maxLength: { value: 20, message: "Maximum 20 characters allowed" }
-                    }}
-                    render={({ field }) => (
-                      <FormItem>
+                      </FormItem>} />
+                  <FormField control={editForm.control} name="motor_serial_number" rules={{
+                  required: "Motor serial number is required",
+                  maxLength: {
+                    value: 20,
+                    message: "Maximum 20 characters allowed"
+                  }
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Motor Serial Number</FormLabel>
                         <FormControl>
                           <Input placeholder="Enter motor serial number" maxLength={20} {...field} />
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="vendor"
-                    rules={{ required: "Vendor is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={editForm.control} name="vendor" rules={{
+                  required: "Vendor is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Vendor</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -883,15 +787,12 @@ export const InventoryManagement = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="pdi_done_by"
-                    rules={{ required: "PDI done by is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                      </FormItem>} />
+                  <FormField control={editForm.control} name="pdi_done_by" rules={{
+                  required: "PDI done by is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>PDI Done By</FormLabel>
                         <FormControl>
                           <Select onValueChange={field.onChange} value={field.value}>
@@ -907,18 +808,15 @@ export const InventoryManagement = () => {
                           </Select>
                         </FormControl>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
 
                 <div className="grid grid-cols-3 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="registration_received"
-                    rules={{ required: "Registration status is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={editForm.control} name="registration_received" rules={{
+                  required: "Registration status is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Registration Received?</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value?.toString()}>
                           <FormControl>
@@ -933,15 +831,12 @@ export const InventoryManagement = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="insurance_received"
-                    rules={{ required: "Insurance status is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                      </FormItem>} />
+                  <FormField control={editForm.control} name="insurance_received" rules={{
+                  required: "Insurance status is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Insurance Received?</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value?.toString()}>
                           <FormControl>
@@ -956,15 +851,12 @@ export const InventoryManagement = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="portable_charger_received"
-                    rules={{ required: "Portable charger status is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                      </FormItem>} />
+                  <FormField control={editForm.control} name="portable_charger_received" rules={{
+                  required: "Portable charger status is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Portable Charger Received?</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value?.toString()}>
                           <FormControl>
@@ -979,18 +871,15 @@ export const InventoryManagement = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={editForm.control}
-                    name="vehicle_type"
-                    rules={{ required: "Vehicle type is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                  <FormField control={editForm.control} name="vehicle_type" rules={{
+                  required: "Vehicle type is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Vehicle Type</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -1004,15 +893,12 @@ export const InventoryManagement = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={editForm.control}
-                    name="battery_type"
-                    rules={{ required: "Battery type is required" }}
-                    render={({ field }) => (
-                      <FormItem>
+                      </FormItem>} />
+                  <FormField control={editForm.control} name="battery_type" rules={{
+                  required: "Battery type is required"
+                }} render={({
+                  field
+                }) => <FormItem>
                         <FormLabel>Battery Type</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
@@ -1026,9 +912,7 @@ export const InventoryManagement = () => {
                           </SelectContent>
                         </Select>
                         <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                      </FormItem>} />
                 </div>
 
                 <DialogFooter>
@@ -1051,12 +935,12 @@ export const InventoryManagement = () => {
               <TableHead>Technical Info</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Rental Info</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>Rider Assigned
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredVehicles.map((vehicle) => (
-              <TableRow key={vehicle.id}>
+            {filteredVehicles.map(vehicle => <TableRow key={vehicle.id}>
                 <TableCell>
                   <div>
                     <div className="font-medium">{vehicle.vehicle_number}</div>
@@ -1076,44 +960,29 @@ export const InventoryManagement = () => {
                 </TableCell>
                 <TableCell>{getStatusBadge(vehicle.status)}</TableCell>
                 <TableCell>
-                  {vehicle.rider_name ? (
-                    <div>
+                  {vehicle.rider_name ? <div>
                       <div className="font-medium text-sm">{vehicle.rider_name}</div>
                       <div className="text-xs text-muted-foreground">{vehicle.rider_id}</div>
-                      {vehicle.rental_start_date && (
-                        <div className="text-xs text-muted-foreground">
+                      {vehicle.rental_start_date && <div className="text-xs text-muted-foreground">
                           Since: {new Date(vehicle.rental_start_date).toLocaleDateString()}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">Not assigned</span>
-                  )}
+                        </div>}
+                    </div> : <span className="text-muted-foreground">Not assigned</span>}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => handleStatusChange(vehicle)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => handleStatusChange(vehicle)}>
                       <RotateCcw className="h-3 w-3 mr-1" />
                       Status
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => startEditVehicle(vehicle)}>
                       <Edit className="h-3 w-3" />
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => confirmRemoveVehicle(vehicle)}
-                    >
+                    <Button variant="outline" size="sm" onClick={() => confirmRemoveVehicle(vehicle)}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
                 </TableCell>
-              </TableRow>
-            ))}
+              </TableRow>)}
           </TableBody>
           </Table>
         </div>
@@ -1125,14 +994,12 @@ export const InventoryManagement = () => {
               <AlertDialogTitle>Confirm Vehicle Addition</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to add this vehicle to your fleet?
-                {pendingVehicleData && (
-                  <div className="mt-4 p-4 bg-muted rounded-md">
+                {pendingVehicleData && <div className="mt-4 p-4 bg-muted rounded-md">
                     <div><strong>Make:</strong> {pendingVehicleData.make}</div>
                     <div><strong>Model:</strong> {pendingVehicleData.model}</div>
                     <div><strong>Color:</strong> {pendingVehicleData.color}</div>
                     <div><strong>Vendor:</strong> {pendingVehicleData.vendor}</div>
-                  </div>
-                )}
+                  </div>}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1151,13 +1018,11 @@ export const InventoryManagement = () => {
               <AlertDialogTitle>Confirm Vehicle Removal</AlertDialogTitle>
               <AlertDialogDescription>
                 Are you sure you want to remove this vehicle from your fleet? This action cannot be undone.
-                {vehicleToDelete && (
-                  <div className="mt-4 p-4 bg-destructive/10 rounded-md">
+                {vehicleToDelete && <div className="mt-4 p-4 bg-destructive/10 rounded-md">
                     <div><strong>Vehicle:</strong> {vehicleToDelete.vehicle_number}</div>
                     <div><strong>Make/Model:</strong> {vehicleToDelete.make} {vehicleToDelete.model}</div>
                     <div><strong>Status:</strong> {vehicleToDelete.status}</div>
-                  </div>
-                )}
+                  </div>}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -1193,34 +1058,22 @@ export const InventoryManagement = () => {
                 </Select>
               </div>
 
-              {selectedStatus === 'Deployed' && (
-                <div className="space-y-2">
+              {selectedStatus === 'Deployed' && <div className="space-y-2">
                   <Label htmlFor="rider">Select Rider</Label>
                   <Select value={selectedRider} onValueChange={setSelectedRider}>
                     <SelectTrigger id="rider">
                       <SelectValue placeholder="Choose a rider" />
                     </SelectTrigger>
                     <SelectContent className="bg-background z-50">
-                      {ridersLoading ? (
-                        <SelectItem value="loading" disabled>Loading riders...</SelectItem>
-                      ) : availableRiders.length === 0 ? (
-                        <SelectItem value="none" disabled>No available riders</SelectItem>
-                      ) : (
-                        availableRiders.map((rider) => (
-                          <SelectItem key={rider.id} value={rider.id}>
+                      {ridersLoading ? <SelectItem value="loading" disabled>Loading riders...</SelectItem> : availableRiders.length === 0 ? <SelectItem value="none" disabled>No available riders</SelectItem> : availableRiders.map(rider => <SelectItem key={rider.id} value={rider.id}>
                             {rider.name} ({rider.rider_id})
-                          </SelectItem>
-                        ))
-                      )}
+                          </SelectItem>)}
                     </SelectContent>
                   </Select>
-                  {selectedStatus === 'Deployed' && availableRiders.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
+                  {selectedStatus === 'Deployed' && availableRiders.length === 0 && <p className="text-sm text-muted-foreground">
                       No riders with Active status and IDLE duty status available
-                    </p>
-                  )}
-                </div>
-              )}
+                    </p>}
+                </div>}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowStatusDialog(false)}>
@@ -1233,6 +1086,5 @@ export const InventoryManagement = () => {
           </DialogContent>
         </Dialog>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
