@@ -14,41 +14,41 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { usePlacesSearch } from "@/hooks/usePlacesSearch";
 interface RiderFormData {
   // Section 1: Personal Information
-  first_name: string;
-  last_name: string;
-  mobile_number: string;
-  dob: string; // Changed to string for API compatibility
-  aadhaar_number: string;
-  pan_number: string;
-  address_line1: string;
-  address_line2: string;
-  city: string;
-  state: string;
-  pincode: string;
-  address_google_link: string;
-  marital_status: 'SINGLE' | 'MARRIED';
+  first_name?: string;
+  last_name?: string;
+  mobile_number?: string;
+  dob?: string; // Changed to string for API compatibility
+  aadhaar_number?: string;
+  pan_number?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  address_google_link?: string;
+  marital_status?: 'SINGLE' | 'MARRIED';
   dependent_name?: string;
   dependent_relation?: 'FATHER' | 'MOTHER' | 'BROTHER' | 'SPOUSE' | 'OTHER';
   dependent_aadhaar?: string;
 
   // Section 2: Banking Information
-  bank_name: string;
-  branch_name: string;
-  ifsc_code: string;
-  account_number: string;
+  bank_name?: string;
+  branch_name?: string;
+  ifsc_code?: string;
+  account_number?: string;
 
   // Section 3: Employment Information
-  aggregator: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
+  aggregator?: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
   aggregator_other?: string;
-  aggregator_id: string;
-  joined_since: string; // Changed to string for API compatibility
-  avg_earnings_15_days: number;
+  aggregator_id?: string;
+  joined_since?: string; // Changed to string for API compatibility
+  avg_earnings_15_days?: number;
 
   // Section 4: Office Use
-  onboarded_by: 'SHUBHAM' | 'VAIBHAV';
-  aggregator_credentials_checked: boolean;
-  id_credentials_checked: boolean;
-  retained_document_details: string;
+  onboarded_by?: 'SHUBHAM' | 'VAIBHAV';
+  aggregator_credentials_checked?: boolean;
+  id_credentials_checked?: boolean;
+  retained_document_details?: string;
 }
 interface AddRiderFormProps {
   onSubmit: (data: RiderFormData) => void;
@@ -77,36 +77,36 @@ export const AddRiderForm = ({
   } = usePlacesSearch();
   const form = useForm<{
     // Use Date for form fields that are actual dates
-    first_name: string;
-    last_name: string;
-    mobile_number: string;
-    dob: Date;
-    aadhaar_number: string;
-    pan_number: string;
-    address_line1: string;
-    address_line2: string;
-    city: string;
-    state: string;
-    pincode: string;
-    address_google_link: string;
-    marital_status: 'SINGLE' | 'MARRIED';
+    first_name?: string;
+    last_name?: string;
+    mobile_number?: string;
+    dob?: Date;
+    aadhaar_number?: string;
+    pan_number?: string;
+    address_line1?: string;
+    address_line2?: string;
+    city?: string;
+    state?: string;
+    pincode?: string;
+    address_google_link?: string;
+    marital_status?: 'SINGLE' | 'MARRIED';
     dependent_name?: string;
     dependent_relation?: 'FATHER' | 'MOTHER' | 'BROTHER' | 'SPOUSE' | 'OTHER';
     dependent_aadhaar?: string;
-    bank_name: string;
+    bank_name?: string;
     bank_other?: string;
-    branch_name: string;
-    ifsc_code: string;
-    account_number: string;
-    aggregator: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
+    branch_name?: string;
+    ifsc_code?: string;
+    account_number?: string;
+    aggregator?: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
     aggregator_other?: string;
-    aggregator_id: string;
-    joined_since: Date;
-    avg_earnings_15_days: number;
-    onboarded_by: 'SHUBHAM' | 'VAIBHAV';
-    aggregator_credentials_checked: boolean;
-    id_credentials_checked: boolean;
-    retained_document_details: string;
+    aggregator_id?: string;
+    joined_since?: Date;
+    avg_earnings_15_days?: number;
+    onboarded_by?: 'SHUBHAM' | 'VAIBHAV';
+    aggregator_credentials_checked?: boolean;
+    id_credentials_checked?: boolean;
+    retained_document_details?: string;
   }>({
     defaultValues: initialData ? {
       first_name: initialData.first_name || '',
@@ -168,18 +168,18 @@ export const AddRiderForm = ({
     // Transform data to match API expectations
     const transformedData: RiderFormData = {
       ...data,
-      dob: format(data.dob, 'yyyy-MM-dd'),
-      joined_since: format(data.joined_since, 'yyyy-MM-dd'),
+      dob: data.dob ? format(data.dob, 'yyyy-MM-dd') : undefined,
+      joined_since: data.joined_since ? format(data.joined_since, 'yyyy-MM-dd') : undefined,
       // Transform text to uppercase as required
-      first_name: data.first_name.toUpperCase(),
-      last_name: data.last_name.toUpperCase(),
-      address_line1: data.address_line1.toUpperCase(),
-      address_line2: data.address_line2.toUpperCase(),
-      branch_name: data.branch_name.toUpperCase(),
+      first_name: data.first_name?.toUpperCase(),
+      last_name: data.last_name?.toUpperCase(),
+      address_line1: data.address_line1?.toUpperCase(),
+      address_line2: data.address_line2?.toUpperCase(),
+      branch_name: data.branch_name?.toUpperCase(),
       bank_name: data.bank_name === 'OTHER' && data.bank_other ? data.bank_other.toUpperCase() : data.bank_name,
       aggregator_other: data.aggregator_other?.toUpperCase(),
       dependent_name: data.dependent_name?.toUpperCase(),
-      retained_document_details: data.retained_document_details.toUpperCase()
+      retained_document_details: data.retained_document_details?.toUpperCase()
     };
     setFormData(transformedData);
     setShowConfirmation(true);
@@ -225,7 +225,6 @@ export const AddRiderForm = ({
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="first_name" rules={{
-              required: "First name is required",
               maxLength: {
                 value: 20,
                 message: "Max 20 characters"
@@ -237,14 +236,13 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>First Name *</FormLabel>
+                    <FormLabel>First Name</FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={20} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
               <FormField control={form.control} name="last_name" rules={{
-              required: "Last name is required",
               maxLength: {
                 value: 20,
                 message: "Max 20 characters"
@@ -256,7 +254,7 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Last Name *</FormLabel>
+                    <FormLabel>Last Name</FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={20} />
                     </FormControl>
@@ -266,7 +264,6 @@ export const AddRiderForm = ({
 
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="mobile_number" rules={{
-              required: "Mobile number is required",
               pattern: {
                 value: /^\d{10}$/,
                 message: "Must be 10 digits"
@@ -274,18 +271,16 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Mobile Number *</FormLabel>
+                    <FormLabel>Mobile Number</FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={10} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
-              <FormField control={form.control} name="dob" rules={{
-              required: "Date of birth is required"
-            }} render={({
+              <FormField control={form.control} name="dob" render={({
               field
             }) => <FormItem>
-                    <FormLabel>Date of Birth *</FormLabel>
+                    <FormLabel>Date of Birth</FormLabel>
                     <div className="grid grid-cols-3 gap-2">
                       {/* Day Selector */}
                       <Select value={field.value ? field.value.getDate().toString() : ""} onValueChange={day => {
@@ -351,7 +346,6 @@ export const AddRiderForm = ({
 
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="aadhaar_number" rules={{
-              required: "Aadhaar number is required",
               pattern: {
                 value: /^\d{12}$/,
                 message: "Must be 12 digits"
@@ -359,14 +353,13 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Aadhaar Number *</FormLabel>
+                    <FormLabel>Aadhaar Number</FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={12} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
               <FormField control={form.control} name="pan_number" rules={{
-              required: "PAN number is required",
               pattern: {
                 value: /^[A-Z0-9]{10}$/,
                 message: "Must be 10 alphanumeric characters"
@@ -374,7 +367,7 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>PAN Number *</FormLabel>
+                    <FormLabel>PAN Number</FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={10} style={{
                   textTransform: 'uppercase'
@@ -389,7 +382,6 @@ export const AddRiderForm = ({
               <h4 className="font-medium">Current Address</h4>
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="address_line1" rules={{
-                required: "Address Line 1 is required",
                 maxLength: {
                   value: 20,
                   message: "Max 20 characters"
@@ -397,14 +389,13 @@ export const AddRiderForm = ({
               }} render={({
                 field
               }) => <FormItem>
-                      <FormLabel>Line 1 *</FormLabel>
+                      <FormLabel>Line 1</FormLabel>
                       <FormControl>
                         <Input {...field} maxLength={20} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>} />
                 <FormField control={form.control} name="address_line2" rules={{
-                required: "Address Line 2 is required",
                 maxLength: {
                   value: 20,
                   message: "Max 20 characters"
@@ -412,7 +403,7 @@ export const AddRiderForm = ({
               }} render={({
                 field
               }) => <FormItem>
-                      <FormLabel>Line 2 *</FormLabel>
+                      <FormLabel>Line 2</FormLabel>
                       <FormControl>
                         <Input {...field} maxLength={20} />
                       </FormControl>
@@ -430,7 +421,7 @@ export const AddRiderForm = ({
               }} render={({
                 field
               }) => <FormItem>
-                      <FormLabel>Pincode *
+                      <FormLabel>Pincode
                         {locationSuggestions.pincode && <Button type="button" variant="link" size="sm" className="ml-2 h-4 p-0 text-xs text-primary" onClick={() => {
                     field.onChange(locationSuggestions.pincode);
                     filterByPincode(locationSuggestions.pincode!);
@@ -446,12 +437,10 @@ export const AddRiderForm = ({
                       </FormControl>
                       <FormMessage />
                     </FormItem>} />
-                <FormField control={form.control} name="city" rules={{
-                required: "City is required"
-              }} render={({
+                <FormField control={form.control} name="city" render={({
                 field
               }) => <FormItem>
-                      <FormLabel>City *
+                      <FormLabel>City
                         {locationSuggestions.city && <Button type="button" variant="link" size="sm" className="ml-2 h-4 p-0 text-xs text-primary" onClick={() => field.onChange(locationSuggestions.city)}>
                             Suggested: {locationSuggestions.city}
                           </Button>}
@@ -468,12 +457,10 @@ export const AddRiderForm = ({
                       </Select>
                       <FormMessage />
                     </FormItem>} />
-                <FormField control={form.control} name="state" rules={{
-                required: "State is required"
-              }} render={({
+                <FormField control={form.control} name="state" render={({
                 field
               }) => <FormItem>
-                      <FormLabel>State *
+                      <FormLabel>State
                         {locationSuggestions.state && <Button type="button" variant="link" size="sm" className="ml-2 h-4 p-0 text-xs text-primary" onClick={() => field.onChange(locationSuggestions.state)}>
                             Suggested: {locationSuggestions.state}
                           </Button>}
@@ -493,7 +480,6 @@ export const AddRiderForm = ({
               </div>
 
               <FormField control={form.control} name="address_google_link" rules={{
-              required: "Google Maps link is required",
               pattern: {
                 value: /^https?:\/\/.*/,
                 message: "Must be a valid URL"
@@ -511,12 +497,10 @@ export const AddRiderForm = ({
 
             {/* Marital Status and Dependent Info */}
             <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="marital_status" rules={{
-              required: "Marital status is required"
-            }} render={({
+              <FormField control={form.control} name="marital_status" render={({
               field
             }) => <FormItem>
-                    <FormLabel>Marital Status *</FormLabel>
+                    <FormLabel>Marital Status</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -596,12 +580,10 @@ export const AddRiderForm = ({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="bank_name" rules={{
-              required: "Bank name is required"
-            }} render={({
+              <FormField control={form.control} name="bank_name" render={({
               field
             }) => <FormItem>
-                    <FormLabel>Bank Name *</FormLabel>
+                    <FormLabel>Bank Name</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -615,7 +597,6 @@ export const AddRiderForm = ({
                     <FormMessage />
                   </FormItem>} />
               {form.watch('bank_name') === 'OTHER' && <FormField control={form.control} name="bank_other" rules={{
-              required: "Please specify bank name",
               maxLength: {
                 value: 50,
                 message: "Max 50 characters"
@@ -623,14 +604,13 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                      <FormLabel>Specify Bank Name *</FormLabel>
+                      <FormLabel>Specify Bank Name</FormLabel>
                       <FormControl>
                         <Input {...field} maxLength={50} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>} />}
               <FormField control={form.control} name="branch_name" rules={{
-              required: "Branch name is required",
               maxLength: {
                 value: 20,
                 message: "Max 20 characters"
@@ -638,7 +618,7 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Branch Name *</FormLabel>
+                    <FormLabel>Branch Name</FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={20} />
                     </FormControl>
@@ -648,7 +628,6 @@ export const AddRiderForm = ({
 
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="ifsc_code" rules={{
-              required: "IFSC code is required",
               pattern: {
                 value: /^[A-Z0-9]{11}$/,
                 message: "Must be 11 alphanumeric characters"
@@ -656,7 +635,7 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>IFSC Code *</FormLabel>
+                    <FormLabel>IFSC Code</FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={11} style={{
                   textTransform: 'uppercase'
@@ -665,7 +644,6 @@ export const AddRiderForm = ({
                     <FormMessage />
                   </FormItem>} />
               <FormField control={form.control} name="account_number" rules={{
-              required: "Account number is required",
               pattern: {
                 value: /^\d{1,20}$/,
                 message: "Numbers only, max 20 digits"
@@ -673,7 +651,7 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Account Number *</FormLabel>
+                    <FormLabel>Account Number</FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={20} />
                     </FormControl>
@@ -690,12 +668,10 @@ export const AddRiderForm = ({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="aggregator" rules={{
-              required: "Aggregator is required"
-            }} render={({
+              <FormField control={form.control} name="aggregator" render={({
               field
             }) => <FormItem>
-                    <FormLabel>Aggregator *</FormLabel>
+                    <FormLabel>Aggregator</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -714,7 +690,6 @@ export const AddRiderForm = ({
                     <FormMessage />
                   </FormItem>} />
               {form.watch('aggregator') === 'OTHER' && <FormField control={form.control} name="aggregator_other" rules={{
-              required: "Please specify aggregator",
               maxLength: {
                 value: 15,
                 message: "Max 15 characters"
@@ -726,7 +701,7 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                      <FormLabel>Specify Other *</FormLabel>
+                      <FormLabel>Specify Other</FormLabel>
                       <FormControl>
                         <Input {...field} maxLength={15} />
                       </FormControl>
@@ -736,7 +711,6 @@ export const AddRiderForm = ({
 
             <div className="grid grid-cols-2 gap-4">
               <FormField control={form.control} name="aggregator_id" rules={{
-              required: "Aggregator ID is required",
               maxLength: {
                 value: 15,
                 message: "Max 15 characters"
@@ -744,18 +718,16 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Aggregator ID *</FormLabel>
+                    <FormLabel>Aggregator ID</FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={15} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
-              <FormField control={form.control} name="joined_since" rules={{
-              required: "Joining date is required"
-            }} render={({
+              <FormField control={form.control} name="joined_since" render={({
               field
             }) => <FormItem>
-                    <FormLabel>Joined Since *</FormLabel>
+                    <FormLabel>Joined Since</FormLabel>
                     <Popover>
                       <PopoverTrigger asChild>
                         <FormControl>
@@ -774,7 +746,6 @@ export const AddRiderForm = ({
             </div>
 
             <FormField control={form.control} name="avg_earnings_15_days" rules={{
-            required: "Average earnings is required",
             min: {
               value: 0,
               message: "Must be positive"
@@ -786,7 +757,7 @@ export const AddRiderForm = ({
           }} render={({
             field
           }) => <FormItem className="w-1/2">
-                  <FormLabel>Last 15 Days Avg Earnings *</FormLabel>
+                  <FormLabel>Last 15 Days Avg Earnings</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
                   </FormControl>
@@ -802,12 +773,10 @@ export const AddRiderForm = ({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="onboarded_by" rules={{
-              required: "Onboarded by is required"
-            }} render={({
+              <FormField control={form.control} name="onboarded_by" render={({
               field
             }) => <FormItem>
-                    <FormLabel>Onboarded By *</FormLabel>
+                    <FormLabel>Onboarded By</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
@@ -844,7 +813,6 @@ export const AddRiderForm = ({
             </div>
 
             <FormField control={form.control} name="retained_document_details" rules={{
-            required: "Document details are required",
             maxLength: {
               value: 20,
               message: "Max 20 characters"
@@ -852,7 +820,7 @@ export const AddRiderForm = ({
           }} render={({
             field
           }) => <FormItem>
-                  <FormLabel>Document Being Retained *</FormLabel>
+                  <FormLabel>Document Being Retained</FormLabel>
                   <FormControl>
                     <Input {...field} maxLength={20} />
                   </FormControl>
