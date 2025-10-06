@@ -55,7 +55,7 @@ interface RiderFormData {
 }
 
 export const RiderManagement = () => {
-  const { riders, loading, addRider, updateRider, deleteRider } = useRiders();
+  const { riders, loading, addRider, updateRider } = useRiders();
   const { vehicles, updateVehicle } = useVehicles();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -194,20 +194,6 @@ export const RiderManagement = () => {
     // Status stays as original, no changes made
   };
 
-  const handleDeleteAll = async () => {
-    if (!window.confirm(`Are you sure you want to delete all ${riders.length} riders? This action cannot be undone.`)) {
-      return;
-    }
-    
-    try {
-      for (const rider of riders) {
-        await deleteRider(rider.id);
-      }
-    } catch (error) {
-      console.error('Error deleting riders:', error);
-    }
-  };
-
   const onSubmit = async (data: RiderFormData) => {
     try {
       await addRider(data);
@@ -340,14 +326,6 @@ export const RiderManagement = () => {
               />
             </DialogContent>
           </Dialog>
-          {riders.length > 0 && (
-            <Button 
-              variant="destructive"
-              onClick={handleDeleteAll}
-            >
-              Delete All Riders
-            </Button>
-          )}
         </div>
 
         {/* Riders Table */}
