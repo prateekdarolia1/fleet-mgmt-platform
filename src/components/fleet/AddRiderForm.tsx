@@ -94,6 +94,7 @@ export const AddRiderForm = ({
     dependent_relation?: 'FATHER' | 'MOTHER' | 'BROTHER' | 'SPOUSE' | 'OTHER';
     dependent_aadhaar?: string;
     bank_name: string;
+    bank_other?: string;
     branch_name: string;
     ifsc_code: string;
     account_number: string;
@@ -162,7 +163,7 @@ export const AddRiderForm = ({
       filterByPincode('');
     }
   }, [pincodeValue, filterByPincode, initialData?.pincode, placesLoading, filteredStates.length, filteredCities.length]);
-  const indianBanks = ["STATE BANK OF INDIA", "HDFC BANK", "ICICI BANK", "PUNJAB NATIONAL BANK", "BANK OF BARODA", "CANARA BANK", "UNION BANK", "AXIS BANK", "BANK OF INDIA", "CENTRAL BANK OF INDIA", "INDIAN BANK", "KOTAK MAHINDRA BANK", "YES BANK", "FEDERAL BANK", "SOUTH INDIAN BANK", "KARUR VYSYA BANK", "CITY UNION BANK"];
+  const indianBanks = ["STATE BANK OF INDIA", "HDFC BANK", "ICICI BANK", "PUNJAB NATIONAL BANK", "BANK OF BARODA", "CANARA BANK", "UNION BANK", "AXIS BANK", "BANK OF INDIA", "CENTRAL BANK OF INDIA", "INDIAN BANK", "KOTAK MAHINDRA BANK", "YES BANK", "FEDERAL BANK", "SOUTH INDIAN BANK", "KARUR VYSYA BANK", "CITY UNION BANK", "OTHER"];
   const handleFormSubmit = (data: any) => {
     // Transform data to match API expectations
     const transformedData: RiderFormData = {
@@ -175,6 +176,7 @@ export const AddRiderForm = ({
       address_line1: data.address_line1.toUpperCase(),
       address_line2: data.address_line2.toUpperCase(),
       branch_name: data.branch_name.toUpperCase(),
+      bank_name: data.bank_name === 'OTHER' && data.bank_other ? data.bank_other.toUpperCase() : data.bank_name,
       aggregator_other: data.aggregator_other?.toUpperCase(),
       dependent_name: data.dependent_name?.toUpperCase(),
       retained_document_details: data.retained_document_details.toUpperCase()
@@ -612,6 +614,21 @@ export const AddRiderForm = ({
                     </Select>
                     <FormMessage />
                   </FormItem>} />
+              {form.watch('bank_name') === 'OTHER' && <FormField control={form.control} name="bank_other" rules={{
+              required: "Please specify bank name",
+              maxLength: {
+                value: 50,
+                message: "Max 50 characters"
+              }
+            }} render={({
+              field
+            }) => <FormItem>
+                      <FormLabel>Specify Bank Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} maxLength={50} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>} />}
               <FormField control={form.control} name="branch_name" rules={{
               required: "Branch name is required",
               maxLength: {
