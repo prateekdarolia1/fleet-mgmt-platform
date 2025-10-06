@@ -24,7 +24,6 @@ interface RiderFormData {
   address_line2?: string;
   city?: string;
   state?: string;
-  pincode?: string;
   address_google_link?: string;
   marital_status?: 'SINGLE' | 'MARRIED';
   dependent_name?: string;
@@ -87,7 +86,6 @@ export const AddRiderForm = ({
     address_line2?: string;
     city?: string;
     state?: string;
-    pincode?: string;
     address_google_link?: string;
     marital_status?: 'SINGLE' | 'MARRIED';
     dependent_name?: string;
@@ -119,7 +117,7 @@ export const AddRiderForm = ({
       address_line2: initialData.address_line2 || '',
       city: initialData.city || '',
       state: initialData.state || '',
-      pincode: initialData.pincode || '',
+      
       address_google_link: initialData.address_google_link || '',
       marital_status: initialData.marital_status || 'SINGLE',
       dependent_name: initialData.dependent_name || '',
@@ -144,7 +142,6 @@ export const AddRiderForm = ({
   // Watch address fields for location extraction
   const addressLine1 = form.watch("address_line1") || "";
   const addressLine2 = form.watch("address_line2") || "";
-  const pincodeValue = form.watch("pincode") || "";
 
   // Extract suggestions when address changes
   useEffect(() => {
@@ -154,15 +151,13 @@ export const AddRiderForm = ({
     }
   }, [addressLine1, addressLine2, extractLocationSuggestions]);
 
-  // Filter places when pincode changes or on initial load
+  // Initialize places data on load
   useEffect(() => {
-    if (pincodeValue || initialData?.pincode) {
-      filterByPincode(pincodeValue || initialData?.pincode || '');
-    } else if (!placesLoading && filteredStates.length === 0 && filteredCities.length === 0) {
-      // Initialize with all data if no pincode and arrays are empty
+    if (!placesLoading && filteredStates.length === 0 && filteredCities.length === 0) {
+      // Initialize with all data
       filterByPincode('');
     }
-  }, [pincodeValue, filterByPincode, initialData?.pincode, placesLoading, filteredStates.length, filteredCities.length]);
+  }, [filterByPincode, placesLoading, filteredStates.length, filteredCities.length]);
   const indianBanks = ["STATE BANK OF INDIA", "HDFC BANK", "ICICI BANK", "PUNJAB NATIONAL BANK", "BANK OF BARODA", "CANARA BANK", "UNION BANK", "AXIS BANK", "BANK OF INDIA", "CENTRAL BANK OF INDIA", "INDIAN BANK", "KOTAK MAHINDRA BANK", "YES BANK", "FEDERAL BANK", "SOUTH INDIAN BANK", "KARUR VYSYA BANK", "CITY UNION BANK", "OTHER"];
   const handleFormSubmit = (data: any) => {
     // Transform data to match API expectations
@@ -411,32 +406,7 @@ export const AddRiderForm = ({
                     </FormItem>} />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
-                <FormField control={form.control} name="pincode" rules={{
-                required: "Pincode is required",
-                pattern: {
-                  value: /^\d{6}$/,
-                  message: "Must be 6 digits"
-                }
-              }} render={({
-                field
-              }) => <FormItem>
-                      <FormLabel>Pincode
-                        {locationSuggestions.pincode && <Button type="button" variant="link" size="sm" className="ml-2 h-4 p-0 text-xs text-primary" onClick={() => {
-                    field.onChange(locationSuggestions.pincode);
-                    filterByPincode(locationSuggestions.pincode!);
-                  }}>
-                            Suggested: {locationSuggestions.pincode}
-                          </Button>}
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} maxLength={6} onChange={e => {
-                    field.onChange(e.target.value);
-                    filterByPincode(e.target.value);
-                  }} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />
+              <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="city" render={({
                 field
               }) => <FormItem>
