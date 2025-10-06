@@ -499,7 +499,7 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Current AddressGoogle Maps Link *</FormLabel>
+                    <FormLabel>Current address google maps link</FormLabel>
                     <FormControl>
                       <Input {...field} placeholder="https://maps.google.com/..." />
                     </FormControl>
