@@ -250,6 +250,7 @@ export const InventoryManagement = () => {
   const filteredVehicles = vehicles.filter(vehicle => {
     const matchesSearch = vehicle.vehicle_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         vehicle.chassis_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          vehicle.rider_name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || vehicle.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -297,7 +298,7 @@ export const InventoryManagement = () => {
           <div className="relative flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by vehicle number, model, or rider name..."
+              placeholder="Search by vehicle number, model, chassis number, or rider name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8"
