@@ -934,7 +934,7 @@ export const InventoryManagement = () => {
               <TableHead>Vehicle Details</TableHead>
               <TableHead>Technical Info</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Rental Info</TableHead>
+              <TableHead>Rider Assigned</TableHead>
               <TableHead>Rider Assigned
               </TableHead>
             </TableRow>
