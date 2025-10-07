@@ -362,7 +362,7 @@ export const RiderManagement = () => {
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    <span className="text-sm">{new Date(rider.join_date).toLocaleDateString()}</span>
+                    <span className="text-sm">{rider.joined_since ? new Date(rider.joined_since).toLocaleDateString() : 'N/A'}</span>
                   </div>
                 </TableCell>
                 <TableCell>{getStatusBadge(rider.status)}</TableCell>
