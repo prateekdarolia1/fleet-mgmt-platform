@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -362,7 +363,7 @@ export const RiderManagement = () => {
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    <span className="text-sm">{rider.joined_since ? new Date(rider.joined_since).toLocaleDateString() : 'N/A'}</span>
+                    <span className="text-sm">{rider.joined_since ? format(new Date(rider.joined_since), 'dd MMM yyyy') : 'N/A'}</span>
                   </div>
                 </TableCell>
                 <TableCell>{getStatusBadge(rider.status)}</TableCell>
