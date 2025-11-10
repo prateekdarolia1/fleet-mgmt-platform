@@ -499,9 +499,9 @@ export const AddRiderForm = ({
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Dependent Name</FormLabel>
+                    <FormLabel>Dependent Name (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} maxLength={20} />
+                      <Input {...field} maxLength={20} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
@@ -526,16 +526,16 @@ export const AddRiderForm = ({
                     <FormMessage />
                   </FormItem>} />
               <FormField control={form.control} name="dependent_aadhaar" rules={{
-              pattern: {
-                value: /^\d{12}$/,
-                message: "Must be 12 digits"
+              validate: (value) => {
+                if (!value || value === '') return true; // Allow empty
+                return /^\d{12}$/.test(value) || "Must be 12 digits or empty";
               }
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Dependent Aadhaar</FormLabel>
+                    <FormLabel>Dependent Aadhaar (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} maxLength={12} />
+                      <Input {...field} maxLength={12} value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
