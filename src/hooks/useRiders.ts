@@ -176,14 +176,37 @@ export const useRiders = () => {
 
   const updateRider = async (id: string, updates: Partial<Rider>) => {
     try {
+      // Clean up the updates object by removing undefined values and bank_other field
+      const cleanedUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
+        if (value !== undefined && key !== 'bank_other') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, any>);
+
+      // Update legacy fields for compatibility
+      if (cleanedUpdates.first_name || cleanedUpdates.last_name) {
+        const currentRider = riders.find(r => r.id === id);
+        cleanedUpdates.name = `${cleanedUpdates.first_name || currentRider?.first_name || ''} ${cleanedUpdates.last_name || currentRider?.last_name || ''}`.trim();
+      }
+
+      if (cleanedUpdates.mobile_number) {
+        cleanedUpdates.phone = cleanedUpdates.mobile_number;
+      }
+
+      console.log('Updating rider with data:', cleanedUpdates);
+
       const { data, error } = await supabase
         .from('riders')
-        .update(updates)
+        .update(cleanedUpdates)
         .eq('id', id)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
 
       setRiders(prev => prev.map(rider => 
         rider.id === id ? { ...rider, ...data } as Rider : rider
@@ -193,7 +216,8 @@ export const useRiders = () => {
       return data;
     } catch (err) {
       console.error('Error updating rider:', err);
-      toast.error('Failed to update rider');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update rider';
+      toast.error(`Update failed: ${errorMessage}`);
       throw err;
     }
   };
