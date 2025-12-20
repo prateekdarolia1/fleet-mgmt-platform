@@ -546,6 +546,6 @@ Test coverage includes:
 
 See also:
 - **Hooks**: `src/hooks/useBatteries.ts`
-- **Schema**: `@docs/batteries/02-SCHEMA.md`
-- **Validation**: `@docs/batteries/03-VALIDATION.md`
-- **Events**: `@docs/batteries/04-EVENTS.md`
+- **Schema**: `docs/batteries/02-SCHEMA.md`
+- **Validation**: `docs/batteries/03-VALIDATION.md`
+- **Events**: `docs/batteries/04-EVENTS.md`

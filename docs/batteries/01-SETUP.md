@@ -30,7 +30,7 @@ npm run test:batteries-validation
 | `setup-batteries-table.mjs` | Interactive setup helper |
 | `verify-batteries-table.mjs` | Verification tests |
 | `test-batteries-validation.mjs` | Validation test suite |
-| `@docs/batteries/*` | Complete documentation |
+| `docs/batteries/*` | Complete documentation |
 
 ## Commands
 

@@ -13,7 +13,8 @@
     "verify:batteries": "node verify-batteries-table.mjs",
     "test:batteries-validation": "node test-batteries-validation.mjs",
     "test:battery-events": "node test-battery-events.mjs",
-    "test:vehicles-battery": "node test-vehicles-battery.mjs"
+    "test:vehicles-battery": "node test-vehicles-battery.mjs",
+    "test:map-battery": "node test-map-battery-rpc.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

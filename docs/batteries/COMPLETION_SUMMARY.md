@@ -59,7 +59,7 @@ All battery system components have been created and are ready for deployment.
    - Tests UPDATE event logging
    - Tests complete event timeline
 
-### 📚 Documentation (6 files in @docs/batteries/)
+### 📚 Documentation (6 files in docs/batteries/)
 
 1. **README.md**
    - Overview of entire system
@@ -241,7 +241,7 @@ All battery system components have been created and are ready for deployment.
 ├── test-batteries-validation.mjs
 └── test-battery-events.mjs
 
-/@docs/batteries/
+/docs/batteries/
 ├── README.md
 ├── 01-SETUP.md
 ├── 02-SCHEMA.md
@@ -334,7 +334,7 @@ npm run test:batteries-validation
 npm run test:battery-events
 
 # View all documentation
-ls -la @docs/batteries/
+ls -la docs/batteries/
 
 # View migrations
 ls -la migrations/create_battery*

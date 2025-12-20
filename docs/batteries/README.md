@@ -99,7 +99,7 @@ migrations/
 ### Setup Helpers
 ```
 ├── setup-batteries-table.mjs         # Interactive setup guide
-└── @docs/batteries/*                 # Complete documentation
+└── docs/batteries/*                 # Complete documentation
 ```
 
 ## Database Schema

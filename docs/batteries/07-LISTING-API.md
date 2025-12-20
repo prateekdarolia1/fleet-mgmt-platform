@@ -783,6 +783,6 @@ useEffect(() => {
 6. Implement lazy loading for large datasets
 
 See also:
-- **Add Battery API**: `@docs/batteries/06-ADD-BATTERY-API.md`
-- **Event Tracking**: `@docs/batteries/04-EVENTS.md`
-- **Schema Reference**: `@docs/batteries/02-SCHEMA.md`
+- **Add Battery API**: `docs/batteries/06-ADD-BATTERY-API.md`
+- **Event Tracking**: `docs/batteries/04-EVENTS.md`
+- **Schema Reference**: `docs/batteries/02-SCHEMA.md`

@@ -528,10 +528,10 @@ async function testBatteryLifecycle() {
 
 ## Support Resources
 
-- **Setup**: `@docs/batteries/01-SETUP.md`
-- **Schema**: `@docs/batteries/02-SCHEMA.md`
-- **Validation**: `@docs/batteries/03-VALIDATION.md`
-- **Events**: `@docs/batteries/04-EVENTS.md`
+- **Setup**: `docs/batteries/01-SETUP.md`
+- **Schema**: `docs/batteries/02-SCHEMA.md`
+- **Validation**: `docs/batteries/03-VALIDATION.md`
+- **Events**: `docs/batteries/04-EVENTS.md`
 - **Integration**: This file
 
 ## Quick Commands
@@ -550,7 +550,7 @@ npm run test:batteries-validation
 npm run test:battery-events
 
 # View documentation
-ls -la @docs/batteries/
+ls -la docs/batteries/
 
 # View migrations
 ls -la migrations/create_battery*
