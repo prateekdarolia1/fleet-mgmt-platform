@@ -170,7 +170,7 @@ export const RiderManagement = () => {
 
       // Success feedback
       toast.success(
-        `${editingRider.name} activated with ${selectedVehicle.vehicle_number} (Battery: ${batterySmartId})`
+        `${editingRider.name} activated with ${selectedVehicle.vehicle_number} (Battery Smart ID: ${batterySmartId})`
       );
 
       // Reset state and close modals

@@ -13,6 +13,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Loader2, Battery, Truck, CheckCircle } from 'lucide-react';
+import { AlertCircle, Loader2, Battery, Truck, CheckCircle, Info } from 'lucide-react';
 import { useBatteriesList } from '@/hooks/useBatteriesList';
 import { useUnmapBatteryWithErrorHandling } from '@/hooks/useUnmapBattery';
 import { useAuth } from '@/hooks/useAuth';
@@ -169,7 +170,14 @@ export const UnmapBatteryModal = ({
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 font-medium text-sm">
                   1
                 </div>
-                <h3 className="text-sm font-semibold text-foreground">Select Battery</h3>
+                <h3 className="text-sm font-semibold text-foreground">Battery ID (Lilypad Internal ID)</h3>
+                <div className="group relative">
+                  <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                  <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
+                    <p className="font-semibold mb-1">Battery ID (Lilypad)</p>
+                    <p>Internal identifier used by Lilypad to track physical batteries. This is NOT the Battery Smart ID.</p>
+                  </div>
+                </div>
               </div>
 
               <FormField
@@ -212,20 +220,22 @@ export const UnmapBatteryModal = ({
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Battery className="h-5 w-5 text-red-600" />
-                    <h4 className="text-sm font-semibold text-red-900">Battery</h4>
+                    <h4 className="text-sm font-semibold text-red-900">Battery Details</h4>
                   </div>
                   <div className="space-y-1.5 text-sm">
                     <div>
-                      <p className="text-red-700/60 text-xs uppercase tracking-wide font-medium">ID</p>
+                      <p className="text-red-700/60 text-xs uppercase tracking-wide font-medium">Battery ID (Lilypad)</p>
                       <p className="font-mono font-bold text-red-900">{selectedBattery.battery_id}</p>
                     </div>
-                    <div>
-                      <p className="text-red-700/60 text-xs uppercase tracking-wide font-medium">Identifier</p>
-                      <p className="font-semibold text-red-900">{selectedBattery.battery_identifier}</p>
-                    </div>
+                    {selectedBattery.battery_identifier && (
+                      <div>
+                        <p className="text-red-700/60 text-xs uppercase tracking-wide font-medium">Battery Identifier</p>
+                        <p className="font-semibold text-red-900">{selectedBattery.battery_identifier}</p>
+                      </div>
+                    )}
                     {selectedBattery.service_provider && (
                       <div>
-                        <p className="text-red-700/60 text-xs uppercase tracking-wide font-medium">Provider</p>
+                        <p className="text-red-700/60 text-xs uppercase tracking-wide font-medium">Service Provider</p>
                         <p className="text-red-900">{selectedBattery.service_provider}</p>
                       </div>
                     )}

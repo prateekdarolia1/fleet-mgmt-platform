@@ -13,6 +13,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Truck, Battery, AlertCircle } from 'lucide-react';
+import { Loader2, Truck, Battery, AlertCircle, Info } from 'lucide-react';
 import { batterySmartIdSchema } from '@/lib/validation/batterySmartId';
 import { cn } from '@/lib/utils';
 import type { Rider } from '@/hooks/useRiders';
@@ -204,7 +205,20 @@ export const RiderActivationModal = ({
                 <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-700 font-medium">
                   Required
                 </span>
+                <div className="group relative ml-auto">
+                  <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                  <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
+                    <p className="font-semibold mb-1">Battery Smart ID</p>
+                    <p>External identifier assigned by Battery Smart. This is NOT the Battery ID shown in Battery Management.</p>
+                  </div>
+                </div>
               </div>
+
+              {/* Helper text for Battery Smart ID context */}
+              <p className="text-xs text-muted-foreground flex items-start gap-2 bg-blue-50 p-2 rounded border border-blue-100">
+                <AlertCircle className="h-3.5 w-3.5 mt-0.5 text-blue-600 flex-shrink-0" />
+                <span>This ID comes from Battery Smart and is different from the Battery ID used in inventory management.</span>
+              </p>
 
               <FormField
                 control={form.control}
@@ -214,7 +228,7 @@ export const RiderActivationModal = ({
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder="e.g., BS12AB34"
+                        placeholder="Enter Battery Smart ID (e.g., 9A2KLMQ8)"
                         maxLength={8}
                         disabled={isLoading}
                         className={cn(
@@ -229,6 +243,9 @@ export const RiderActivationModal = ({
                         )}
                       />
                     </FormControl>
+                    <FormDescription>
+                      Provided by Battery Smart. Exactly 8 uppercase letters and numbers.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -311,7 +328,10 @@ export const RiderActivationModal = ({
                 <div>
                   <p className="text-sm font-semibold text-green-900">Ready to activate</p>
                   <p className="text-sm text-green-800 mt-1">
-                    {rider?.name} will be activated with {selectedVehicle.vehicle_number} and Battery Smart ID {form.getValues('batterySmartId')}
+                    {rider?.name} will be activated with {selectedVehicle.vehicle_number}
+                  </p>
+                  <p className="text-sm text-green-800 mt-1">
+                    Battery Smart ID: <span className="font-mono font-semibold">{form.getValues('batterySmartId')}</span>
                   </p>
                 </div>
               </div>

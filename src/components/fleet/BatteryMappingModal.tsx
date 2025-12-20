@@ -13,6 +13,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -28,7 +29,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Battery, Truck } from 'lucide-react';
+import { Loader2, Battery, Truck, Info, AlertCircle } from 'lucide-react';
 import { useVehiclesWithoutBattery } from '@/hooks/useVehiclesWithBatteries';
 import { useBatteriesList } from '@/hooks/useBatteriesList';
 import { useMapBatteryWithErrorHandling } from '@/hooks/useMapBattery';
@@ -198,9 +199,21 @@ export const BatteryMappingModal = ({
                 name="batteryId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-base font-semibold">
-                      Select Battery
-                    </FormLabel>
+                    <div className="flex items-center gap-2">
+                      <FormLabel className="text-base font-semibold">
+                        Battery ID (Lilypad Internal ID)
+                      </FormLabel>
+                      <div className="group relative">
+                        <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                        <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
+                          <p className="font-semibold mb-1">Battery ID (Lilypad)</p>
+                          <p>Internal identifier used by Lilypad to track physical batteries. This is NOT the Battery Smart ID.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <FormDescription>
+                      Used only for Lilypad's battery inventory. This is NOT the Battery Smart ID.
+                    </FormDescription>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
@@ -214,7 +227,7 @@ export const BatteryMappingModal = ({
                               <span>Loading batteries...</span>
                             </div>
                           ) : (
-                            <SelectValue placeholder="Choose a battery" />
+                            <SelectValue placeholder="Choose a battery (e.g., BS23342)" />
                           )}
                         </SelectTrigger>
                       </FormControl>
@@ -301,33 +314,35 @@ export const BatteryMappingModal = ({
                       <div className="flex items-center gap-2">
                         <Battery className="h-4 w-4 text-amber-600" />
                         <CardTitle className="text-sm font-medium text-amber-900">
-                          Battery
+                          Battery Details
                         </CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2 text-sm">
                       <div>
-                        <p className="text-muted-foreground">ID</p>
-                        <p className="font-semibold text-foreground">
+                        <p className="text-muted-foreground text-xs">Battery ID (Lilypad)</p>
+                        <p className="font-mono font-semibold text-foreground">
                           {selectedBattery.battery_id}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Identifier</p>
-                        <p className="font-semibold text-foreground">
-                          {selectedBattery.battery_identifier}
-                        </p>
-                      </div>
+                      {selectedBattery.battery_identifier && (
+                        <div>
+                          <p className="text-muted-foreground text-xs">Battery Identifier</p>
+                          <p className="font-semibold text-foreground">
+                            {selectedBattery.battery_identifier}
+                          </p>
+                        </div>
+                      )}
                       {selectedBattery.service_provider && (
                         <div>
-                          <p className="text-muted-foreground">Provider</p>
+                          <p className="text-muted-foreground text-xs">Service Provider</p>
                           <p className="font-semibold text-foreground">
                             {selectedBattery.service_provider}
                           </p>
                         </div>
                       )}
                       <div>
-                        <p className="text-muted-foreground">Status</p>
+                        <p className="text-muted-foreground text-xs">Status</p>
                         <Badge variant="outline" className="mt-1 bg-green-100 text-green-800 border-green-200">
                           {selectedBattery.status}
                         </Badge>
