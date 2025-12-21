@@ -15,6 +15,8 @@ import { Plus, Search, Filter, Phone, Mail, Calendar, User, Edit } from "lucide-
 import { useRiders, type Rider } from "@/hooks/useRiders";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { AddRiderForm } from "./AddRiderForm";
+import { RiderActivationModal } from "./RiderActivationModal";
+import { toast } from "sonner";
 
 interface RiderFormData {
   // Section 1: Personal Information
@@ -66,8 +68,8 @@ export const RiderManagement = () => {
   const [editingRider, setEditingRider] = useState<Rider | null>(null);
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [isEditDetailsOpen, setIsEditDetailsOpen] = useState(false);
-  const [isVehicleSelectionOpen, setIsVehicleSelectionOpen] = useState(false);
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
+  const [isActivationLoading, setIsActivationLoading] = useState(false);
   const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{
     riderStatus: Rider['status'];
     dutyStatus: string;
@@ -93,26 +95,27 @@ export const RiderManagement = () => {
 
   const handleStatusUpdate = async (newStatus: Rider['status'], newDutyStatus: string) => {
     if (!editingRider) return;
-    
+
     const currentDutyStatus = editingRider.duty_status || 'IDLE';
-    
-    // Check if changing from IDLE to LIVE
+
+    // Check if changing from IDLE to LIVE - require vehicle + battery selection
     if (currentDutyStatus === 'IDLE' && newDutyStatus === 'LIVE') {
       setPendingStatusUpdate({
         riderStatus: newStatus,
         dutyStatus: newDutyStatus,
         originalDutyStatus: currentDutyStatus
       });
-      setIsVehicleSelectionOpen(true);
+      setIsEditStatusOpen(false); // Close status edit dialog
+      setIsActivationModalOpen(true); // Open activation modal
       return;
     }
-    
+
     // Check if changing from LIVE to IDLE - unassign vehicle
     if (currentDutyStatus === 'LIVE' && newDutyStatus === 'IDLE') {
       await handleVehicleUnassignment(newStatus, newDutyStatus);
       return;
     }
-    
+
     // Regular status update (no vehicle assignment needed)
     try {
       await updateRider(editingRider.id, {
@@ -123,38 +126,62 @@ export const RiderManagement = () => {
       setEditingRider(null);
     } catch (error) {
       console.error('Error updating rider status:', error);
+      toast.error('Failed to update rider status');
     }
   };
 
-  const handleVehicleAssignment = async () => {
-    if (!editingRider || !selectedVehicleId || !pendingStatusUpdate) return;
-    
+  /**
+   * Handle rider activation with vehicle + battery assignment
+   * Called from RiderActivationModal when user confirms
+   */
+  const handleRiderActivation = async (
+    vehicleId: string,
+    batterySmartId: string
+  ) => {
+    if (!editingRider || !pendingStatusUpdate) return;
+
+    setIsActivationLoading(true);
     try {
-      const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
-      if (!selectedVehicle) return;
-      
-      // Update rider with vehicle assignment and new status
+      const selectedVehicle = vehicles.find(v => v.id === vehicleId);
+      if (!selectedVehicle) {
+        toast.error('Vehicle not found');
+        return;
+      }
+
+      // Update rider with:
+      // - New status (Active)
+      // - Vehicle assignment
+      // - Battery Smart ID (for performance tracking)
+      // - Activation timestamp
       await updateRider(editingRider.id, {
         status: pendingStatusUpdate.riderStatus,
         duty_status: pendingStatusUpdate.dutyStatus,
-        vehicle_assigned: selectedVehicle.vehicle_number
+        vehicle_assigned: selectedVehicle.vehicle_number,
+        battery_smart_id: batterySmartId,
+        activated_at: new Date().toISOString()
       });
-      
-      // Update vehicle status and rider assignment
-      await updateVehicle(selectedVehicleId, {
+
+      // Update vehicle status to Deployed and assign rider
+      await updateVehicle(vehicleId, {
         status: 'Deployed' as const,
         rider_id: editingRider.rider_id,
         rider_name: editingRider.name
       });
-      
-      // Close modals and reset state
-      setIsVehicleSelectionOpen(false);
-      setIsEditStatusOpen(false);
+
+      // Success feedback
+      toast.success(
+        `${editingRider.name} activated with ${selectedVehicle.vehicle_number} (Battery Smart ID: ${batterySmartId})`
+      );
+
+      // Reset state and close modals
+      setIsActivationModalOpen(false);
       setEditingRider(null);
-      setSelectedVehicleId("");
       setPendingStatusUpdate(null);
     } catch (error) {
-      console.error('Error assigning vehicle:', error);
+      console.error('Error activating rider:', error);
+      toast.error('Failed to activate rider. Please try again.');
+    } finally {
+      setIsActivationLoading(false);
     }
   };
 
@@ -637,55 +664,15 @@ export const RiderManagement = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Vehicle Selection Modal */}
-        <Dialog open={isVehicleSelectionOpen} onOpenChange={setIsVehicleSelectionOpen}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Assign Vehicle</DialogTitle>
-              <DialogDescription>
-                Select a vehicle to assign to {editingRider?.name} for LIVE duty
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="vehicle-selection">Available Vehicles</Label>
-                {vehicles.filter(v => v.status === 'Ready for Deployment').length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground border border-dashed rounded-md">
-                    No vehicles available for deployment
-                  </div>
-                ) : (
-                  <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a vehicle" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vehicles
-                        .filter(v => v.status === 'Ready for Deployment')
-                        .map((vehicle) => (
-                          <SelectItem key={vehicle.id} value={vehicle.id}>
-                            {vehicle.vehicle_number} - {vehicle.make} {vehicle.model}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-            </div>
-            
-            <DialogFooter>
-              <Button variant="outline" onClick={handleVehicleSelectionCancel}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleVehicleAssignment}
-                disabled={!selectedVehicleId || vehicles.filter(v => v.status === 'Ready for Deployment').length === 0}
-              >
-                Assign Vehicle
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Rider Activation Modal - Enforces Vehicle + Battery Smart ID selection */}
+        <RiderActivationModal
+          open={isActivationModalOpen}
+          onOpenChange={setIsActivationModalOpen}
+          rider={editingRider}
+          vehicles={vehicles}
+          onConfirm={handleRiderActivation}
+          isLoading={isActivationLoading}
+        />
       </CardContent>
     </Card>
   );

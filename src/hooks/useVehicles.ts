@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { updateVehicleStatus } from '@/lib/vehicles/updateVehicleStatus';
+import { getUpdateVehicleStatusErrorMessage } from '@/lib/vehicles/updateVehicleStatus';
 
 export interface Vehicle {
   id: string;
@@ -137,7 +139,46 @@ export const useVehicles = () => {
     }
   };
 
-  const toggleVehicleStatus = async (id: string) => {
+  const updateVehicleStatusValidated = async (
+    id: string,
+    newStatus: Vehicle['status'],
+    userId: string
+  ) => {
+    try {
+      const vehicle = vehicles.find(v => v.id === id);
+      if (!vehicle) {
+        toast.error('Vehicle not found');
+        return null;
+      }
+
+      const result = await updateVehicleStatus({
+        vehicleId: id,
+        newStatus,
+        userId
+      });
+
+      if (result.success) {
+        // Update local state
+        setVehicles(prev => prev.map(v =>
+          v.id === id ? { ...v, status: newStatus } : v
+        ));
+        toast.success(`Vehicle ${vehicle.vehicle_number} status changed to ${newStatus}`);
+        return result;
+      } else {
+        // Show user-friendly error message
+        const errorMsg = getUpdateVehicleStatusErrorMessage(result);
+        toast.error(errorMsg);
+        console.error('Status update failed:', result);
+        return null;
+      }
+    } catch (err) {
+      console.error('Error updating vehicle status:', err);
+      toast.error('Failed to update vehicle status');
+      return null;
+    }
+  };
+
+  const toggleVehicleStatus = async (id: string, userId: string) => {
     try {
       const vehicle = vehicles.find(v => v.id === id);
       if (!vehicle) return;
@@ -147,8 +188,8 @@ export const useVehicles = () => {
       const nextIndex = (currentIndex + 1) % statusOrder.length;
       const newStatus = statusOrder[nextIndex];
 
-      await updateVehicle(id, { status: newStatus });
-      toast.success(`Vehicle ${vehicle.vehicle_number} status changed to ${newStatus}`);
+      // Use validated status update which checks battery requirement
+      await updateVehicleStatusValidated(id, newStatus, userId);
     } catch (err) {
       console.error('Error toggling vehicle status:', err);
       toast.error('Failed to update vehicle status');
@@ -166,6 +207,7 @@ export const useVehicles = () => {
     addVehicle,
     updateVehicle,
     deleteVehicle,
+    updateVehicleStatusValidated,
     toggleVehicleStatus,
     refetch: fetchVehicles
   };

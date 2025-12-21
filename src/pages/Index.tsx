@@ -4,13 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InventoryManagement } from "@/components/fleet/InventoryManagement";
 import { RiderManagement } from "@/components/fleet/RiderManagement";
+import { BatteryManagement } from "@/components/fleet/BatteryManagement";
 import { PaymentTracking } from "@/components/fleet/PaymentTracking";
 import UserManagement from "@/components/admin/UserManagement";
 import { PlacesSeeder } from "@/components/admin/PlacesSeeder";
 import { ConnectionTest } from "@/components/debug/ConnectionTest";
 import { useVehicleStats } from "@/hooks/useVehicleStats";
 import { useRiders } from "@/hooks/useRiders";
-import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield, Wrench, CheckCircle2, Clock, User } from "lucide-react";
+import { useBatteryStats } from "@/hooks/useBatteryStats";
+import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield, Wrench, CheckCircle2, Clock, User, Battery } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -26,6 +28,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("inventory");
   const { stats: vehicleStats, loading: statsLoading } = useVehicleStats();
   const { riders, loading: ridersLoading } = useRiders();
+  const { data: batteryStats, isLoading: batteryStatsLoading } = useBatteryStats();
 
   // Calculate rider statistics
   const riderStats = {
@@ -79,12 +82,27 @@ const Index = () => {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton 
+                    <SidebarMenuButton
+                      onClick={() => setActiveTab("batteries")}
+                      className={`
+                        w-full h-12 px-4 rounded-lg transition-all duration-200
+                        ${activeTab === "batteries"
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                        }
+                      `}
+                    >
+                      <Battery className="mr-3 h-5 w-5" />
+                      <span className="text-sm">Battery Management</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
                       onClick={() => setActiveTab("payments")}
                       className={`
-                        w-full h-12 px-4 rounded-lg transition-all duration-200 
-                        ${activeTab === "payments" 
-                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                        w-full h-12 px-4 rounded-lg transition-all duration-200
+                        ${activeTab === "payments"
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
                           : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                         }
                       `}
@@ -94,12 +112,12 @@ const Index = () => {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton 
+                    <SidebarMenuButton
                       onClick={() => setActiveTab("users")}
                       className={`
-                        w-full h-12 px-4 rounded-lg transition-all duration-200 
-                        ${activeTab === "users" 
-                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                        w-full h-12 px-4 rounded-lg transition-all duration-200
+                        ${activeTab === "users"
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
                           : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                         }
                       `}
@@ -295,6 +313,75 @@ const Index = () => {
                   </Card>
                 </>
               )}
+
+              {/* Battery Statistics Cards - Show only for Battery Management */}
+              {activeTab === "batteries" && (
+                <>
+                  {/* Card 1 - Total Batteries */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Total Batteries</CardTitle>
+                      <Battery className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {batteryStatsLoading ? "..." : batteryStats?.total.count || 0}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        All batteries in inventory
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card 2 - Mapped Batteries */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Mapped Batteries</CardTitle>
+                      <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {batteryStatsLoading ? "..." : batteryStats?.mapped.count || 0}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Assigned to vehicles
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card 3 - Unmapped Batteries */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Unmapped Batteries</CardTitle>
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {batteryStatsLoading ? "..." : batteryStats?.unmapped.count || 0}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Available for mapping
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card 4 - Active Batteries */}
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Active Batteries</CardTitle>
+                      <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {batteryStatsLoading ? "..." : batteryStats?.active.count || 0}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        In active use
+                      </p>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
             </div>
 
             {/* Main Content */}
@@ -310,7 +397,13 @@ const Index = () => {
                   <RiderManagement />
                 </div>
               )}
-              
+
+              {activeTab === "batteries" && (
+                <div className="space-y-4">
+                  <BatteryManagement />
+                </div>
+              )}
+
               {activeTab === "payments" && (
                 <div className="space-y-4">
                   <PaymentTracking />
