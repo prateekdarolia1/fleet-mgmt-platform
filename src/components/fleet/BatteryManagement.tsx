@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBatteriesList } from '@/hooks/useBatteriesList';
+import { AddBatteryModal } from './AddBatteryModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,12 +14,13 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Search, Loader2, Battery, Eye } from 'lucide-react';
+import { Search, Loader2, Battery, Eye, Plus } from 'lucide-react';
 
 export const BatteryManagement = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'MAPPED' | 'UNMAPPED'>('all');
+  const [isAddBatteryModalOpen, setIsAddBatteryModalOpen] = useState(false);
 
   // Fetch batteries with filtering
   const { data: batteriesData, isLoading } = useBatteriesList({
@@ -92,6 +94,15 @@ export const BatteryManagement = () => {
               <option value="MAPPED">Mapped</option>
               <option value="UNMAPPED">Unmapped</option>
             </select>
+
+            {/* Add Battery Button */}
+            <Button
+              onClick={() => setIsAddBatteryModalOpen(true)}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add Battery
+            </Button>
           </div>
         </div>
 
@@ -180,6 +191,16 @@ export const BatteryManagement = () => {
           </div>
         )}
       </CardContent>
+
+      {/* Add Battery Modal */}
+      <AddBatteryModal
+        open={isAddBatteryModalOpen}
+        onOpenChange={setIsAddBatteryModalOpen}
+        onSuccess={() => {
+          // Refresh the batteries list
+          // The hook's onSuccess already invalidates the queries
+        }}
+      />
     </Card>
   );
 };
