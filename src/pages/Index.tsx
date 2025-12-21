@@ -10,10 +10,11 @@ import { PaymentTracking } from "@/components/fleet/PaymentTracking";
 import UserManagement from "@/components/admin/UserManagement";
 import { PlacesSeeder } from "@/components/admin/PlacesSeeder";
 import { ConnectionTest } from "@/components/debug/ConnectionTest";
+import { DataImportPage } from "@/components/import/DataImportPage";
 import { useVehicleStats } from "@/hooks/useVehicleStats";
 import { useRiders } from "@/hooks/useRiders";
 import { useBatteryStats } from "@/hooks/useBatteryStats";
-import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield, Wrench, CheckCircle2, Clock, User, Battery } from "lucide-react";
+import { Bike, Users, CreditCard, Activity, Package, UserCheck, Receipt, Shield, Wrench, CheckCircle2, Clock, User, Battery, Upload } from "lucide-react";
 import { 
   Sidebar, 
   SidebarContent, 
@@ -36,7 +37,7 @@ const Index = () => {
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab') || 'inventory';
     // Validate that the tab is one of the allowed values
-    const validTabs = ['inventory', 'riders', 'batteries', 'payments', 'users'];
+    const validTabs = ['inventory', 'riders', 'batteries', 'payments', 'users', 'import'];
     if (validTabs.includes(tabFromUrl)) {
       setActiveTab(tabFromUrl);
     } else {
@@ -144,6 +145,21 @@ const Index = () => {
                     >
                       <Shield className="mr-3 h-5 w-5" />
                       <span className="text-sm">User Management</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={() => handleTabChange("import")}
+                      className={`
+                        w-full h-12 px-4 rounded-lg transition-all duration-200
+                        ${activeTab === "import"
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                        }
+                      `}
+                    >
+                      <Upload className="mr-3 h-5 w-5" />
+                      <span className="text-sm">Data Import</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -434,6 +450,12 @@ const Index = () => {
                 <div className="space-y-4">
                   <UserManagement />
                   <PlacesSeeder />
+                </div>
+              )}
+
+              {activeTab === "import" && (
+                <div className="space-y-4">
+                  <DataImportPage />
                 </div>
               )}
             </div>
