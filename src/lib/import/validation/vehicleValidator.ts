@@ -7,46 +7,17 @@
 
 import type { ValidatedRow, ValidationError, FieldDefinition } from '@/types/import';
 import { transformBoolean, transformColor } from '../transformers/commonTransformers';
-import { calculateMaintenanceDate, isValidDateFormat, isFutureDate } from '../transformers/dateTransformer';
+import { calculateMaintenanceDate, isValidDateFormat, isFutureDate, transformDateDDMmmYYYY } from '../transformers/dateTransformer';
 
 // ===== FIELD DEFINITIONS =====
 
 /**
  * Complete field definitions for vehicle imports
+ * CRITICAL: Keys MUST match exact CSV headers (including spaces, capitalization, punctuation)
  * Maps CSV columns to database fields with validation rules
  */
 export const VEHICLE_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  vehicle_number: {
-    dbField: 'vehicle_number',
-    displayName: 'Vehicle Number',
-    required: true,
-    dataType: 'string',
-    example: 'INT001',
-    description: 'Unique vehicle registration/identification number',
-    validator: validateVehicleNumber,
-  },
-
-  chassis_number: {
-    dbField: 'chassis_number',
-    displayName: 'Chassis Number',
-    required: true,
-    dataType: 'string',
-    example: 'AS2602520',
-    description: 'Unique chassis identification number',
-    validator: validateChassisNumber,
-  },
-
-  motor_serial_number: {
-    dbField: 'motor_serial_number',
-    displayName: 'Motor Serial Number',
-    required: true,
-    dataType: 'string',
-    example: 'AS2600669',
-    description: 'Unique motor serial number',
-    validator: validateMotorSerialNumber,
-  },
-
-  make: {
+  'Vehicle Make': {
     dbField: 'make',
     displayName: 'Vehicle Make',
     required: true,
@@ -55,7 +26,7 @@ export const VEHICLE_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     description: 'Manufacturer/brand of the vehicle',
   },
 
-  model: {
+  'Vehicle Model': {
     dbField: 'model',
     displayName: 'Vehicle Model',
     required: true,
@@ -64,7 +35,7 @@ export const VEHICLE_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     description: 'Model name/variant of the vehicle',
   },
 
-  color: {
+  'Color': {
     dbField: 'color',
     displayName: 'Color',
     required: false,
@@ -74,17 +45,96 @@ export const VEHICLE_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     transformer: transformColor,
   },
 
-  delivery_date: {
+  'Delivery Date': {
     dbField: 'delivery_date',
     displayName: 'Delivery Date',
     required: true,
     dataType: 'date',
-    example: '2025-11-17',
-    description: 'Date when vehicle was delivered (YYYY-MM-DD format)',
+    example: '17 Nov 2025',
+    description: 'Date when vehicle was delivered (DD MMM YYYY format)',
     validator: validateDeliveryDate,
+    transformer: transformDateDDMmmYYYY,
   },
 
-  vehicle_type: {
+  'Vehicle Registration Number': {
+    dbField: 'vehicle_number',
+    displayName: 'Vehicle Registration Number',
+    required: true,
+    dataType: 'string',
+    example: 'INT001',
+    description: 'Unique vehicle registration/identification number',
+    validator: validateVehicleNumber,
+  },
+
+  'Chassis Number': {
+    dbField: 'chassis_number',
+    displayName: 'Chassis Number',
+    required: true,
+    dataType: 'string',
+    example: 'AS2602520',
+    description: 'Unique chassis identification number',
+    validator: validateChassisNumber,
+  },
+
+  'Motor Serial Number': {
+    dbField: 'motor_serial_number',
+    displayName: 'Motor Serial Number',
+    required: true,
+    dataType: 'string',
+    example: 'AS2600669',
+    description: 'Unique motor serial number',
+    validator: validateMotorSerialNumber,
+  },
+
+  'Vendor': {
+    dbField: 'vendor',
+    displayName: 'Vendor',
+    required: true,
+    dataType: 'string',
+    example: 'IntuitEV',
+    description: 'Vendor/supplier of the vehicle',
+  },
+
+  'PDI Done By': {
+    dbField: 'pdi_done_by',
+    displayName: 'PDI Done By',
+    required: true,
+    dataType: 'string',
+    example: 'MUNAZIR',
+    description: 'Name of person who performed PDI (Pre-Delivery Inspection)',
+  },
+
+  'Registration Received?': {
+    dbField: 'registration_received',
+    displayName: 'Registration Received?',
+    required: false,
+    dataType: 'boolean',
+    example: 'TRUE',
+    description: 'Whether registration documents received (TRUE/FALSE/NA)',
+    transformer: transformBoolean,
+  },
+
+  'Insurance Received?': {
+    dbField: 'insurance_received',
+    displayName: 'Insurance Received?',
+    required: false,
+    dataType: 'boolean',
+    example: 'FALSE',
+    description: 'Whether insurance documents received (TRUE/FALSE/NA)',
+    transformer: transformBoolean,
+  },
+
+  'Portable Charger Received?': {
+    dbField: 'portable_charger_received',
+    displayName: 'Portable Charger Received?',
+    required: false,
+    dataType: 'boolean',
+    example: 'TRUE',
+    description: 'Whether portable charger received (TRUE/FALSE/NA)',
+    transformer: transformBoolean,
+  },
+
+  'Vehicle Type': {
     dbField: 'vehicle_type',
     displayName: 'Vehicle Type',
     required: true,
@@ -94,7 +144,7 @@ export const VEHICLE_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     description: 'Type of vehicle (High Speed or Low Speed)',
   },
 
-  battery_type: {
+  'Battery Type': {
     dbField: 'battery_type',
     displayName: 'Battery Type',
     required: true,
@@ -104,52 +154,13 @@ export const VEHICLE_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     description: 'Battery configuration (Fixed or Swappable)',
   },
 
-  vendor: {
-    dbField: 'vendor',
-    displayName: 'Vendor',
-    required: true,
+  'VEHICLE ID': {
+    dbField: null, // Don't map to database (may be duplicate of vehicle_number)
+    displayName: 'VEHICLE ID',
+    required: false,
     dataType: 'string',
-    example: 'IntuitEV',
-    description: 'Vendor/supplier of the vehicle',
-  },
-
-  pdi_done_by: {
-    dbField: 'pdi_done_by',
-    displayName: 'PDI Done By',
-    required: true,
-    dataType: 'string',
-    example: 'MUNAZIR',
-    description: 'Name of person who performed PDI (Pre-Delivery Inspection)',
-  },
-
-  registration_received: {
-    dbField: 'registration_received',
-    displayName: 'Registration Received',
-    required: false,
-    dataType: 'boolean',
-    example: 'TRUE',
-    description: 'Whether registration documents received (TRUE/FALSE/NA)',
-    transformer: transformBoolean,
-  },
-
-  insurance_received: {
-    dbField: 'insurance_received',
-    displayName: 'Insurance Received',
-    required: false,
-    dataType: 'boolean',
-    example: 'FALSE',
-    description: 'Whether insurance documents received (TRUE/FALSE/NA)',
-    transformer: transformBoolean,
-  },
-
-  portable_charger_received: {
-    dbField: 'portable_charger_received',
-    displayName: 'Portable Charger Received',
-    required: false,
-    dataType: 'boolean',
-    example: 'TRUE',
-    description: 'Whether portable charger received (TRUE/FALSE/NA)',
-    transformer: transformBoolean,
+    example: 'INT001',
+    description: 'Optional vehicle ID field (not stored in database if same as registration number)',
   },
 };
 
@@ -352,7 +363,10 @@ export function validateVehicleRow(
       }
     }
 
-    transformedData[fieldName] = transformedValue;
+    // Store using database field name (dbField) not CSV header
+    if (definition.dbField) {
+      transformedData[definition.dbField] = transformedValue;
+    }
   }
 
   // Calculate derived fields
@@ -363,7 +377,7 @@ export function validateVehicleRow(
       transformedData.next_maintenance_date = calculateMaintenanceDate(transformedData.delivery_date);
     } catch (err) {
       errors.push({
-        field: 'delivery_date',
+        field: 'Delivery Date',  // Use CSV header for error reporting
         severity: 'error',
         code: 'MAINTENANCE_DATE_CALC_FAILED',
         message: 'Failed to calculate maintenance date',

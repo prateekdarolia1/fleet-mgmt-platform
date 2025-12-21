@@ -131,3 +131,54 @@ export function daysBetween(date1: Date | string, date2: Date | string): number 
 
   return diffDays;
 }
+
+/**
+ * Transforms "DD MMM YYYY" format to YYYY-MM-DD
+ * Handles formats like "17 Nov 2025", "01 Jan 2024"
+ *
+ * @param value - Date value in various formats
+ * @returns Date string in YYYY-MM-DD format or null if invalid
+ *
+ * @example
+ * transformDateDDMmmYYYY("17 Nov 2025")  // → "2025-11-17"
+ * transformDateDDMmmYYYY("01 Jan 2024")  // → "2024-01-01"
+ * transformDateDDMmmYYYY("2024-01-15")   // → "2024-01-15" (already correct)
+ * transformDateDDMmmYYYY("N/A")          // → null
+ */
+export function transformDateDDMmmYYYY(value: any): string | null {
+  if (!value) return null;
+
+  const str = String(value).trim();
+  if (!str || str.toUpperCase() === 'N/A') return null;
+
+  // Month mapping for 3-letter abbreviations
+  const monthMap: Record<string, string> = {
+    'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04',
+    'MAY': '05', 'JUN': '06', 'JUL': '07', 'AUG': '08',
+    'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12'
+  };
+
+  // Try "DD MMM YYYY" format (e.g., "17 Nov 2025")
+  const ddMmmYyyyRegex = /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/;
+  const match = str.match(ddMmmYyyyRegex);
+
+  if (match) {
+    const day = match[1].padStart(2, '0');
+    const monthAbbr = match[2].toUpperCase();
+    const month = monthMap[monthAbbr];
+    const year = match[3];
+
+    if (!month) {
+      return null; // Invalid month abbreviation
+    }
+
+    return `${year}-${month}-${day}`;
+  }
+
+  // Already in YYYY-MM-DD format
+  if (isValidDateFormat(str)) {
+    return str;
+  }
+
+  return null;
+}

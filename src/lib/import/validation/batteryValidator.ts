@@ -301,7 +301,10 @@ export function validateBatteryRow(
       }
     }
 
-    transformedData[fieldName] = transformedValue;
+    // Store using database field name (dbField) not CSV header
+    if (definition.dbField) {
+      transformedData[definition.dbField] = transformedValue;
+    }
   }
 
   // Set default status (UNMAPPED for new batteries)

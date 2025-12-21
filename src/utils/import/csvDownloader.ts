@@ -1,9 +1,11 @@
 /**
  * CSV download utilities
  *
- * Handles generation and download of CSV files with proper encoding
- * and Excel compatibility.
+ * Handles generation and download of CSV files with proper encoding,
+ * Excel compatibility, and security (CSV injection prevention).
  */
+
+import { escapeCSVCell as secureEscapeCSVCell } from './csvSanitizer';
 
 /**
  * Downloads a CSV template file to the user's computer
@@ -11,6 +13,7 @@
  * Features:
  * - UTF-8 BOM for Excel compatibility
  * - Proper CSV escaping for cells with commas/quotes
+ * - CSV injection prevention (formula sanitization)
  * - Automatic download trigger
  *
  * @param headers - Array of column headers
@@ -22,17 +25,8 @@ export function downloadCSVTemplate(
   sampleRows: string[][],
   filename: string
 ): void {
-  // Helper function to escape CSV cells
-  const escapeCSVCell = (cell: string): string => {
-    const str = String(cell);
-
-    // If cell contains comma, quote, or newline, wrap in quotes and escape quotes
-    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
-      return `"${str.replace(/"/g, '""')}"`;
-    }
-
-    return str;
-  };
+  // Use secure CSV cell escaping with injection prevention
+  const escapeCSVCell = secureEscapeCSVCell;
 
   // Build CSV content
   const csvRows = [

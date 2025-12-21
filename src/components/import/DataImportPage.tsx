@@ -26,6 +26,7 @@ import { validateBatteryRows } from '@/lib/import/validation/batteryValidator';
 import { classifyValidationResults, getImportableRows } from '@/lib/import/validation/validationEngine';
 import { detectAllDuplicates } from '@/lib/import/duplicates/duplicateDetector';
 import { processBatchImport } from '@/lib/import/batch/batchProcessor';
+import { ValidationResultsTable } from './ValidationResultsTable';
 
 import type { ImportProgress, ValidationResults, EntityType } from '@/types/import';
 
@@ -227,18 +228,22 @@ export function DataImportPage() {
           {/* Step 2: Upload CSV */}
           <div className="space-y-2">
             <h3 className="font-semibold flex items-center gap-2">
-              Step 2: Upload Filled CSV
+              Step 2: Upload CSV File
               {selectedFile && <CheckCircle2 className="h-4 w-4 text-green-600" />}
             </h3>
             <Input
               type="file"
               accept=".csv"
               onChange={handleFileSelect}
-              disabled={!templateDownloaded}
             />
             {selectedFile && (
               <p className="text-sm text-muted-foreground">
                 Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
+              </p>
+            )}
+            {!templateDownloaded && selectedFile && (
+              <p className="text-sm text-yellow-600">
+                💡 Tip: If you haven't seen the template format, download it above to ensure your CSV matches the expected structure.
               </p>
             )}
           </div>
@@ -270,9 +275,10 @@ export function DataImportPage() {
             </div>
           </div>
 
-          {/* Validation Results */}
+          {/* Validation Results Summary */}
           {validationResults && (
             <div className="space-y-4">
+              {/* Quick Summary Cards */}
               <div className="grid grid-cols-3 gap-4">
                 <Card>
                   <CardContent className="pt-4">
@@ -311,14 +317,8 @@ export function DataImportPage() {
                 </Card>
               </div>
 
-              {validationResults.invalidCount > 0 && (
-                <Alert variant="destructive">
-                  <AlertTitle>Cannot Import</AlertTitle>
-                  <AlertDescription>
-                    {validationResults.invalidCount} row(s) have errors. Please fix them and re-upload.
-                  </AlertDescription>
-                </Alert>
-              )}
+              {/* Detailed Validation Results Table */}
+              <ValidationResultsTable results={validationResults} entityType={entityType} />
             </div>
           )}
 
