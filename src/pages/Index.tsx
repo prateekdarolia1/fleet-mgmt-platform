@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,10 +26,29 @@ import {
 } from "@/components/ui/sidebar";
 
 const Index = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("inventory");
   const { stats: vehicleStats, loading: statsLoading } = useVehicleStats();
   const { riders, loading: ridersLoading } = useRiders();
   const { data: batteryStats, isLoading: batteryStatsLoading } = useBatteryStats();
+
+  // Initialize activeTab from URL search params
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'inventory';
+    // Validate that the tab is one of the allowed values
+    const validTabs = ['inventory', 'riders', 'batteries', 'payments', 'users'];
+    if (validTabs.includes(tabFromUrl)) {
+      setActiveTab(tabFromUrl);
+    } else {
+      setActiveTab('inventory');
+    }
+  }, [searchParams]);
+
+  // Update URL when activeTab changes
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   // Calculate rider statistics
   const riderStats = {
@@ -52,12 +72,12 @@ const Index = () => {
               <SidebarGroupContent>
                 <SidebarMenu className="space-y-2">
                   <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      onClick={() => setActiveTab("inventory")}
+                    <SidebarMenuButton
+                      onClick={() => handleTabChange("inventory")}
                       className={`
-                        w-full h-12 px-4 rounded-lg transition-all duration-200 
-                        ${activeTab === "inventory" 
-                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                        w-full h-12 px-4 rounded-lg transition-all duration-200
+                        ${activeTab === "inventory"
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
                           : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                         }
                       `}
@@ -67,12 +87,12 @@ const Index = () => {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
-                    <SidebarMenuButton 
-                      onClick={() => setActiveTab("riders")}
+                    <SidebarMenuButton
+                      onClick={() => handleTabChange("riders")}
                       className={`
-                        w-full h-12 px-4 rounded-lg transition-all duration-200 
-                        ${activeTab === "riders" 
-                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm" 
+                        w-full h-12 px-4 rounded-lg transition-all duration-200
+                        ${activeTab === "riders"
+                          ? "bg-sidebar-accent text-sidebar-primary font-semibold shadow-sm"
                           : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                         }
                       `}
@@ -83,7 +103,7 @@ const Index = () => {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      onClick={() => setActiveTab("batteries")}
+                      onClick={() => handleTabChange("batteries")}
                       className={`
                         w-full h-12 px-4 rounded-lg transition-all duration-200
                         ${activeTab === "batteries"
@@ -98,7 +118,7 @@ const Index = () => {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      onClick={() => setActiveTab("payments")}
+                      onClick={() => handleTabChange("payments")}
                       className={`
                         w-full h-12 px-4 rounded-lg transition-all duration-200
                         ${activeTab === "payments"
@@ -113,7 +133,7 @@ const Index = () => {
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton
-                      onClick={() => setActiveTab("users")}
+                      onClick={() => handleTabChange("users")}
                       className={`
                         w-full h-12 px-4 rounded-lg transition-all duration-200
                         ${activeTab === "users"
