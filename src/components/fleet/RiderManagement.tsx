@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -58,6 +59,7 @@ interface RiderFormData {
 }
 
 export const RiderManagement = () => {
+  const navigate = useNavigate();
   const { riders, loading, addRider, updateRider } = useRiders();
   const { vehicles, updateVehicle } = useVehicles();
   const [searchTerm, setSearchTerm] = useState("");
@@ -371,7 +373,11 @@ export const RiderManagement = () => {
           </TableHeader>
           <TableBody>
             {filteredRiders.map((rider) => (
-              <TableRow key={rider.id}>
+              <TableRow
+                key={rider.id}
+                className="cursor-pointer hover:bg-blue-50 transition-colors"
+                onClick={() => navigate(`/riders/${rider.id}`)}
+              >
                 <TableCell>
                   <div className="font-medium text-sm">
                     {rider.rider_id}
@@ -404,24 +410,33 @@ export const RiderManagement = () => {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleViewRider(rider)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewRider(rider);
+                      }}
                     >
                       View
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleEditRiderDetails(rider)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditRiderDetails(rider);
+                      }}
                     >
                       Edit Details
                     </Button>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
-                      onClick={() => handleEditStatus(rider)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditStatus(rider);
+                      }}
                     >
                       Edit Status
                     </Button>

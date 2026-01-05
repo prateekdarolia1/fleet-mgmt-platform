@@ -84,7 +84,7 @@ const Index = () => {
                       `}
                     >
                       <Package className="mr-3 h-5 w-5" />
-                      <span className="text-sm">Inventory Management</span>
+                      <span className="text-sm">Vehicle Management</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>

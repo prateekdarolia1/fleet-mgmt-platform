@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+// SOLID Principle: Dependency Inversion - Import only what we need
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,28 +22,43 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { useAddBattery, useGenerateBatteryId } from '@/hooks/useAddBattery';
-import { Loader2, Battery, Zap } from 'lucide-react';
+import { useAddBattery } from '@/hooks/useAddBattery';
+import { Loader2, Battery } from 'lucide-react';
 
-// Validation schema
+// DRY Principle: Reusable validation patterns
+const ALPHANUMERIC_8_CHARS_REGEX = /^[A-Z0-9]{8}$/;
+const ALPHANUMERIC_8_CHARS_MESSAGE = 'Must be 8 uppercase alphanumeric characters';
+
+// SOLID Principle: Single Responsibility - Validation Schema
+// DDD Principle: Battery Aggregate validation rules
 const addBatterySchema = z.object({
   battery_id: z
     .string()
     .min(1, 'Battery ID is required')
-    .regex(/^[A-Z0-9]{8}$/, 'Battery ID must be 8 uppercase alphanumeric characters (e.g., BAT00001)'),
+    .regex(ALPHANUMERIC_8_CHARS_REGEX, `Battery ID ${ALPHANUMERIC_8_CHARS_MESSAGE} (e.g., BAT00001)`),
+
   service_provider: z.enum(['BATTERY_SMART', 'OTHER'], {
     errorMap: () => ({ message: 'Please select a service provider' })
   }),
+
+  // Business Rule: Zone ID is now REQUIRED (not optional)
   zone_id: z
     .string()
-    .optional()
-    .refine(
-      (val) => !val || /^[A-Z0-9]{8}$/.test(val),
-      'Zone ID must be 8 uppercase alphanumeric characters'
-    ),
+    .min(1, 'Zone ID is required')
+    .regex(ALPHANUMERIC_8_CHARS_REGEX, `Zone ID ${ALPHANUMERIC_8_CHARS_MESSAGE}`),
+
   location: z.enum(['NOIDA', 'OTHER']).optional(),
-  battery_plan: z.enum(['D2D', 'B2B', 'OTHER']).optional(),
-  usc_id: z.string().optional(),
+
+  // Business Rule: Battery Plan is now REQUIRED (not optional)
+  battery_plan: z.enum(['D2D', 'B2B', 'OTHER'], {
+    errorMap: () => ({ message: 'Please select a battery plan' })
+  }),
+
+  // Business Rule: USC ID is now REQUIRED (not optional)
+  usc_id: z
+    .string()
+    .min(1, 'USC ID is required'),
+
   retrofit_date: z
     .string()
     .optional()
@@ -66,8 +81,7 @@ export const AddBatteryModal = ({
   onOpenChange,
   onSuccess
 }: AddBatteryModalProps) => {
-  const [useAutoId, setUseAutoId] = useState(true);
-
+  // SOLID Principle: Single Responsibility - Form state management
   const form = useForm<AddBatteryFormData>({
     resolver: zodResolver(addBatterySchema),
     mode: 'onChange',
@@ -77,11 +91,11 @@ export const AddBatteryModal = ({
     }
   });
 
+  // SOLID Principle: Dependency Inversion - Depend on abstraction (useAddBattery hook)
   const { mutate: addBatteryMutation, isPending: isAdding } = useAddBattery({
     onSuccess: () => {
       toast.success('Battery added successfully!');
       form.reset();
-      setUseAutoId(true);
       onOpenChange(false);
       onSuccess?.();
     },
@@ -90,19 +104,6 @@ export const AddBatteryModal = ({
     }
   });
 
-  const { mutate: generateId, isPending: isGenerating } = useGenerateBatteryId();
-
-  // Auto-generate battery ID when modal opens
-  useEffect(() => {
-    if (open && useAutoId && !form.getValues('battery_id')) {
-      generateId(undefined, {
-        onSuccess: (generatedId) => {
-          form.setValue('battery_id', generatedId);
-        }
-      });
-    }
-  }, [open, useAutoId]);
-
   const handleSubmit = (data: AddBatteryFormData) => {
     addBatteryMutation(data);
   };
@@ -110,7 +111,6 @@ export const AddBatteryModal = ({
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       form.reset();
-      setUseAutoId(true);
     }
     onOpenChange(newOpen);
   };
@@ -130,43 +130,23 @@ export const AddBatteryModal = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            {/* Battery ID */}
+            {/* Battery ID - SOLID: Single Responsibility */}
             <FormField
               control={form.control}
               name="battery_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Battery ID (Lilypad Internal ID)</FormLabel>
-                  <div className="flex gap-2">
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="e.g., BAT00001"
-                        disabled={isAdding || isGenerating}
-                        className="font-mono uppercase"
-                      />
-                    </FormControl>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setUseAutoId(true);
-                        generateId(undefined, {
-                          onSuccess: (generatedId) => {
-                            form.setValue('battery_id', generatedId);
-                          }
-                        });
-                      }}
-                      disabled={isGenerating || isAdding}
-                      className="gap-1"
-                    >
-                      <Zap className="h-4 w-4" />
-                      Auto
-                    </Button>
-                  </div>
+                  <FormLabel>Battery ID</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="e.g., BAT00001"
+                      disabled={isAdding}
+                      className="font-mono uppercase"
+                    />
+                  </FormControl>
                   <FormDescription>
-                    8 uppercase alphanumeric characters. Click "Auto" to generate.
+                    8 uppercase alphanumeric characters
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -193,13 +173,13 @@ export const AddBatteryModal = ({
               )}
             />
 
-            {/* Zone ID */}
+            {/* Zone ID - DDD: Zone Value Object */}
             <FormField
               control={form.control}
               name="zone_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Zone ID (Optional)</FormLabel>
+                  <FormLabel>Zone ID</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
@@ -216,13 +196,13 @@ export const AddBatteryModal = ({
               )}
             />
 
-            {/* Battery Plan */}
+            {/* Battery Plan - DDD: Service Agreement Value Object */}
             <FormField
               control={form.control}
               name="battery_plan"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Battery Plan (Optional)</FormLabel>
+                  <FormLabel>Battery Plan</FormLabel>
                   <select
                     {...field}
                     disabled={isAdding}
@@ -278,13 +258,13 @@ export const AddBatteryModal = ({
               )}
             />
 
-            {/* USC ID */}
+            {/* USC ID - DDD: Universal Service Code */}
             <FormField
               control={form.control}
               name="usc_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>USC ID (Optional)</FormLabel>
+                  <FormLabel>USC ID</FormLabel>
                   <FormControl>
                     <Input
                       {...field}

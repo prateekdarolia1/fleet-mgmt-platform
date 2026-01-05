@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Plus, Search, Filter, Calendar, Wrench, Edit, Trash2, RotateCcw } from "lucide-react";
+import { Plus, Search, Filter, Calendar, Wrench, Edit, Trash2, RotateCcw, Battery } from "lucide-react";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { useAvailableRiders } from "@/hooks/useAvailableRiders";
 import { toast } from "sonner";
+import { MapVehicleToBatteryModal } from "./MapVehicleToBatteryModal";
 interface VehicleFormData {
   make: string;
   model: string;
@@ -31,6 +33,7 @@ interface VehicleFormData {
   vehicle_number: string;
 }
 export const InventoryManagement = () => {
+  const navigate = useNavigate();
   const {
     vehicles,
     loading,
@@ -56,6 +59,11 @@ export const InventoryManagement = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>("");
   const [selectedRider, setSelectedRider] = useState<string>("");
   const [showStatusDialog, setShowStatusDialog] = useState(false);
+
+  // SOLID: Single Responsibility - Map Battery modal state management
+  const [isMapBatteryModalOpen, setIsMapBatteryModalOpen] = useState(false);
+  const [selectedVehicleForMap, setSelectedVehicleForMap] = useState<{ id: string; vehicle_number: string } | null>(null);
+
   const form = useForm<VehicleFormData>();
   const editForm = useForm<VehicleFormData>();
   const onSubmit = async (data: VehicleFormData) => {
@@ -940,7 +948,11 @@ export const InventoryManagement = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredVehicles.map(vehicle => <TableRow key={vehicle.id}>
+            {filteredVehicles.map(vehicle => <TableRow
+                key={vehicle.id}
+                className="cursor-pointer hover:bg-blue-50 transition-colors"
+                onClick={() => navigate(`/vehicles/${vehicle.id}`)}
+              >
                 <TableCell>
                   <div>
                     <div className="font-medium">{vehicle.vehicle_number}</div>
@@ -970,6 +982,25 @@ export const InventoryManagement = () => {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
+                    {/* DDD: Battery-Vehicle Mapping Action */}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedVehicleForMap({
+                          id: vehicle.id,
+                          vehicle_number: vehicle.vehicle_number
+                        });
+                        setIsMapBatteryModalOpen(true);
+                      }}
+                      disabled={!!vehicle.battery_id}
+                      className="gap-1"
+                      title={vehicle.battery_id ? 'Vehicle already has a battery' : 'Map battery to vehicle'}
+                    >
+                      <Battery className="h-3 w-3" />
+                      Map
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => handleStatusChange(vehicle)}>
                       <RotateCcw className="h-3 w-3 mr-1" />
                       Status
@@ -1085,6 +1116,21 @@ export const InventoryManagement = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Map Battery Modal - DRY: Reusable modal for vehicle-battery mapping */}
+        {selectedVehicleForMap && (
+          <MapVehicleToBatteryModal
+            open={isMapBatteryModalOpen}
+            onOpenChange={setIsMapBatteryModalOpen}
+            vehicleId={selectedVehicleForMap.id}
+            vehicleDisplayId={selectedVehicleForMap.vehicle_number}
+            onSuccess={() => {
+              // SOLID: Separation of concerns - modal handles its own success
+              // The hook will auto-refresh via query invalidation
+              setSelectedVehicleForMap(null);
+            }}
+          />
+        )}
       </CardContent>
     </Card>;
 };
