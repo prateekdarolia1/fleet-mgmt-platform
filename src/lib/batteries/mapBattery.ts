@@ -32,12 +32,14 @@ export interface MapBatteryResponse {
 /**
  * DDD: Value Object for Battery-Vehicle Mapping
  * SOLID: Interface Segregation - Specific interface for mapping operation
+ *
+ * Note: swaps_allowed_per_month is now managed via rider_ledgers table,
+ * not passed during battery-vehicle mapping.
  */
 export interface MapBatteryInput {
   batteryId: string;
   vehicleId: string;
-  batterySmartId: string;        // NEW: External service provider identifier
-  swapsAllowedPerMonth: number;  // NEW: Service agreement limit (0-99)
+  batterySmartId: string;  // External service provider identifier
   userId: string;
 }
 
@@ -96,11 +98,11 @@ export async function mapBattery(
 
     // Call the RPC function (Domain Service invocation)
     // SOLID: Dependency Inversion - Depend on Supabase abstraction
+    // Note: swaps_allowed_per_month is now managed via rider_ledgers, not passed here
     const { data, error } = await supabase.rpc('map_battery', {
       p_battery_id: input.batteryId,
       p_vehicle_id: input.vehicleId,
-      p_battery_smart_id: input.batterySmartId,           // NEW parameter
-      p_swaps_allowed_per_month: input.swapsAllowedPerMonth, // NEW parameter
+      p_battery_smart_id: input.batterySmartId,
       p_user_id: input.userId
     });
 
@@ -163,15 +165,6 @@ function validateMapBatteryInput(input: MapBatteryInput): MapBatteryValidation {
     errors.push('Invalid batterySmartId: must be a non-empty string');
   } else if (input.batterySmartId.length === 0) {
     errors.push('batterySmartId cannot be empty');
-  }
-
-  // Validate Swaps Allowed Per Month (Domain constraint: 0-99)
-  if (typeof input.swapsAllowedPerMonth !== 'number') {
-    errors.push('Invalid swapsAllowedPerMonth: must be a number');
-  } else if (input.swapsAllowedPerMonth < 0 || input.swapsAllowedPerMonth > 99) {
-    errors.push('swapsAllowedPerMonth must be between 0 and 99');
-  } else if (!Number.isInteger(input.swapsAllowedPerMonth)) {
-    errors.push('swapsAllowedPerMonth must be a whole number');
   }
 
   // Validate User ID (UUID)

@@ -51,13 +51,7 @@ const mapVehicleToBatterySchema = z.object({
   batterySmartId: z
     .string()
     .min(1, 'BatterySmart ID is required')
-    .max(100, 'BatterySmart ID is too long'),
-
-  swapsAllowedPerMonth: z
-    .number()
-    .min(0, 'Must be 0 or greater')
-    .max(99, 'Maximum 99 swaps allowed')
-    .int('Must be a whole number')
+    .max(100, 'BatterySmart ID is too long')
 });
 
 type MapVehicleToBatteryFormData = z.infer<typeof mapVehicleToBatterySchema>;
@@ -99,8 +93,7 @@ export const MapVehicleToBatteryModal = ({
     mode: 'onChange',
     defaultValues: {
       batteryId: '',
-      batterySmartId: '',
-      swapsAllowedPerMonth: 4  // DDD: Domain default value
+      batterySmartId: ''
     }
   });
 
@@ -118,7 +111,6 @@ export const MapVehicleToBatteryModal = ({
         batteryId: data.batteryId,
         vehicleId,  // Vehicle is fixed from props
         batterySmartId: data.batterySmartId,
-        swapsAllowedPerMonth: data.swapsAllowedPerMonth,
         userId: 'current-user-id' // TODO: Get from auth context
       };
 
@@ -265,31 +257,6 @@ export const MapVehicleToBatteryModal = ({
               )}
             />
 
-            {/* Swaps Allowed Per Month - DDD: Service Agreement Value Object */}
-            <FormField
-              control={form.control}
-              name="swapsAllowedPerMonth"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Swaps Allowed Per Month</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="99"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                      className="w-32"
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Service agreement limit (0-99 swaps per month)
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {/* Summary Card - DRY: Visual confirmation before submission */}
             {selectedBattery && isFormValid && (
               <div className="grid gap-3 md:grid-cols-2 p-4 bg-green-50 rounded-lg border-2 border-green-200">
@@ -325,12 +292,6 @@ export const MapVehicleToBatteryModal = ({
                     <div>
                       <p className="text-xs text-muted-foreground">Service Provider</p>
                       <p className="text-sm">{selectedBattery.service_provider}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Swaps/Month</p>
-                      <Badge className="mt-1 bg-green-100 text-green-800 border-green-200">
-                        {form.getValues('swapsAllowedPerMonth')} swaps
-                      </Badge>
                     </div>
                   </CardContent>
                 </Card>

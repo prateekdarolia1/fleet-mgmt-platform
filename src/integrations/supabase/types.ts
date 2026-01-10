@@ -146,6 +146,7 @@ export type Database = {
           rider_id: string
           rider_name: string
           security_deposit_amount: number
+          swaps_allowed_per_month: number | null
           updated_at: string
         }
         Insert: {
@@ -157,6 +158,7 @@ export type Database = {
           rider_id: string
           rider_name: string
           security_deposit_amount: number
+          swaps_allowed_per_month?: number | null
           updated_at?: string
         }
         Update: {
@@ -168,6 +170,7 @@ export type Database = {
           rider_id?: string
           rider_name?: string
           security_deposit_amount?: number
+          swaps_allowed_per_month?: number | null
           updated_at?: string
         }
         Relationships: []

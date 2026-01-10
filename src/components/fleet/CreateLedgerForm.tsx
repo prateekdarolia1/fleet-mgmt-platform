@@ -27,7 +27,8 @@ const ledgerSchema = z.object({
   rental_amount: z.number().min(1, "Rental amount must be greater than 0"),
   rental_start_date: z.date({
     required_error: "Please select a start date"
-  })
+  }),
+  swaps_allowed_per_month: z.number().min(0, "Must be 0 or greater").max(99, "Maximum 99 swaps allowed").int("Must be a whole number").optional()
 });
 
 type LedgerFormData = z.infer<typeof ledgerSchema>;
@@ -44,9 +45,17 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
   const form = useForm<LedgerFormData>({
     resolver: zodResolver(ledgerSchema),
     defaultValues: {
-      rental_frequency: 'monthly'
+      rental_frequency: 'monthly',
+      swaps_allowed_per_month: 8  // Default for monthly
     }
   });
+
+  // Update swaps_allowed_per_month default when rental_frequency changes
+  const rentalFrequency = form.watch('rental_frequency');
+  useEffect(() => {
+    const swapLimits = { daily: 2, weekly: 4, monthly: 8 };
+    form.setValue('swaps_allowed_per_month', swapLimits[rentalFrequency]);
+  }, [rentalFrequency, form]);
 
   useEffect(() => {
     const fetchAvailableRiders = async () => {
@@ -74,7 +83,8 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
         transaction_id: data.transaction_id,
         rental_frequency: data.rental_frequency,
         rental_amount: data.rental_amount,
-        rental_start_date: data.rental_start_date.toISOString().split('T')[0]
+        rental_start_date: data.rental_start_date.toISOString().split('T')[0],
+        swaps_allowed_per_month: data.swaps_allowed_per_month ?? 4
       };
 
       await createLedger(ledgerData);
@@ -221,6 +231,32 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
                   <SelectItem value="monthly">Monthly</SelectItem>
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* Swaps Allowed Per Month */}
+        <FormField
+          control={form.control}
+          name="swaps_allowed_per_month"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Swaps Allowed Per Month</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  min="0"
+                  max="99"
+                  placeholder="4"
+                  {...field}
+                  onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                  value={field.value ?? 4}
+                />
+              </FormControl>
+              <p className="text-sm text-muted-foreground">
+                Service agreement limit (0-99). Defaults based on rental frequency: Daily=2, Weekly=4, Monthly=8
+              </p>
               <FormMessage />
             </FormItem>
           )}

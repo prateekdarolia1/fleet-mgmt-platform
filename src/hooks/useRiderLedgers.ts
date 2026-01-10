@@ -10,6 +10,7 @@ export interface RiderLedger {
   rental_frequency: 'daily' | 'weekly' | 'monthly';
   rental_amount: number;
   rental_start_date: string;
+  swaps_allowed_per_month?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +24,7 @@ export interface CreateLedgerData {
   rental_frequency: 'daily' | 'weekly' | 'monthly';
   rental_amount: number;
   rental_start_date: string;
+  swaps_allowed_per_month?: number;
 }
 
 export const useRiderLedgers = () => {
