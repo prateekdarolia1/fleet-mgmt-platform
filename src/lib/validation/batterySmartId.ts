@@ -3,10 +3,10 @@ import { z } from 'zod';
 /**
  * Battery Smart ID format validation
  *
- * Pattern: ^[A-Z0-9]{8}$
- * - Exactly 8 characters
+ * Pattern: ^[A-Z0-9]{7,8}$
+ * - 7 to 8 characters (minimum 7)
  * - Uppercase letters (A-Z) and digits (0-9)
- * - Examples: BS12AB34, BAT00001, BEE12FGH
+ * - Examples: BS23342 (7 chars), BS12AB34 (8 chars), BAT0001 (7 chars)
  */
 
 /**
@@ -16,10 +16,11 @@ import { z } from 'zod';
 export const batterySmartIdSchema = z
   .string()
   .min(1, 'Battery Smart ID is required')
-  .max(8, 'Battery Smart ID must be exactly 8 characters')
+  .min(7, 'Battery Smart ID must be at least 7 characters')
+  .max(8, 'Battery Smart ID must be 7-8 characters')
   .regex(
-    /^[A-Z0-9]{8}$/,
-    'Battery Smart ID must be exactly 8 uppercase letters and numbers (e.g., BS12AB34)'
+    /^[A-Z0-9]{7,8}$/,
+    'Battery Smart ID must be 7-8 uppercase letters and numbers (e.g., BS23342, BS12AB34)'
   )
   .transform(val => val.toUpperCase().trim());
 
@@ -28,10 +29,11 @@ export const batterySmartIdSchema = z
  */
 export const optionalBatterySmartIdSchema = z
   .string()
-  .max(8, 'Battery Smart ID must be exactly 8 characters')
+  .min(7, 'Battery Smart ID must be at least 7 characters')
+  .max(8, 'Battery Smart ID must be 7-8 characters')
   .regex(
-    /^[A-Z0-9]{8}$/,
-    'Battery Smart ID must be exactly 8 uppercase letters and numbers (e.g., BS12AB34)'
+    /^[A-Z0-9]{7,8}$/,
+    'Battery Smart ID must be 7-8 uppercase letters and numbers (e.g., BS23342, BS12AB34)'
   )
   .transform(val => val.toUpperCase().trim())
   .nullable()
@@ -73,14 +75,14 @@ export function validateBatterySmartId(id: string | null | undefined): {
     };
   }
 
-  if (trimmed.length !== 8) {
+  if (trimmed.length < 7 || trimmed.length > 8) {
     return {
       isValid: false,
-      error: `Battery Smart ID must be exactly 8 characters (got ${trimmed.length})`
+      error: `Battery Smart ID must be 7-8 characters (got ${trimmed.length})`
     };
   }
 
-  if (!/^[A-Z0-9]{8}$/.test(trimmed)) {
+  if (!/^[A-Z0-9]{7,8}$/.test(trimmed)) {
     return {
       isValid: false,
       error: 'Battery Smart ID must contain only uppercase letters (A-Z) and numbers (0-9)'
@@ -207,7 +209,7 @@ export function getBatterySmartIdErrorMessage(validationResult: {
   const errorMap: Record<string, string> = {
     'Battery Smart ID is required': 'Please provide a Battery Smart ID',
     'Battery Smart ID cannot be empty': 'Battery Smart ID cannot be empty',
-    'must be exactly 8 characters': 'Battery Smart ID must be exactly 8 characters',
+    'must be 7-8 characters': 'Battery Smart ID must be 7-8 characters',
     'must contain only uppercase letters': 'Battery Smart ID must be uppercase letters and numbers only'
   };
 
@@ -227,11 +229,11 @@ export function getBatterySmartIdErrorMessage(validationResult: {
  * Example Battery Smart IDs for testing
  */
 export const BATTERY_SMART_ID_EXAMPLES = [
-  'BS12AB34',
-  'BAT00001',
-  'BEE12FGH',
-  'ABC12345',
-  'XYZ98765'
+  'BS23342',  // 7 characters
+  'BS12AB34', // 8 characters
+  'BAT0001',  // 7 characters
+  'ABC1234',  // 7 characters
+  'XYZ98765'  // 8 characters
 ];
 
 /**

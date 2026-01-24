@@ -26,8 +26,8 @@ import { useAddBattery } from '@/hooks/useAddBattery';
 import { Loader2, Battery } from 'lucide-react';
 
 // DRY Principle: Reusable validation patterns
-const ALPHANUMERIC_8_CHARS_REGEX = /^[A-Z0-9]{8}$/;
-const ALPHANUMERIC_8_CHARS_MESSAGE = 'Must be 8 uppercase alphanumeric characters';
+const ALPHANUMERIC_7_TO_8_CHARS_REGEX = /^[A-Z0-9]{7,8}$/;
+const ALPHANUMERIC_7_TO_8_CHARS_MESSAGE = 'Must be 7-8 uppercase alphanumeric characters';
 
 // SOLID Principle: Single Responsibility - Validation Schema
 // DDD Principle: Battery Aggregate validation rules
@@ -35,7 +35,9 @@ const addBatterySchema = z.object({
   battery_id: z
     .string()
     .min(1, 'Battery ID is required')
-    .regex(ALPHANUMERIC_8_CHARS_REGEX, `Battery ID ${ALPHANUMERIC_8_CHARS_MESSAGE} (e.g., BAT00001)`),
+    .min(7, 'Battery ID must be at least 7 characters')
+    .max(8, 'Battery ID must be 7-8 characters')
+    .regex(ALPHANUMERIC_7_TO_8_CHARS_REGEX, `Battery ID ${ALPHANUMERIC_7_TO_8_CHARS_MESSAGE} (e.g., BAT0001, BAT00001)`),
 
   service_provider: z.enum(['BATTERY_SMART', 'OTHER'], {
     errorMap: () => ({ message: 'Please select a service provider' })
@@ -45,7 +47,9 @@ const addBatterySchema = z.object({
   zone_id: z
     .string()
     .min(1, 'Zone ID is required')
-    .regex(ALPHANUMERIC_8_CHARS_REGEX, `Zone ID ${ALPHANUMERIC_8_CHARS_MESSAGE}`),
+    .min(7, 'Zone ID must be at least 7 characters')
+    .max(8, 'Zone ID must be 7-8 characters')
+    .regex(ALPHANUMERIC_7_TO_8_CHARS_REGEX, `Zone ID ${ALPHANUMERIC_7_TO_8_CHARS_MESSAGE}`),
 
   location: z.enum(['NOIDA', 'OTHER']).optional(),
 
@@ -140,13 +144,13 @@ export const AddBatteryModal = ({
                   <FormControl>
                     <Input
                       {...field}
-                      placeholder="e.g., BAT00001"
+                      placeholder="e.g., BAT0001 or BAT00001"
                       disabled={isAdding}
                       className="font-mono uppercase"
                     />
                   </FormControl>
                   <FormDescription>
-                    8 uppercase alphanumeric characters
+                    7-8 uppercase alphanumeric characters
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -189,7 +193,7 @@ export const AddBatteryModal = ({
                     />
                   </FormControl>
                   <FormDescription>
-                    Operational zone identifier (8 characters)
+                    Operational zone identifier (7-8 characters)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

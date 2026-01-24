@@ -97,8 +97,8 @@ export const BATTERY_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     displayName: 'Batterysmart_ID',
     required: false,
     dataType: 'string',
-    example: 'D231518',
-    description: 'External Battery Smart company identifier',
+    example: 'BS23342',
+    description: 'External Battery Smart company identifier (7-8 alphanumeric characters)',
     validator: validateBatterySmartId,
     transformer: (val) => val ? String(val).trim().toUpperCase() : null,
   },
@@ -221,20 +221,21 @@ function validateRetrofitDate(value: any): ValidationError | null {
 
 /**
  * Validates Battery Smart ID
+ * Format: 7-8 uppercase alphanumeric characters (e.g., BS23342, BS12AB34)
  */
 function validateBatterySmartId(value: any): ValidationError | null {
   if (!value) return null; // Optional field
 
   const str = String(value).trim();
 
-  // Check if it matches expected pattern (D followed by digits)
-  if (!/^D\d+$/.test(str.toUpperCase())) {
+  // Check if it matches expected pattern (7-8 alphanumeric characters)
+  if (!/^[A-Z0-9]{7,8}$/.test(str.toUpperCase())) {
     return {
       field: 'battery_smart_id',
       severity: 'warning',
       code: 'NONSTANDARD_FORMAT',
       message: 'Battery Smart ID format is non-standard',
-      suggestion: 'Expected format: D followed by digits (e.g., D231518)',
+      suggestion: 'Expected format: 7-8 uppercase letters and numbers (e.g., BS23342, BS12AB34)',
     };
   }
 

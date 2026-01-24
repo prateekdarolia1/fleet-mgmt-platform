@@ -17,14 +17,14 @@ Track Battery Smart company IDs for monitoring battery performance and condition
 ### Batteries Table - `battery_smart_id` Column
 
 **Added to**: `batteries` table
-**Format**: Exactly 8 uppercase letters and numbers (e.g., `BS12AB34`)
+**Format**: 7-8 uppercase letters and numbers (e.g., `BS23342`, `BS12AB34`)
 **Type**: TEXT, UNIQUE, NULLABLE
-**Validation**: CHECK constraint `battery_smart_id ~ '^[A-Z0-9]{8}$'`
+**Validation**: CHECK constraint `battery_smart_id ~ '^[A-Z0-9]{7,8}$'`
 
 ```sql
 -- Field definition
 battery_smart_id TEXT UNIQUE
-  CHECK (battery_smart_id IS NULL OR battery_smart_id ~ '^[A-Z0-9]{8}$')
+  CHECK (battery_smart_id IS NULL OR battery_smart_id ~ '^[A-Z0-9]{7,8}$')
 ```
 
 **Purpose**: Store the official Battery Smart company ID for each battery
@@ -34,14 +34,14 @@ battery_smart_id TEXT UNIQUE
 ### Riders Table - `battery_smart_id` Column
 
 **Added to**: `riders` table
-**Format**: Exactly 8 uppercase letters and numbers (e.g., `BS12AB34`)
+**Format**: 7-8 uppercase letters and numbers (e.g., `BS23342`, `BS12AB34`)
 **Type**: TEXT, NULLABLE
-**Validation**: CHECK constraint `battery_smart_id ~ '^[A-Z0-9]{8}$'`
+**Validation**: CHECK constraint `battery_smart_id ~ '^[A-Z0-9]{7,8}$'`
 
 ```sql
 -- Field definition
 battery_smart_id TEXT
-  CHECK (battery_smart_id IS NULL OR battery_smart_id ~ '^[A-Z0-9]{8}$')
+  CHECK (battery_smart_id IS NULL OR battery_smart_id ~ '^[A-Z0-9]{7,8}$')
 ```
 
 **Purpose**: Track which Battery Smart ID is currently assigned to each rider for performance monitoring
@@ -50,25 +50,26 @@ battery_smart_id TEXT
 
 ## Validation Rules
 
-### Format: `^[A-Z0-9]{8}$`
+### Format: `^[A-Z0-9]{7,8}$`
 
 | Rule | Details |
 |------|---------|
-| **Length** | Exactly 8 characters |
+| **Length** | 7-8 characters (minimum 7) |
 | **Characters** | Uppercase letters (A-Z) and digits (0-9) only |
 | **Case** | Must be uppercase (auto-converted on save) |
 | **Whitespace** | Trimmed automatically |
 
 ### Valid Examples
-- `BS12AB34` ✅
-- `BAT00001` ✅
-- `BEE12FGH` ✅
-- `ABC12345` ✅
+- `BS23342` ✅ (7 chars)
+- `BS12AB34` ✅ (8 chars)
+- `BAT0001` ✅ (7 chars)
+- `BAT00001` ✅ (8 chars)
 
 ### Invalid Examples
 - `bs12ab34` ❌ (lowercase)
 - `BS12-AB34` ❌ (contains hyphen)
 - `BS12AB` ❌ (only 6 chars)
+- `BS12AB3` ❌ (only 7 chars but includes space)
 - `BS12AB345` ❌ (9 chars)
 - `BS12 AB34` ❌ (contains space)
 
@@ -134,12 +135,12 @@ const schema = z.object({
 ```typescript
 import { validateBatterySmartId } from '@/lib/validation/batterySmartId';
 
-const result = validateBatterySmartId('BS12AB34');
+const result = validateBatterySmartId('BS23342');
 if (result.isValid) {
   // Valid Battery Smart ID
 } else {
   console.error(result.error);
-  // Output: "Battery Smart ID must be 8 uppercase letters and numbers (e.g., BS12AB34)"
+  // Output: "Battery Smart ID must be 7-8 uppercase letters and numbers (e.g., BS23342, BS12AB34)"
 }
 ```
 
@@ -147,16 +148,17 @@ if (result.isValid) {
 
 ```typescript
 // Format for display
-formatBatterySmartId('BS12AB34') // Returns: "BS12-AB34"
+formatBatterySmartId('BS23342') // Returns: "BS23-342" (7 chars)
+formatBatterySmartId('BS12AB34') // Returns: "BS12-AB34" (8 chars)
 
 // Normalize input
-normalizeBatterySmartId('bs12ab34') // Returns: "BS12AB34"
+normalizeBatterySmartId('bs23342') // Returns: "BS23342"
 
 // Compare IDs (case-insensitive)
-isSameBatterySmartId('bs12ab34', 'BS12AB34') // Returns: true
+isSameBatterySmartId('bs23342', 'BS23342') // Returns: true
 
 // Batch validation
-validateBatterySmartIdBatch(['BS12AB34', 'invalid', 'BAT00001'])
+validateBatterySmartIdBatch(['BS23342', 'BS12AB34', 'invalid'])
 // Returns: Array of validation results
 ```
 
@@ -171,7 +173,7 @@ import { updateRiderBatterySmartId } from '@/lib/riders/updateRiderBatterySmartI
 
 const result = await updateRiderBatterySmartId({
   riderId: 'R001',
-  batterySmartId: 'BS12AB34',
+  batterySmartId: 'BS23342',
   userId: currentUser.id
 });
 
@@ -196,7 +198,7 @@ const result = await clearRiderBatterySmartId('R001', userId);
 ```typescript
 import { findRidersByBatterySmartId } from '@/lib/riders/updateRiderBatterySmartId';
 
-const riders = await findRidersByBatterySmartId('BS12AB34');
+const riders = await findRidersByBatterySmartId('BS23342');
 // Returns all riders currently assigned to this battery
 ```
 
@@ -245,7 +247,7 @@ export const UpdateRiderForm = ({ riderId }) => {
             <FormControl>
               <Input
                 {...field}
-                placeholder="e.g., BS12AB34"
+                placeholder="e.g., BS23342 or BS12AB34"
                 maxLength={8}
               />
             </FormControl>
@@ -346,7 +348,7 @@ psql -U [user] -d [database] -f migrations/add_battery_smart_id.sql
 
 | Error Code | Cause | User Message |
 |------------|-------|--------------|
-| `INVALID_BATTERY_SMART_ID` | Format doesn't match pattern | "Invalid Battery Smart ID format. Must be 8 uppercase letters/numbers (e.g., BS12AB34)." |
+| `INVALID_BATTERY_SMART_ID` | Format doesn't match pattern | "Invalid Battery Smart ID format. Must be 7-8 uppercase letters/numbers (e.g., BS23342, BS12AB34)." |
 | `RIDER_NOT_FOUND` | Rider ID doesn't exist | "Rider not found. Please check the rider ID." |
 | `DATABASE_ERROR` | Database operation failed | "Failed to update rider Battery Smart ID. Please try again." |
 | `UNEXPECTED_ERROR` | Unexpected error | "An unexpected error occurred while updating Battery Smart ID." |
@@ -361,24 +363,36 @@ psql -U [user] -d [database] -f migrations/add_battery_smart_id.sql
 import { validateBatterySmartId, formatBatterySmartId } from '@/lib/validation/batterySmartId';
 
 describe('Battery Smart ID Validation', () => {
-  test('accepts valid format', () => {
+  test('accepts valid 7-character format', () => {
+    const result = validateBatterySmartId('BS23342');
+    expect(result.isValid).toBe(true);
+  });
+
+  test('accepts valid 8-character format', () => {
     const result = validateBatterySmartId('BS12AB34');
     expect(result.isValid).toBe(true);
   });
 
   test('rejects lowercase', () => {
-    const result = validateBatterySmartId('bs12ab34');
+    const result = validateBatterySmartId('bs23342');
     expect(result.isValid).toBe(false);
     expect(result.error).toContain('uppercase');
   });
 
-  test('rejects wrong length', () => {
+  test('rejects wrong length (too short)', () => {
     const result = validateBatterySmartId('BS12AB');
     expect(result.isValid).toBe(false);
-    expect(result.error).toContain('8 characters');
+    expect(result.error).toContain('7-8 characters');
+  });
+
+  test('rejects wrong length (too long)', () => {
+    const result = validateBatterySmartId('BS12AB345');
+    expect(result.isValid).toBe(false);
+    expect(result.error).toContain('7-8 characters');
   });
 
   test('formats correctly', () => {
+    expect(formatBatterySmartId('BS23342')).toBe('BS23-342');
     expect(formatBatterySmartId('BS12AB34')).toBe('BS12-AB34');
   });
 });
