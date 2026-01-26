@@ -485,7 +485,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      validate_battery_smart_id: {
+        Args: { id: string }
+        Returns: {
+          error_message: string
+          is_valid: boolean
+        }[]
+      }
     }
     Enums: {
       app_role: "super_admin" | "admin" | "manager" | "user"
