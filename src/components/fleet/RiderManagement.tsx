@@ -154,13 +154,11 @@ export const RiderManagement = () => {
       // - New status (Active)
       // - Vehicle assignment
       // - Battery Smart ID (for performance tracking)
-      // - Activation timestamp
       await updateRider(editingRider.id, {
         status: pendingStatusUpdate.riderStatus,
         duty_status: pendingStatusUpdate.dutyStatus,
         vehicle_assigned: selectedVehicle.vehicle_number,
-        battery_smart_id: batterySmartId,
-        activated_at: new Date().toISOString()
+        battery_smart_id: batterySmartId
       });
 
       // Update vehicle status to Deployed and assign rider

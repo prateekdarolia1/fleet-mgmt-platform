@@ -40,8 +40,8 @@ function validateInput(input: AddBatteryInput): string[] {
 
   if (!input.battery_id) {
     errors.push('battery_id is required');
-  } else if (!/^[A-Z0-9]{8}$/.test(input.battery_id)) {
-    errors.push('battery_id must be 8 uppercase alphanumeric characters (e.g., BAT00001)');
+  } else if (!/^[A-Z0-9]{7,8}$/.test(input.battery_id)) {
+    errors.push('battery_id must be 7-8 uppercase alphanumeric characters (e.g., BAT0001, BAT00001)');
   }
 
   if (!input.service_provider) {
@@ -50,8 +50,8 @@ function validateInput(input: AddBatteryInput): string[] {
     errors.push('service_provider must be BATTERY_SMART or OTHER');
   }
 
-  if (input.zone_id && !/^[A-Z0-9]{8}$/.test(input.zone_id)) {
-    errors.push('zone_id must be 8 uppercase alphanumeric characters');
+  if (input.zone_id && !/^[A-Z0-9]{7,8}$/.test(input.zone_id)) {
+    errors.push('zone_id must be 7-8 uppercase alphanumeric characters');
   }
 
   if (input.battery_plan && !['D2D', 'B2B', 'OTHER'].includes(input.battery_plan)) {
