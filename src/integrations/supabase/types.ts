@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      batteries: {
+        Row: {
+          battery_id: string
+          battery_plan: Database["public"]["Enums"]["battery_plan"] | null
+          battery_smart_id: string | null
+          created_at: string
+          id: string
+          location: Database["public"]["Enums"]["battery_location"] | null
+          retrofit_date: string | null
+          service_provider: Database["public"]["Enums"]["service_provider"]
+          status: Database["public"]["Enums"]["battery_status"]
+          updated_at: string
+          usc_id: string | null
+          vehicle_id: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          battery_id: string
+          battery_plan?: Database["public"]["Enums"]["battery_plan"] | null
+          battery_smart_id?: string | null
+          created_at?: string
+          id?: string
+          location?: Database["public"]["Enums"]["battery_location"] | null
+          retrofit_date?: string | null
+          service_provider: Database["public"]["Enums"]["service_provider"]
+          status?: Database["public"]["Enums"]["battery_status"]
+          updated_at?: string
+          usc_id?: string | null
+          vehicle_id?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          battery_id?: string
+          battery_plan?: Database["public"]["Enums"]["battery_plan"] | null
+          battery_smart_id?: string | null
+          created_at?: string
+          id?: string
+          location?: Database["public"]["Enums"]["battery_location"] | null
+          retrofit_date?: string | null
+          service_provider?: Database["public"]["Enums"]["service_provider"]
+          status?: Database["public"]["Enums"]["battery_status"]
+          updated_at?: string
+          usc_id?: string | null
+          vehicle_id?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "batteries_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -146,7 +202,6 @@ export type Database = {
           rider_id: string
           rider_name: string
           security_deposit_amount: number
-          swaps_allowed_per_month: number | null
           updated_at: string
         }
         Insert: {
@@ -158,7 +213,6 @@ export type Database = {
           rider_id: string
           rider_name: string
           security_deposit_amount: number
-          swaps_allowed_per_month?: number | null
           updated_at?: string
         }
         Update: {
@@ -170,7 +224,6 @@ export type Database = {
           rider_id?: string
           rider_name?: string
           security_deposit_amount?: number
-          swaps_allowed_per_month?: number | null
           updated_at?: string
         }
         Relationships: []
@@ -433,6 +486,9 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "admin" | "manager" | "user"
+      battery_location: "NOIDA" | "OTHER"
+      battery_plan: "D2D" | "B2B" | "OTHER"
+      battery_status: "ACTIVE" | "MAPPED" | "UNMAPPED"
       battery_type: "Fixed" | "Swappable"
       payment_mode: "cash" | "upi" | "bank-transfer" | "card"
       payment_status: "pending" | "paid" | "overdue" | "partial"
@@ -440,6 +496,7 @@ export type Database = {
       rental_frequency: "daily" | "weekly" | "monthly"
       rental_plan: "daily" | "weekly" | "monthly"
       rider_status: "active" | "inactive" | "suspended" | "deboarded"
+      service_provider: "BATTERY_SMART" | "OTHER"
       vehicle_status: "Ready for Deployment" | "Deployed" | "Under Maintenance"
       vehicle_type: "High Speed" | "Low Speed"
     }
@@ -570,6 +627,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "admin", "manager", "user"],
+      battery_location: ["NOIDA", "OTHER"],
+      battery_plan: ["D2D", "B2B", "OTHER"],
+      battery_status: ["ACTIVE", "MAPPED", "UNMAPPED"],
       battery_type: ["Fixed", "Swappable"],
       payment_mode: ["cash", "upi", "bank-transfer", "card"],
       payment_status: ["pending", "paid", "overdue", "partial"],
@@ -577,6 +637,7 @@ export const Constants = {
       rental_frequency: ["daily", "weekly", "monthly"],
       rental_plan: ["daily", "weekly", "monthly"],
       rider_status: ["active", "inactive", "suspended", "deboarded"],
+      service_provider: ["BATTERY_SMART", "OTHER"],
       vehicle_status: ["Ready for Deployment", "Deployed", "Under Maintenance"],
       vehicle_type: ["High Speed", "Low Speed"],
     },
