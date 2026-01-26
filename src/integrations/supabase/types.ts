@@ -244,6 +244,7 @@ export type Database = {
           agreement_document: boolean
           avg_earnings_15_days: number | null
           bank_name: string | null
+          battery_smart_id: string | null
           branch_name: string | null
           city: string | null
           created_at: string
@@ -292,6 +293,7 @@ export type Database = {
           agreement_document?: boolean
           avg_earnings_15_days?: number | null
           bank_name?: string | null
+          battery_smart_id?: string | null
           branch_name?: string | null
           city?: string | null
           created_at?: string
@@ -340,6 +342,7 @@ export type Database = {
           agreement_document?: boolean
           avg_earnings_15_days?: number | null
           bank_name?: string | null
+          battery_smart_id?: string | null
           branch_name?: string | null
           city?: string | null
           created_at?: string
