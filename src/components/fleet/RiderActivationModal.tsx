@@ -56,7 +56,7 @@ interface RiderActivationModalProps {
  * This modal ensures:
  * 1. A vehicle with Ready for Deployment status is selected
  * 2. Vehicle has a battery mapped
- * 3. Battery Smart ID is entered (8 chars, alphanumeric, uppercase)
+ * 3. Battery Smart ID is entered (7-8 chars, alphanumeric, uppercase)
  * 4. Both fields are required
  */
 export const RiderActivationModal = ({
@@ -228,7 +228,7 @@ export const RiderActivationModal = ({
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder="Enter Battery Smart ID (e.g., 9A2KLMQ8)"
+                        placeholder="Enter Battery Smart ID (e.g., BS23342, 9A2KLMQ8)"
                         maxLength={8}
                         disabled={isLoading}
                         className={cn(
@@ -244,7 +244,7 @@ export const RiderActivationModal = ({
                       />
                     </FormControl>
                     <FormDescription>
-                      Provided by Battery Smart. Exactly 8 uppercase letters and numbers.
+                      Provided by Battery Smart. 7-8 uppercase letters and numbers.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -254,14 +254,14 @@ export const RiderActivationModal = ({
               {/* Validation feedback */}
               <div className="flex justify-between items-center">
                 <p className="text-xs text-muted-foreground">
-                  8 uppercase letters and numbers (e.g., BS12AB34)
+                  7-8 uppercase letters and numbers (e.g., BS23342, BS12AB34)
                 </p>
                 <span
                   className={cn(
                     'text-xs font-semibold',
                     batterySmartIdCharCount === 0
                       ? 'text-muted-foreground'
-                      : batterySmartIdCharCount < 8
+                      : batterySmartIdCharCount < 7
                         ? 'text-amber-600'
                         : 'text-green-600'
                   )}
@@ -297,7 +297,7 @@ export const RiderActivationModal = ({
                 </Card>
 
                 {/* Battery Smart ID Summary */}
-                {batterySmartIdCharCount === 8 && (
+                {batterySmartIdCharCount >= 7 && batterySmartIdCharCount <= 8 && (
                   <Card className="border-0 bg-white">
                     <CardHeader className="pb-2">
                       <div className="flex items-center gap-2">
