@@ -41,7 +41,7 @@ export const BatteryManagement = () => {
 
   // Fetch batteries with filtering
   const { data: batteriesData, isLoading } = useBatteriesList({
-    status: statusFilter === 'all' ? undefined : statusFilter,
+    mapped: statusFilter === 'all' ? undefined : (statusFilter === 'MAPPED'),
     search: searchTerm || undefined
   });
 

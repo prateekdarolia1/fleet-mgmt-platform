@@ -16,6 +16,7 @@ import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { useAvailableRiders } from "@/hooks/useAvailableRiders";
 import { toast } from "sonner";
 import { MapVehicleToBatteryModal } from "./MapVehicleToBatteryModal";
+import { EditDeployedVehicleModal } from "./EditDeployedVehicleModal";
 interface VehicleFormData {
   make: string;
   model: string;
@@ -63,6 +64,11 @@ export const InventoryManagement = () => {
   // SOLID: Single Responsibility - Map Battery modal state management
   const [isMapBatteryModalOpen, setIsMapBatteryModalOpen] = useState(false);
   const [selectedVehicleForMap, setSelectedVehicleForMap] = useState<{ id: string; vehicle_number: string } | null>(null);
+
+  // Deployed vehicle edit modal state
+  const [isDeployedVehicleEditOpen, setIsDeployedVehicleEditOpen] = useState(false);
+  const [deployedVehicleToEdit, setDeployedVehicleToEdit] = useState<Vehicle | null>(null);
+  const [isDeployedVehicleSaving, setIsDeployedVehicleSaving] = useState(false);
 
   const form = useForm<VehicleFormData>();
   const editForm = useForm<VehicleFormData>();
@@ -128,24 +134,52 @@ export const InventoryManagement = () => {
     }
   };
   const startEditVehicle = (vehicle: Vehicle) => {
-    setEditingVehicle(vehicle);
-    editForm.reset({
-      make: vehicle.make,
-      model: vehicle.model,
-      color: vehicle.color,
-      chassis_number: vehicle.chassis_number,
-      motor_serial_number: vehicle.motor_serial_number,
-      delivery_date: vehicle.delivery_date,
-      vendor: vehicle.vendor,
-      pdi_done_by: vehicle.pdi_done_by,
-      registration_received: vehicle.registration_received ? 'true' : 'false',
-      insurance_received: vehicle.insurance_received ? 'true' : 'false',
-      portable_charger_received: vehicle.portable_charger_received ? 'true' : 'false',
-      vehicle_type: vehicle.vehicle_type,
-      battery_type: vehicle.battery_type,
-      vehicle_number: vehicle.vehicle_number
-    });
-    setIsEditVehicleOpen(true);
+    // Check if vehicle is deployed - use limited edit modal
+    if (vehicle.status === 'Deployed') {
+      setDeployedVehicleToEdit(vehicle);
+      setIsDeployedVehicleEditOpen(true);
+    } else {
+      // Use full edit modal for non-deployed vehicles
+      setEditingVehicle(vehicle);
+      editForm.reset({
+        make: vehicle.make,
+        model: vehicle.model,
+        color: vehicle.color,
+        chassis_number: vehicle.chassis_number,
+        motor_serial_number: vehicle.motor_serial_number,
+        delivery_date: vehicle.delivery_date,
+        vendor: vehicle.vendor,
+        pdi_done_by: vehicle.pdi_done_by,
+        registration_received: vehicle.registration_received ? 'true' : 'false',
+        insurance_received: vehicle.insurance_received ? 'true' : 'false',
+        portable_charger_received: vehicle.portable_charger_received ? 'true' : 'false',
+        vehicle_type: vehicle.vehicle_type,
+        battery_type: vehicle.battery_type,
+        vehicle_number: vehicle.vehicle_number
+      });
+      setIsEditVehicleOpen(true);
+    }
+  };
+
+  // Handler for deployed vehicle edit (only Color and Motor Serial Number)
+  const handleDeployedVehicleEdit = async (data: { color: string; motor_serial_number: string }) => {
+    if (!deployedVehicleToEdit) return;
+
+    setIsDeployedVehicleSaving(true);
+    try {
+      await updateVehicle(deployedVehicleToEdit.id, {
+        color: data.color,
+        motor_serial_number: data.motor_serial_number
+      });
+      toast.success(`Vehicle ${deployedVehicleToEdit.vehicle_number} updated successfully`);
+      setIsDeployedVehicleEditOpen(false);
+      setDeployedVehicleToEdit(null);
+    } catch (error) {
+      console.error('Error updating deployed vehicle:', error);
+      toast.error('Failed to update vehicle. Please try again.');
+    } finally {
+      setIsDeployedVehicleSaving(false);
+    }
   };
   const onEditSubmit = async (data: VehicleFormData) => {
     if (!editingVehicle) return;
@@ -994,9 +1028,13 @@ export const InventoryManagement = () => {
                         });
                         setIsMapBatteryModalOpen(true);
                       }}
-                      disabled={!!vehicle.battery_id}
+                      disabled={!!vehicle.battery_id || vehicle.status === 'Deployed'}
                       className="gap-1"
-                      title={vehicle.battery_id ? 'Vehicle already has a battery' : 'Map battery to vehicle'}
+                      title={
+                        vehicle.status === 'Deployed'
+                          ? 'Cannot map battery to deployed vehicles'
+                          : (vehicle.battery_id ? 'Vehicle already has a battery' : 'Map battery to vehicle')
+                      }
                     >
                       <Battery className="h-3 w-3" />
                       Map
@@ -1129,6 +1167,17 @@ export const InventoryManagement = () => {
               // The hook will auto-refresh via query invalidation
               setSelectedVehicleForMap(null);
             }}
+          />
+        )}
+
+        {/* Edit Deployed Vehicle Modal - Limited edit for deployed vehicles */}
+        {deployedVehicleToEdit && (
+          <EditDeployedVehicleModal
+            open={isDeployedVehicleEditOpen}
+            onOpenChange={setIsDeployedVehicleEditOpen}
+            vehicle={deployedVehicleToEdit}
+            onSubmit={handleDeployedVehicleEdit}
+            isLoading={isDeployedVehicleSaving}
           />
         )}
       </CardContent>

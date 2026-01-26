@@ -9,7 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { VehicleEventHistory } from '@/components/fleet/VehicleEventHistory';
 import { useVehicleEvents } from '@/hooks/useVehicleEvents';
-import { Loader2, AlertCircle, ArrowLeft, Truck } from 'lucide-react';
+import { Loader2, AlertCircle, ArrowLeft, Truck, Battery as BatteryIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +58,24 @@ export default function VehicleDetail() {
 
   // Fetch vehicle events
   const { data: events, isLoading: eventsLoading } = useVehicleEvents(vehicleId);
+
+  // Fetch battery details if vehicle has a battery assigned
+  const { data: batteryDetails } = useQuery({
+    queryKey: ['vehicle-battery', vehicle?.battery_id],
+    queryFn: async () => {
+      if (!vehicle?.battery_id) return null;
+
+      const { data, error } = await supabase
+        .from('batteries')
+        .select('battery_id, battery_smart_id, service_provider, status, zone_id, battery_plan')
+        .eq('battery_id', vehicle.battery_id)
+        .single();
+
+      if (error) throw new Error(`Failed to fetch battery details: ${error.message}`);
+      return data;
+    },
+    enabled: !!vehicle?.battery_id,
+  });
 
   if (isLoading) {
     return (
@@ -180,13 +198,50 @@ export default function VehicleDetail() {
             <CardHeader>
               <CardTitle>Assignment Details</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="text-sm text-gray-500">Battery</p>
-                <p className="font-semibold">
-                  {vehicle.battery_id || 'No battery assigned'}
-                </p>
+            <CardContent className="space-y-4">
+              {/* Battery Information */}
+              <div className="p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <BatteryIcon className="h-4 w-4 text-blue-600" />
+                  <p className="text-sm font-semibold text-blue-900">Battery Information</p>
+                </div>
+                {batteryDetails ? (
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-gray-500">Battery ID</p>
+                      <p className="font-mono font-semibold text-blue-900">{batteryDetails.battery_id}</p>
+                    </div>
+                    {batteryDetails.battery_smart_id && (
+                      <div>
+                        <p className="text-xs text-gray-500">Battery Smart ID</p>
+                        <p className="font-mono font-semibold text-blue-900">{batteryDetails.battery_smart_id}</p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <p className="text-xs text-gray-500">Service Provider</p>
+                        <p className="font-semibold">{batteryDetails.service_provider}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Status</p>
+                        <Badge className={
+                          batteryDetails.status === 'MAPPED'
+                            ? 'bg-green-100 text-green-800 border-green-300'
+                            : batteryDetails.status === 'ACTIVE'
+                              ? 'bg-blue-100 text-blue-800 border-blue-300'
+                              : 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                        }>
+                          {batteryDetails.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No battery assigned to this vehicle</p>
+                )}
               </div>
+
+              {/* Rider Information */}
               <div>
                 <p className="text-sm text-gray-500">Rider</p>
                 <p className="font-semibold">

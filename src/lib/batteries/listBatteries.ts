@@ -106,7 +106,7 @@ export async function listBatteries(filters: BatteryFilters = {}): Promise<Batte
   try {
     // Normalize pagination
     const page = Math.max(filters.page || 1, 1);
-    const limit = Math.min(filters.limit || 10, 100); // Max 100 per page
+    const limit = Math.min(filters.limit || 50, 100); // Max 100 per page, default 50
     const offset = (page - 1) * limit;
 
     // Build query with select all fields
