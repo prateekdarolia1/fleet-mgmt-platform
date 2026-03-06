@@ -15,8 +15,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Plus, Search, Filter, Phone, Mail, Calendar, User, Edit } from "lucide-react";
 import { useRiders, type Rider } from "@/hooks/useRiders";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
+import { useCreateRentalLedger } from "@/hooks/useRentalLedgers";
 import { AddRiderForm } from "./AddRiderForm";
 import { RiderActivationModal } from "./RiderActivationModal";
+import { RentalLedgerConfirmModal } from "./RentalLedgerConfirmModal";
 import { toast } from "sonner";
 
 interface RiderFormData {
@@ -78,6 +80,16 @@ export const RiderManagement = () => {
     originalDutyStatus: string;
   } | null>(null);
 
+  // Rental ledger state
+  const createRentalLedger = useCreateRentalLedger();
+  const [isRentalConfirmModalOpen, setIsRentalConfirmModalOpen] = useState(false);
+  const [newLedgerId, setNewLedgerId] = useState<string | null>(null);
+  const [activatedRiderInfo, setActivatedRiderInfo] = useState<{
+    name: string;
+    vehicleNumber: string | null;
+    riderId: string;
+  } | null>(null);
+
   const form = useForm<RiderFormData>();
 
   const handleViewRider = (rider: Rider) => {
@@ -135,6 +147,7 @@ export const RiderManagement = () => {
   /**
    * Handle rider activation with vehicle + battery assignment
    * Called from RiderActivationModal when user confirms
+   * After successful activation, creates a rental ledger and opens confirmation modal
    */
   const handleRiderActivation = async (
     vehicleId: string,
@@ -173,8 +186,33 @@ export const RiderManagement = () => {
         `${editingRider.name} activated with ${selectedVehicle.vehicle_number} (Battery Smart ID: ${batterySmartId})`
       );
 
-      // Reset state and close modals
-      setIsActivationModalOpen(false);
+      // Create rental ledger for the activated rider
+      try {
+        const ledgerId = await createRentalLedger.mutateAsync({
+          rider_id: editingRider.rider_id,
+          vehicle_id: vehicleId
+        });
+
+        // Store rider info for the confirmation modal
+        setActivatedRiderInfo({
+          name: editingRider.name,
+          vehicleNumber: selectedVehicle.vehicle_number,
+          riderId: editingRider.rider_id
+        });
+        setNewLedgerId(ledgerId);
+
+        // Close activation modal and open rental confirmation modal
+        setIsActivationModalOpen(false);
+        setIsRentalConfirmModalOpen(true);
+
+      } catch (ledgerError) {
+        console.error('Error creating rental ledger:', ledgerError);
+        // Don't block the activation, just show a warning
+        toast.warning('Rider activated, but rental ledger creation failed. Please create manually.');
+        setIsActivationModalOpen(false);
+      }
+
+      // Reset state
       setEditingRider(null);
       setPendingStatusUpdate(null);
     } catch (error) {
@@ -183,6 +221,15 @@ export const RiderManagement = () => {
     } finally {
       setIsActivationLoading(false);
     }
+  };
+
+  /**
+   * Handle rental confirmation success
+   */
+  const handleRentalConfirmSuccess = () => {
+    setNewLedgerId(null);
+    setActivatedRiderInfo(null);
+    setIsRentalConfirmModalOpen(false);
   };
 
   const handleVehicleUnassignment = async (newStatus: Rider['status'], newDutyStatus: string) => {
@@ -685,6 +732,17 @@ export const RiderManagement = () => {
           vehicles={vehicles}
           onConfirm={handleRiderActivation}
           isLoading={isActivationLoading}
+        />
+
+        {/* Rental Ledger Confirmation Modal - Shown after rider activation */}
+        <RentalLedgerConfirmModal
+          open={isRentalConfirmModalOpen}
+          onOpenChange={setIsRentalConfirmModalOpen}
+          ledgerId={newLedgerId}
+          riderName={activatedRiderInfo?.name || ''}
+          vehicleNumber={activatedRiderInfo?.vehicleNumber}
+          riderId={activatedRiderInfo?.riderId}
+          onSuccess={handleRentalConfirmSuccess}
         />
       </CardContent>
     </Card>

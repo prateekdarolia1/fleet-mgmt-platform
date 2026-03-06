@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,16 +9,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt } from "lucide-react";
+import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock } from "lucide-react";
 import { usePayments, type Payment } from "@/hooks/usePayments";
+import { useOverduePayments, useUpcomingPayments } from "@/hooks/useRentalPayments";
 import { LedgerManagement } from "./LedgerManagement";
+import { RentalLedgerDetail } from "./RentalLedgerDetail";
 
 export const PaymentTracking = () => {
   const { payments, loading, getTotalStats } = usePayments();
+  const { data: overduePayments } = useOverduePayments(50);
+  const { data: upcomingPayments } = useUpcomingPayments(7);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
+  const [selectedLedgerId, setSelectedLedgerId] = useState<string | null>(null);
+  const [isLedgerDetailOpen, setIsLedgerDetailOpen] = useState(false);
 
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = payment.rider_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -91,8 +98,16 @@ export const PaymentTracking = () => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="payments" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="payments">Payment Tracking</TabsTrigger>
+          <TabsTrigger value="rental-payments">
+            Rental Payments
+            {overduePayments && overduePayments.length > 0 && (
+              <Badge className="ml-2 bg-red-500 text-white text-xs">
+                {overduePayments.length}
+              </Badge>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="ledgers">Ledger Management</TabsTrigger>
         </TabsList>
         
@@ -326,11 +341,261 @@ export const PaymentTracking = () => {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
+        {/* Rental Payments Tab */}
+        <TabsContent value="rental-payments" className="space-y-6">
+          {/* Rental Payment Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overdue Payments</CardTitle>
+                <AlertCircle className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {overduePayments?.length || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  ₹{overduePayments?.reduce((sum, p) => sum + (p.balance || p.amount_due || 0), 0).toLocaleString() || 0} total overdue
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Due This Week</CardTitle>
+                <Clock className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-amber-600">
+                  {upcomingPayments?.length || 0}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  ₹{upcomingPayments?.reduce((sum, p) => sum + (p.amount_due || 0), 0).toLocaleString() || 0} upcoming
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
+                <Receipt className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {/* Could trigger bulk reminder */}}
+                >
+                  Send Bulk Reminders
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Overdue Payments Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-red-500" />
+                Overdue Payments
+              </CardTitle>
+              <CardDescription>
+                Payments past their due date - requires immediate attention
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!overduePayments || overduePayments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500 opacity-50" />
+                  <p>No overdue payments! All riders are up to date.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Week</TableHead>
+                        <TableHead>Rider</TableHead>
+                        <TableHead>Vehicle</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead className="text-right">Amount Due</TableHead>
+                        <TableHead className="text-right">Balance</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {overduePayments.map((payment) => (
+                        <TableRow
+                          key={payment.id}
+                          className="cursor-pointer hover:bg-red-50"
+                          onClick={() => {
+                            setSelectedLedgerId(payment.ledger_id);
+                            setIsLedgerDetailOpen(true);
+                          }}
+                        >
+                          <TableCell className="font-medium">
+                            Week {payment.week_number}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="font-medium">{payment.rental_ledgers?.rider_name || 'Unknown'}</p>
+                                <p className="text-xs text-muted-foreground">{payment.rental_ledgers?.rider_id}</p>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Truck className="h-4 w-4 text-muted-foreground" />
+                              {payment.rental_ledgers?.vehicle_number || 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {payment.due_date
+                              ? format(new Date(payment.due_date), 'dd MMM yyyy')
+                              : '-'}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ₹{(payment.amount_due || 0).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right font-medium text-red-600">
+                            ₹{(payment.balance || payment.amount_due || 0).toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className="bg-red-100 text-red-800 border-red-200">
+                              {payment.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedLedgerId(payment.ledger_id);
+                                setIsLedgerDetailOpen(true);
+                              }}
+                            >
+                              View Ledger
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Upcoming Payments Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-amber-500" />
+                Due This Week
+              </CardTitle>
+              <CardDescription>
+                Payments due within the next 7 days
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {!upcomingPayments || upcomingPayments.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <p>No payments due this week.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Week</TableHead>
+                        <TableHead>Rider</TableHead>
+                        <TableHead>Vehicle</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead className="text-right">Amount Due</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {upcomingPayments.map((payment) => (
+                        <TableRow
+                          key={payment.id}
+                          className="cursor-pointer hover:bg-amber-50"
+                          onClick={() => {
+                            setSelectedLedgerId(payment.ledger_id);
+                            setIsLedgerDetailOpen(true);
+                          }}
+                        >
+                          <TableCell className="font-medium">
+                            Week {payment.week_number}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              {payment.rental_ledgers?.rider_name || 'Unknown'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <Truck className="h-4 w-4 text-muted-foreground" />
+                              {payment.rental_ledgers?.vehicle_number || 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {payment.due_date
+                              ? format(new Date(payment.due_date), 'dd MMM yyyy')
+                              : '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            ₹{(payment.amount_due || 0).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedLedgerId(payment.ledger_id);
+                                setIsLedgerDetailOpen(true);
+                              }}
+                            >
+                              View Ledger
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="ledgers">
           <LedgerManagement />
         </TabsContent>
       </Tabs>
+
+      {/* Ledger Detail Modal */}
+      <Dialog open={isLedgerDetailOpen} onOpenChange={setIsLedgerDetailOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Rental Ledger</DialogTitle>
+          </DialogHeader>
+          {selectedLedgerId && (
+            <RentalLedgerDetail
+              ledgerId={selectedLedgerId}
+              onBack={() => setIsLedgerDetailOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
