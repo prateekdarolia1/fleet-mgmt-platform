@@ -6,6 +6,61 @@
 
 ---
 
+## ⚠️ Verification Workflow (REQUIRED after EVERY task)
+
+After completing **each task**, the following verification loop MUST be executed:
+
+```bash
+# Step 1: Build and check for errors
+npm run build
+
+# Step 2: If build passes, start dev server
+npm run dev
+
+# Step 3: Check console for runtime errors
+# - Open browser to http://localhost:8082
+# - Check browser console (F12) for errors
+# - Check terminal for server errors
+
+# Step 4: If ANY errors found:
+#   a) Kill dev server (Ctrl+C)
+#   b) Edit the problematic code
+#   c) Repeat from Step 1
+
+# Step 5: Only mark task complete when:
+#   - Build succeeds (no errors)
+#   - Dev server starts without errors
+#   - No runtime errors in browser console
+#   - Feature works as expected in UI
+```
+
+### Verification Checklist (per task)
+- [ ] `npm run build` completes with 0 errors
+- [ ] `npm run dev` starts without errors
+- [ ] No TypeScript errors in VSCode
+- [ ] No runtime errors in browser console
+- [ ] Feature/fix verified in UI
+- [ ] No regressions in existing functionality
+
+### If Build Fails
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  BUILD ERROR DETECTED                                           │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. Read error message carefully                                │
+│  2. Identify file and line number                               │
+│  3. Fix the issue in code                                       │
+│  4. Run: npm run build                                          │
+│  5. Repeat until clean                                          │
+│                                                                 │
+│  DO NOT proceed to next task until build is clean!              │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
 ## Phase 1: Database Schema & Migrations
 
 ### T1.1 Create rental_ledgers table
@@ -17,7 +72,13 @@
 - [ ] Enable RLS
 - [ ] Add RLS policies (admin only access)
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Migration applied to local Supabase
+
 **Estimate:** 1 hour
+
+---
 
 ### T1.2 Create rental_payments table
 - [ ] Write migration file: `supabase/migrations/YYYYMMDD_create_rental_payments.sql`
@@ -29,7 +90,13 @@
 - [ ] Enable RLS
 - [ ] Add RLS policies
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Migration applied to local Supabase
+
 **Estimate:** 1 hour
+
+---
 
 ### T1.3 Create notifications table
 - [ ] Write migration file: `supabase/migrations/YYYYMMDD_create_notifications.sql`
@@ -40,12 +107,23 @@
 - [ ] Enable RLS
 - [ ] Add RLS policies (user can only see own notifications)
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Migration applied to local Supabase
+
 **Estimate:** 30 minutes
+
+---
 
 ### T1.4 Add TypeScript types
 - [ ] Update `src/integrations/supabase/types.ts` with new table types
 - [ ] Add enums to Constants export
 - [ ] Run `supabase gen types` to regenerate if using CLI
+
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — Starts clean
+- [ ] No TypeScript errors in VSCode
 
 **Estimate:** 30 minutes
 
@@ -61,7 +139,13 @@
 - [ ] Add SECURITY DEFINER
 - [ ] Grant execute to authenticated role
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Test RPC in Supabase SQL Editor
+
 **Estimate:** 1 hour
+
+---
 
 ### T2.2 Create confirm_rental_start RPC
 - [ ] Write migration: `supabase/migrations/YYYYMMDD_add_confirm_rental_start_rpc.sql`
@@ -70,7 +154,13 @@
 - [ ] Validation: start_date within reasonable range
 - [ ] Return: Boolean success
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Test: Confirm creates 2 payment entries
+
 **Estimate:** 1.5 hours
+
+---
 
 ### T2.3 Create mark_rental_payment_paid RPC
 - [ ] Write migration: `supabase/migrations/YYYYMMDD_add_mark_rental_payment_paid_rpc.sql`
@@ -79,7 +169,14 @@
 - [ ] Validation: UPI last4 format, amount range
 - [ ] Return: Boolean success
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Test: Full payment → status=paid
+- [ ] Test: Partial payment → status=partial
+
 **Estimate:** 1 hour
+
+---
 
 ### T2.4 Create generate_weekly_payments RPC (for pg_cron)
 - [ ] Write migration: `supabase/migrations/YYYYMMDD_add_generate_weekly_payments_rpc.sql`
@@ -88,13 +185,23 @@
 - [ ] No parameters (called by cron)
 - [ ] Return: Number of payments created
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Test manually: `SELECT generate_weekly_payments();`
+
 **Estimate:** 1 hour
+
+---
 
 ### T2.5 Create mark_overdue_payments RPC (for pg_cron)
 - [ ] Write migration: `supabase/migrations/YYYYMMDD_add_mark_overdue_payments_rpc.sql`
 - [ ] Function: Update status to overdue for past-due pending payments
 - [ ] No parameters
 - [ ] Return: Number of payments marked overdue
+
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Test manually: `SELECT mark_overdue_payments();`
 
 **Estimate:** 30 minutes
 
@@ -108,12 +215,22 @@
 - [ ] Call: generate_weekly_payments RPC
 - [ ] Test with `SELECT cron.schedule(...)`
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Check cron job: `SELECT * FROM cron.job;`
+
 **Estimate:** 30 minutes
+
+---
 
 ### T3.2 Schedule overdue detection job
 - [ ] Write migration: `supabase/migrations/YYYYMMDD_schedule_overdue_detection.sql`
 - [ ] Schedule: Daily at 01:00 UTC
 - [ ] Call: mark_overdue_payments RPC
+
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Check cron job: `SELECT * FROM cron.job;`
 
 **Estimate:** 15 minutes
 
@@ -127,11 +244,22 @@
 - [ ] Add error handling and logging
 - [ ] Test locally with `supabase functions serve`
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `supabase functions serve` — No errors
+- [ ] Test: Invoke function, check notification created
+
 **Estimate:** 2 hours
+
+---
 
 ### T4.2 Schedule reminder Edge Function
 - [ ] Add webhook trigger from pg_cron or external scheduler
 - [ ] Alternative: Call from mark_overdue_payments RPC via pg_net
+
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] End-to-end: Overdue payment triggers notification
 
 **Estimate:** 30 minutes
 
@@ -145,19 +273,38 @@
 - [ ] Include React Query for caching
 - [ ] Type all functions with TypeScript
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — No console errors
+- [ ] Hook compiles and types correctly
+
 **Estimate:** 1.5 hours
+
+---
 
 ### T5.2 Create useRentalPayments hook
 - [ ] Create: `src/hooks/useRentalPayments.ts`
 - [ ] Functions: fetchPaymentsByLedger, markPaymentPaid (RPC), fetchOverduePayments
 - [ ] Include React Query mutations with cache invalidation
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — No console errors
+- [ ] Hook compiles and types correctly
+
 **Estimate:** 1.5 hours
+
+---
 
 ### T5.3 Create useNotifications hook
 - [ ] Create: `src/hooks/useNotifications.ts`
 - [ ] Functions: fetchUnread, markAsRead, markAllAsRead
 - [ ] Include real-time subscription (optional)
+
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — No console errors
+- [ ] Hook compiles and types correctly
 
 **Estimate:** 1 hour
 
@@ -172,7 +319,16 @@
 - [ ] Actions: Cancel, Confirm & Start
 - [ ] Call confirm_rental_start RPC on submit
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — No console errors
+- [ ] Modal renders correctly in UI
+- [ ] Form validation works
+- [ ] RPC call succeeds
+
 **Estimate:** 2 hours
+
+---
 
 ### T6.2 Modify RiderManagement activation flow
 - [ ] Update: `src/components/fleet/RiderManagement.tsx`
@@ -180,7 +336,16 @@
 - [ ] Open RentalLedgerConfirmModal with new ledger ID
 - [ ] Handle success/error states
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — No console errors
+- [ ] Activate rider → Modal opens
+- [ ] RPC creates ledger
+- [ ] No existing functionality broken
+
 **Estimate:** 1.5 hours
+
+---
 
 ### T6.3 Create RentalLedgerDetail component
 - [ ] Create: `src/components/fleet/RentalLedgerDetail.tsx`
@@ -189,7 +354,16 @@
 - [ ] Payments table: Week, Due date, Amount, Status, Actions
 - [ ] Actions: Mark paid, Send reminder, View history
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — No console errors
+- [ ] Component renders with mock data
+- [ ] Stats calculate correctly
+- [ ] Actions work as expected
+
 **Estimate:** 2.5 hours
+
+---
 
 ### T6.4 Create RentalPaymentForm component
 - [ ] Create: `src/components/fleet/RentalPaymentForm.tsx`
@@ -197,7 +371,16 @@
 - [ ] Support partial payments
 - [ ] Call mark_rental_payment_paid RPC
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — No console errors
+- [ ] Form renders correctly
+- [ ] UPI field shows conditionally
+- [ ] Payment recorded successfully
+
 **Estimate:** 1.5 hours
+
+---
 
 ### T6.5 Create NotificationsPanel component
 - [ ] Create: `src/components/fleet/NotificationsPanel.tsx`
@@ -205,13 +388,28 @@
 - [ ] Each item: Rider, Vehicle, Amount, Due date, Quick actions
 - [ ] Actions: Mark paid, View ledger, Dismiss
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — No console errors
+- [ ] Notifications display correctly
+- [ ] Quick actions work
+
 **Estimate:** 2 hours
+
+---
 
 ### T6.6 Update PaymentTracking to include Rental Payments tab
 - [ ] Update: `src/components/fleet/PaymentTracking.tsx`
 - [ ] Add tab: "Rental Payments"
 - [ ] Show overdue/pending payments across all ledgers
 - [ ] Link to ledger detail on click
+
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] `npm run dev` — No console errors
+- [ ] New tab appears
+- [ ] Payments list displays
+- [ ] Links work
 
 **Estimate:** 1 hour
 
@@ -226,7 +424,13 @@
 - [ ] Test: mark_payment_paid with full and partial amounts
 - [ ] Test: UPI last4 validation
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] All tests pass
+
 **Estimate:** 2 hours
+
+---
 
 ### T7.2 Integration tests
 - [ ] Test: Full flow from rider activation to ledger creation
@@ -234,12 +438,22 @@
 - [ ] Test: Overdue detection cron job
 - [ ] Test: Notification creation
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] All tests pass
+
 **Estimate:** 2 hours
+
+---
 
 ### T7.3 E2E tests (optional)
 - [ ] Test: Admin activates rider → sees confirmation modal
 - [ ] Test: Admin confirms rental → sees payments generated
 - [ ] Test: Admin marks payment paid → sees updated status
+
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] All tests pass
 
 **Estimate:** 1.5 hours
 
@@ -252,19 +466,35 @@
 - [ ] Document RPC functions
 - [ ] Document cron jobs
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Documentation reviewed
+
 **Estimate:** 30 minutes
+
+---
 
 ### T8.2 Create operator guide
 - [ ] How to activate a rider with rental ledger
 - [ ] How to record a payment
 - [ ] How to handle overdue payments
 
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Guide reviewed
+
 **Estimate:** 1 hour
+
+---
 
 ### T8.3 Staging deployment & verification
 - [ ] Deploy migrations to staging
 - [ ] Verify cron jobs are running
 - [ ] Test full flow with real data
+
+**✅ Verify:**
+- [ ] `npm run build` — No errors
+- [ ] Staging flow works end-to-end
 
 **Estimate:** 1 hour
 
