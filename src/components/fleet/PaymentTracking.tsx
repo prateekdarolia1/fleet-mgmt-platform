@@ -9,11 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock } from "lucide-react";
+import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock, Lock, AlertTriangle } from "lucide-react";
 import { usePayments, type Payment } from "@/hooks/usePayments";
 import { useOverduePayments, useUpcomingPayments } from "@/hooks/useRentalPayments";
 import { LedgerManagement } from "./LedgerManagement";
 import { RentalLedgerDetail } from "./RentalLedgerDetail";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const PaymentTracking = () => {
   const { payments, loading, getTotalStats, updatePayment, markPaymentAsPaid } = usePayments();
@@ -30,6 +31,19 @@ export const PaymentTracking = () => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+
+  // Safety check modal state for marking payments as paid
+  const [isSafetyCheckOpen, setIsSafetyCheckOpen] = useState(false);
+  const [safetyCheckPayment, setSafetyCheckPayment] = useState<Payment | null>(null);
+  const [safetyCheckData, setSafetyCheckData] = useState({
+    payment_mode: 'cash' as Payment['payment_mode'],
+    payment_date: format(new Date(), 'yyyy-MM-dd'),
+    upi_last4: '',
+    notes: ''
+  });
+  const [safetyCheckError, setSafetyCheckError] = useState<string | null>(null);
+  const [isSafetyCheckSubmitting, setIsSafetyCheckSubmitting] = useState(false);
+
   const { data: overduePayments } = useOverduePayments(50);
   const { data: upcomingPayments } = useUpcomingPayments(7);
 
@@ -355,14 +369,21 @@ export const PaymentTracking = () => {
                             {(payment.status === 'pending' || payment.status === 'overdue') && (
                               <Button
                                 size="sm"
-                                disabled={markingPaidId === payment.id}
-                                onClick={async () => {
-                                  setMarkingPaidId(payment.id);
-                                  await markPaymentAsPaid(payment.id, 'cash');
-                                  setMarkingPaidId(null);
+                                onClick={() => {
+                                  // Open safety check modal with prefilled defaults
+                                  setSafetyCheckPayment(payment);
+                                  setSafetyCheckData({
+                                    payment_mode: 'cash',
+                                    payment_date: format(new Date(), 'yyyy-MM-dd'),
+                                    upi_last4: '',
+                                    notes: ''
+                                  });
+                                  setSafetyCheckError(null);
+                                  setIsSafetyCheckOpen(true);
                                 }}
                               >
-                                {markingPaidId === payment.id ? 'Marking...' : 'Mark Paid'}
+                                <Shield className="h-3 w-3 mr-1" />
+                                Mark Paid
                               </Button>
                             )}
                           </div>
@@ -725,6 +746,182 @@ export const PaymentTracking = () => {
               }}
             >
               {isUpdating ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Safety Check Modal for Marking Payments as Paid */}
+      <Dialog open={isSafetyCheckOpen} onOpenChange={setIsSafetyCheckOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Confirm Payment Collection
+            </DialogTitle>
+            <DialogDescription>
+              Verify payment details before marking as paid
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Locked Amount Section */}
+          <div className="bg-muted/50 rounded-lg p-4 border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Amount (Locked)</span>
+              </div>
+              <div className="flex items-center gap-1 text-xl font-bold">
+                <IndianRupee className="h-4 w-4" />
+                <span>{safetyCheckPayment?.amount.toLocaleString() || 0}</span>
+              </div>
+            </div>
+            <div className="mt-2 text-xs text-muted-foreground">
+              Payment ID: {safetyCheckPayment?.payment_id} | Rider: {safetyCheckPayment?.rider_name}
+            </div>
+          </div>
+
+          {/* Error Alert */}
+          {safetyCheckError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{safetyCheckError}</AlertDescription>
+            </Alert>
+          )}
+
+          <div className="grid gap-4 py-4">
+            {/* Payment Mode Selection */}
+            <div className="grid gap-2">
+              <Label htmlFor="safetyPaymentMode">Payment Mode *</Label>
+              <Select
+                value={safetyCheckData.payment_mode}
+                onValueChange={(value) => {
+                  setSafetyCheckData(prev => ({ ...prev, payment_mode: value as Payment['payment_mode'] }));
+                  setSafetyCheckError(null);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* UPI Last 4 Digits - Required for UPI payments */}
+            {safetyCheckData.payment_mode === 'upi' && (
+              <div className="grid gap-2">
+                <Label htmlFor="safetyUpiLast4">
+                  UPI Last 4 Digits (e.g., ab12@bank) *
+                </Label>
+                <Input
+                  id="safetyUpiLast4"
+                  value={safetyCheckData.upi_last4}
+                  onChange={(e) => {
+                    const value = e.target.value.toUpperCase().slice(0, 4);
+                    setSafetyCheckData(prev => ({ ...prev, upi_last4: value }));
+                    setSafetyCheckError(null);
+                  }}
+                  placeholder="e.g., A1B2"
+                  maxLength={4}
+                  className={safetyCheckData.upi_last4 && !/^[A-Z0-9]{4}$/.test(safetyCheckData.upi_last4) ? 'border-red-500' : ''}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Enter the last 4 alphanumeric characters before @ in the UPI ID for verification
+                </p>
+                {safetyCheckData.upi_last4 && !/^[A-Z0-9]{4}$/.test(safetyCheckData.upi_last4) && (
+                  <p className="text-xs text-red-500">Must be exactly 4 alphanumeric characters</p>
+                )}
+              </div>
+            )}
+
+            {/* Payment Date - Prefilled with today */}
+            <div className="grid gap-2">
+              <Label htmlFor="safetyPaymentDate">Payment Date</Label>
+              <Input
+                id="safetyPaymentDate"
+                type="date"
+                value={safetyCheckData.payment_date}
+                onChange={(e) => setSafetyCheckData(prev => ({ ...prev, payment_date: e.target.value }))}
+              />
+            </div>
+
+            {/* Notes Field */}
+            <div className="grid gap-2">
+              <Label htmlFor="safetyNotes">Notes (Optional)</Label>
+              <Input
+                id="safetyNotes"
+                value={safetyCheckData.notes}
+                onChange={(e) => setSafetyCheckData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Add any additional notes..."
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsSafetyCheckOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={isSafetyCheckSubmitting}
+              onClick={async () => {
+                // Validation
+                if (safetyCheckData.payment_mode === 'upi') {
+                  if (!safetyCheckData.upi_last4 || !/^[A-Za-z0-9]{4}$/.test(safetyCheckData.upi_last4)) {
+                    setSafetyCheckError('UPI last 4 digits are required for UPI payments. Must be exactly 4 alphanumeric characters.');
+                    return;
+                  }
+                }
+
+                if (!safetyCheckPayment) return;
+
+                setIsSafetyCheckSubmitting(true);
+                setSafetyCheckError(null);
+
+                try {
+                  // Format notes to include UPI verification info
+                  let formattedNotes = safetyCheckData.notes || '';
+                  if (safetyCheckData.payment_mode === 'upi' && safetyCheckData.upi_last4) {
+                    formattedNotes = `UPI ID last 4: ${safetyCheckData.upi_last4.toUpperCase()}${formattedNotes ? ` | ${formattedNotes}` : ''}`;
+                  }
+
+                  await updatePayment(safetyCheckPayment.id, {
+                    status: 'paid',
+                    payment_mode: safetyCheckData.payment_mode,
+                    payment_date: safetyCheckData.payment_date,
+                    notes: formattedNotes || undefined
+                  });
+
+                  setIsSafetyCheckOpen(false);
+                  setSafetyCheckPayment(null);
+                  setSafetyCheckData({
+                    payment_mode: 'cash',
+                    payment_date: format(new Date(), 'yyyy-MM-dd'),
+                    upi_last4: '',
+                    notes: ''
+                  });
+                } catch (error) {
+                  setSafetyCheckError(error instanceof Error ? error.message : 'Failed to update payment');
+                } finally {
+                  setIsSafetyCheckSubmitting(false);
+                }
+              }}
+            >
+              {isSafetyCheckSubmitting ? (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2 animate-pulse" />
+                  Confirming...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Confirm Payment
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
