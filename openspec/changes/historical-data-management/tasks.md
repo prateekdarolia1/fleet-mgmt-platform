@@ -2,8 +2,7 @@
 
 ## 1. Database Schema Migration
 
-- [ ] 1.1 Create migration file `add_historical_tracking_columns.sql`
-- [ ] 1.2 Add effective_start_date, effective_end_date columns to riders table
+- [x] 1.1 Create migration file `add_historical_tracking_columns.sql`- [ ] 1.2 Add effective_start_date, effective_end_date columns to riders table
 - [ ] 1.3 Add is_historical_import, data_source, import_batch_id, confidence_score columns to riders table
 - [ ] 1.4 Add historical tracking columns to vehicles table
 - [ ] 1.5 Add historical tracking columns to batteries table
