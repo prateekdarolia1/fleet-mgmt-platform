@@ -52,10 +52,16 @@ export function useRentalPaymentsByLedger(ledgerId: string | null) {
 }
 
 // Fetch overdue payments across all ledgers
+// A payment is considered overdue if it's been pending for MORE than 4 calendar days from due date
 export function useOverduePayments(limit = 50) {
   return useQuery({
     queryKey: ['rental-payments', 'overdue', limit],
     queryFn: async (): Promise<(RentalPayment & { rental_ledgers?: { rider_name: string; vehicle_number: string | null } })[]> => {
+      // Calculate the date 4 days ago - payments with due_date before this are overdue
+      const fourDaysAgo = new Date();
+      fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+      const overdueThreshold = fourDaysAgo.toISOString().split('T')[0];
+
       const { data, error } = await supabase
         .from('rental_payments')
         .select(`
@@ -66,7 +72,7 @@ export function useOverduePayments(limit = 50) {
           )
         `)
         .in('status', ['overdue', 'pending', 'partial'])
-        .lt('due_date', new Date().toISOString().split('T')[0])
+        .lt('due_date', overdueThreshold)
         .order('due_date', { ascending: true })
         .limit(limit);
 
@@ -80,7 +86,8 @@ export function useOverduePayments(limit = 50) {
   });
 }
 
-// Fetch upcoming payments (due within next 7 days)
+// Fetch upcoming payments (due within next X days)
+// Includes both pending and partial status payments
 export function useUpcomingPayments(days = 7) {
   const today = new Date().toISOString().split('T')[0];
   const futureDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -97,7 +104,7 @@ export function useUpcomingPayments(days = 7) {
             vehicle_number
           )
         `)
-        .eq('status', 'pending')
+        .in('status', ['pending', 'partial'])
         .gte('due_date', today)
         .lte('due_date', futureDate)
         .order('due_date', { ascending: true });
