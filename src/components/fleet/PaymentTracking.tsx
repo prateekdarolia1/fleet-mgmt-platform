@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock, Lock, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { usePayments, type Payment } from "@/hooks/usePayments";
-import { useOverduePayments, useUpcomingPayments } from "@/hooks/useRentalPayments";
+import { useUnifiedOverduePayments, useUnifiedUpcomingPayments, type UnifiedOverduePayment, type UnifiedUpcomingPayment } from "@/hooks/useUnifiedPayments";
 import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
 import { LedgerManagement } from "./LedgerManagement";
 import { RentalLedgerDetail } from "./RentalLedgerDetail";
@@ -46,8 +46,8 @@ export const PaymentTracking = () => {
   const [safetyCheckError, setSafetyCheckError] = useState<string | null>(null);
   const [isSafetyCheckSubmitting, setIsSafetyCheckSubmitting] = useState(false);
 
-  const { data: overduePayments } = useOverduePayments(50);
-  const { data: upcomingPayments } = useUpcomingPayments(7);
+  const { data: overduePayments } = useUnifiedOverduePayments(50);
+  const { data: upcomingPayments } = useUnifiedUpcomingPayments(7);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -503,29 +503,31 @@ export const PaymentTracking = () => {
                     <TableBody>
                       {overduePayments.map((payment) => (
                         <TableRow
-                          key={payment.id}
+                          key={`${payment.source}-${payment.id}`}
                           className="cursor-pointer hover:bg-red-50"
                           onClick={() => {
-                            setSelectedLedgerId(payment.ledger_id);
-                            setIsLedgerDetailOpen(true);
+                            if (payment.ledger_id) {
+                              setSelectedLedgerId(payment.ledger_id);
+                              setIsLedgerDetailOpen(true);
+                            }
                           }}
                         >
                           <TableCell className="font-medium">
-                            Week {payment.week_number}
+                            {payment.source === 'rental_payments' ? `Week ${payment.week_number}` : payment.payment_id || '-'}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4 text-muted-foreground" />
                               <div>
-                                <p className="font-medium">{payment.rental_ledgers?.rider_name || 'Unknown'}</p>
-                                <p className="text-xs text-muted-foreground">{payment.rental_ledgers?.rider_id}</p>
+                                <p className="font-medium">{payment.rider_name || 'Unknown'}</p>
+                                <p className="text-xs text-muted-foreground">{payment.rider_id}</p>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Truck className="h-4 w-4 text-muted-foreground" />
-                              {payment.rental_ledgers?.vehicle_number || 'N/A'}
+                              {payment.vehicle_number || 'N/A'}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -540,22 +542,33 @@ export const PaymentTracking = () => {
                             ₹{(payment.balance || payment.amount_due || 0).toLocaleString()}
                           </TableCell>
                           <TableCell>
-                            <Badge className="bg-red-100 text-red-800 border-red-200">
-                              {payment.status}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge className="bg-red-100 text-red-800 border-red-200">
+                                {payment.status}
+                              </Badge>
+                              {payment.source === 'payments' && (
+                                <Badge variant="outline" className="text-xs">
+                                  Legacy
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedLedgerId(payment.ledger_id);
-                                setIsLedgerDetailOpen(true);
-                              }}
-                            >
-                              View Ledger
-                            </Button>
+                            {payment.ledger_id ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedLedgerId(payment.ledger_id!);
+                                  setIsLedgerDetailOpen(true);
+                                }}
+                              >
+                                View Ledger
+                              </Button>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -599,26 +612,28 @@ export const PaymentTracking = () => {
                     <TableBody>
                       {upcomingPayments.map((payment) => (
                         <TableRow
-                          key={payment.id}
+                          key={`${payment.source}-${payment.id}`}
                           className="cursor-pointer hover:bg-amber-50"
                           onClick={() => {
-                            setSelectedLedgerId(payment.ledger_id);
-                            setIsLedgerDetailOpen(true);
+                            if (payment.ledger_id) {
+                              setSelectedLedgerId(payment.ledger_id);
+                              setIsLedgerDetailOpen(true);
+                            }
                           }}
                         >
                           <TableCell className="font-medium">
-                            Week {payment.week_number}
+                            {payment.source === 'rental_payments' ? `Week ${payment.week_number}` : payment.payment_id || '-'}
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4 text-muted-foreground" />
-                              {payment.rental_ledgers?.rider_name || 'Unknown'}
+                              {payment.rider_name || 'Unknown'}
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Truck className="h-4 w-4 text-muted-foreground" />
-                              {payment.rental_ledgers?.vehicle_number || 'N/A'}
+                              {payment.vehicle_number || 'N/A'}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -630,17 +645,21 @@ export const PaymentTracking = () => {
                             ₹{(payment.amount_due || 0).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedLedgerId(payment.ledger_id);
-                                setIsLedgerDetailOpen(true);
-                              }}
-                            >
-                              View Ledger
-                            </Button>
+                            {payment.ledger_id ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedLedgerId(payment.ledger_id!);
+                                  setIsLedgerDetailOpen(true);
+                                }}
+                              >
+                                View Ledger
+                              </Button>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
