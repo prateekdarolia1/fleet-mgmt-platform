@@ -16,6 +16,7 @@ import { Plus, Search, Filter, Phone, Mail, Calendar, User, Edit } from "lucide-
 import { useRiders, type Rider } from "@/hooks/useRiders";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { useCreateRentalLedger } from "@/hooks/useRentalLedgers";
+import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
 import { AddRiderForm } from "./AddRiderForm";
 import { RiderActivationModal } from "./RiderActivationModal";
 import { RentalLedgerConfirmModal } from "./RentalLedgerConfirmModal";
@@ -64,7 +65,6 @@ export const RiderManagement = () => {
   const navigate = useNavigate();
   const { riders, loading, addRider, updateRider } = useRiders();
   const { vehicles, updateVehicle } = useVehicles();
-  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddRiderOpen, setIsAddRiderOpen] = useState(false);
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
@@ -279,13 +279,17 @@ export const RiderManagement = () => {
     }
   };
 
-  const filteredRiders = riders.filter(rider => {
-    const matchesSearch = rider.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         rider.phone.includes(searchTerm) ||
-                         rider.rider_id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || rider.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Use fuzzy search with status filter
+  const {
+    results: filteredRiders,
+    searchTerm: fuzzySearchTerm,
+    setSearchTerm: setFuzzySearchTerm,
+  } = useFuzzySearchWithFilter(
+    riders,
+    ['name', 'phone', 'rider_id'],
+    statusFilter === "all" ? undefined : (rider: Rider) => rider.status === statusFilter,
+    { threshold: 0.3 }
+  );
 
   const getStatusBadge = (status: Rider['status']) => {
     const statusText = status.charAt(0).toUpperCase() + status.slice(1);
@@ -364,8 +368,8 @@ export const RiderManagement = () => {
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, phone, or rider ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={fuzzySearchTerm}
+              onChange={(e) => setFuzzySearchTerm(e.target.value)}
               className="pl-8"
             />
           </div>

@@ -14,6 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Plus, Search, Filter, Calendar, Wrench, Edit, Trash2, RotateCcw, Battery } from "lucide-react";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { useAvailableRiders } from "@/hooks/useAvailableRiders";
+import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
 import { toast } from "sonner";
 import { MapVehicleToBatteryModal } from "./MapVehicleToBatteryModal";
 import { EditDeployedVehicleModal } from "./EditDeployedVehicleModal";
@@ -47,8 +48,19 @@ export const InventoryManagement = () => {
     riders: availableRiders,
     loading: ridersLoading
   } = useAvailableRiders();
-  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  // Fuzzy search with status filter - results auto-sorted by relevance
+  const {
+    results: filteredVehicles,
+    searchTerm,
+    setSearchTerm: setFuzzySearchTerm,
+  } = useFuzzySearchWithFilter(
+    vehicles,
+    ['vehicle_number', 'model', 'rider_name', 'chassis_number', 'motor_serial_number', 'make'],
+    statusFilter === "all" ? undefined : (vehicle: Vehicle) => vehicle.status === statusFilter,
+    { threshold: 0.3 }
+  );
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
   const [isEditVehicleOpen, setIsEditVehicleOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -278,11 +290,6 @@ export const InventoryManagement = () => {
       console.error('Error deleting vehicle:', error);
     }
   };
-  const filteredVehicles = vehicles.filter(vehicle => {
-    const matchesSearch = vehicle.vehicle_number.toLowerCase().includes(searchTerm.toLowerCase()) || vehicle.model.toLowerCase().includes(searchTerm.toLowerCase()) || vehicle.rider_name?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || vehicle.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
   const getStatusBadge = (status: Vehicle['status']) => {
     if (status === 'Deployed') {
       return <Badge variant="success">{status}</Badge>;

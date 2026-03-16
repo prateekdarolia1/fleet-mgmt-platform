@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock, Lock, AlertTriangle } from "lucide-react";
 import { usePayments, type Payment } from "@/hooks/usePayments";
 import { useOverduePayments, useUpcomingPayments } from "@/hooks/useRentalPayments";
+import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
 import { LedgerManagement } from "./LedgerManagement";
 import { RentalLedgerDetail } from "./RentalLedgerDetail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -53,13 +54,13 @@ export const PaymentTracking = () => {
   const [selectedLedgerId, setSelectedLedgerId] = useState<string | null>(null);
   const [isLedgerDetailOpen, setIsLedgerDetailOpen] = useState(false);
 
-  const filteredPayments = payments.filter(payment => {
-    const matchesSearch = payment.rider_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.rider_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         payment.payment_id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Fuzzy search with status filter - results auto-sorted by relevance
+  const { results: filteredPayments } = useFuzzySearchWithFilter(
+    payments,
+    ['rider_name', 'rider_id', 'payment_id', 'rental_period', 'notes'],
+    statusFilter === "all" ? undefined : (payment: Payment) => payment.status === statusFilter,
+    { threshold: 0.3 }
+  );
 
   const getStatusBadge = (status: Payment['status']) => {
     const variants = {

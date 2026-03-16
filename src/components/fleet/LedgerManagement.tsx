@@ -9,10 +9,10 @@ import { Plus, Search, Calendar, User, Eye } from "lucide-react";
 import { useRiderLedgers } from "@/hooks/useRiderLedgers";
 import { CreateLedgerForm } from "./CreateLedgerForm";
 import { PaymentHistoryDialog } from "./PaymentHistoryDialog";
+import { useFuzzySearch } from "@/hooks/useFuzzySearch";
 
 export const LedgerManagement = () => {
   const { ledgers, loading } = useRiderLedgers();
-  const [searchTerm, setSearchTerm] = useState("");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedRiderForHistory, setSelectedRiderForHistory] = useState<{
     riderId: string;
@@ -20,9 +20,15 @@ export const LedgerManagement = () => {
     ledgerId?: string;
   } | null>(null);
 
-  const filteredLedgers = ledgers.filter(ledger => 
-    ledger.rider_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ledger.rider_id.toLowerCase().includes(searchTerm.toLowerCase())
+  // Use fuzzy search for ledgers
+  const {
+    results: filteredLedgers,
+    searchTerm,
+    setSearchTerm,
+  } = useFuzzySearch(
+    ledgers,
+    ['rider_name', 'rider_id'],
+    { threshold: 0.3 }
   );
 
   const getFrequencyBadge = (frequency: string) => {
