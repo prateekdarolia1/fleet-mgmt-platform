@@ -40,30 +40,30 @@
 
 ## 5. Date Estimation Rules Engine
 
-- [ ] 5.1 Create src/lib/import/dateEstimation.ts
-- [ ] 5.2 Implement estimateOnboardDate(rider, assignments) function
-- [ ] 5.3 Implement estimateDeboardDate(rider, payments, events) function
-- [ ] 5.4 Implement estimateAssignmentDate(vehicle, battery) function
-- [ ] 5.5 Implement estimateDueDate(payment, ledger, weekNumber) function
-- [ ] 5.6 Create getConfidenceScore(estimationType) helper
+- [x] 5.1 Create src/lib/import/dateEstimation.ts
+- [x] 5.2 Implement estimateOnboardDate(rider, assignments) function
+- [x] 5.3 Implement estimateDeboardDate(rider, payments, events) function
+- [x] 5.4 Implement estimateAssignmentDate(vehicle, battery) function
+- [x] 5.5 Implement estimateDueDate(payment, ledger, weekNumber) function
+- [x] 5.6 Create getConfidenceScore(estimationType) helper
 - [ ] 5.7 Add unit tests for all estimation rules
 
 ## 6. Reconciliation Engine
 
-- [ ] 6.1 Create src/lib/import/reconciliationEngine.ts
-- [ ] 6.2 Implement matchRecords(csvData, dbData) function
-- [ ] 6.3 Implement categorizeMatch(csvRecord, dbRecord) returning EXACT_MATCH | CONFLICT | NEW_RECORD | MISSING_IN_CSV
-- [ ] 6.4 Implement resolveConflict(csvValue, dbValue, sourcePriority) function
-- [ ] 6.5 Implement generatePreviewReport(matches) function
+- [x] 6.1 Create src/lib/import/reconciliationEngine.ts
+- [x] 6.2 Implement matchRecords(csvData, dbData) function
+- [x] 6.3 Implement categorizeMatch(csvRecord, dbRecord) returning EXACT_MATCH | CONFLICT | NEW_RECORD | MISSING_IN_CSV
+- [x] 6.4 Implement resolveConflict(csvValue, dbValue, sourcePriority) function
+- [x] 6.5 Implement generatePreviewReport(matches) function
 - [ ] 6.6 Add unit tests for reconciliation logic
 
 ## 7. Transform Engine
 
-- [ ] 7.1 Create src/lib/import/transformEngine.ts
-- [ ] 7.2 Implement applyDateEstimation(records, rules) function
-- [ ] 7.3 Implement createGhostEntity(entityType, csvRecord) function
-- [ ] 7.4 Implement calculateEffectiveDates(records) function
-- [ ] 7.5 Implement generateRetroactiveEvents(records) function
+- [x] 7.1 Create src/lib/import/transformEngine.ts
+- [x] 7.2 Implement applyDateEstimation(records, rules) function
+- [x] 7.3 Implement createGhostEntity(entityType, csvRecord) function
+- [x] 7.4 Implement calculateEffectiveDates(records) function
+- [x] 7.5 Implement generateRetroactiveEvents(records) function
 - [ ] 7.6 Add unit tests for transformation logic
 
 ## 8. Historical Import Orchestrator
