@@ -16,7 +16,20 @@ import { LedgerManagement } from "./LedgerManagement";
 import { RentalLedgerDetail } from "./RentalLedgerDetail";
 
 export const PaymentTracking = () => {
-  const { payments, loading, getTotalStats } = usePayments();
+  const { payments, loading, getTotalStats, updatePayment, markPaymentAsPaid } = usePayments();
+
+  // Edit payment state
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    amount: '',
+    status: 'pending' as Payment['status'],
+    payment_mode: 'cash' as Payment['payment_mode'],
+    payment_date: '',
+    notes: ''
+  });
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const { data: overduePayments } = useOverduePayments(50);
   const { data: upcomingPayments } = useUpcomingPayments(7);
 
@@ -322,12 +335,34 @@ export const PaymentTracking = () => {
                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingPayment(payment);
+                                setEditFormData({
+                                  amount: payment.amount.toString(),
+                                  status: payment.status,
+                                  payment_mode: payment.payment_mode || 'cash',
+                                  payment_date: payment.payment_date || '',
+                                  notes: payment.notes || ''
+                                });
+                                setIsEditDialogOpen(true);
+                              }}
+                            >
                               Edit
                             </Button>
-                            {payment.status === 'pending' && (
-                              <Button size="sm">
-                                Mark Paid
+                            {(payment.status === 'pending' || payment.status === 'overdue') && (
+                              <Button
+                                size="sm"
+                                disabled={markingPaidId === payment.id}
+                                onClick={async () => {
+                                  setMarkingPaidId(payment.id);
+                                  await markPaymentAsPaid(payment.id, 'cash');
+                                  setMarkingPaidId(null);
+                                }}
+                              >
+                                {markingPaidId === payment.id ? 'Marking...' : 'Mark Paid'}
                               </Button>
                             )}
                           </div>
@@ -594,6 +629,104 @@ export const PaymentTracking = () => {
               onBack={() => setIsLedgerDetailOpen(false)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Payment Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Payment</DialogTitle>
+            <DialogDescription>
+              Update payment details for {editingPayment?.payment_id}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="editAmount">Amount (₹)</Label>
+              <Input
+                id="editAmount"
+                type="number"
+                value={editFormData.amount}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, amount: e.target.value }))}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="editStatus">Status</Label>
+              <Select
+                value={editFormData.status}
+                onValueChange={(value) => setEditFormData(prev => ({ ...prev, status: value as Payment['status'] }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="editPaymentMode">Payment Mode</Label>
+              <Select
+                value={editFormData.payment_mode}
+                onValueChange={(value) => setEditFormData(prev => ({ ...prev, payment_mode: value as Payment['payment_mode'] }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="editPaymentDate">Payment Date</Label>
+              <Input
+                id="editPaymentDate"
+                type="date"
+                value={editFormData.payment_date}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, payment_date: e.target.value }))}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="editNotes">Notes</Label>
+              <Input
+                id="editNotes"
+                value={editFormData.notes}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Additional notes..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={isUpdating}
+              onClick={async () => {
+                if (!editingPayment) return;
+                setIsUpdating(true);
+                await updatePayment(editingPayment.id, {
+                  amount: Number(editFormData.amount),
+                  status: editFormData.status,
+                  payment_mode: editFormData.payment_mode,
+                  payment_date: editFormData.payment_date || undefined,
+                  notes: editFormData.notes || undefined
+                });
+                setIsUpdating(false);
+                setIsEditDialogOpen(false);
+              }}
+            >
+              {isUpdating ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
