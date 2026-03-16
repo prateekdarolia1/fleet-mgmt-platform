@@ -186,7 +186,7 @@ export const PaymentTracking = () => {
                   {overduePayments?.length || 0}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  ₹{overduePayments?.reduce((sum, p) => sum + (p.balance || p.amount_due || 0), 0).toLocaleString()} total overdue
+                  ₹{(overduePayments?.reduce((sum, p) => sum + (p.balance || p.amount_due || 0), 0) || 0).toLocaleString()} total overdue
                 </div>
               </CardContent>
             </Card>
