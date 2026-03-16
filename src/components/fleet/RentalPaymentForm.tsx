@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -80,7 +80,7 @@ export const RentalPaymentForm = ({
     resolver: zodResolver(paymentFormSchema),
     mode: 'onChange',
     defaultValues: {
-      paid_amount: payment?.balance || payment?.amount_due || 0,
+      paid_amount: 0,
       payment_mode: 'cash',
       upi_last4: '',
       received_by: '',
@@ -88,6 +88,21 @@ export const RentalPaymentForm = ({
       notes: ''
     }
   });
+
+  // Reset form with payment data when it loads
+  useEffect(() => {
+    if (payment) {
+      const balanceAmount = payment.balance ?? payment.amount_due ?? 0;
+      form.reset({
+        paid_amount: balanceAmount,
+        payment_mode: 'cash',
+        upi_last4: '',
+        received_by: '',
+        external_ref: '',
+        notes: ''
+      });
+    }
+  }, [payment, form]);
 
   // Watch payment mode to conditionally show UPI field
   const watchPaymentMode = form.watch('payment_mode');
