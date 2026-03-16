@@ -370,7 +370,11 @@ export const PaymentTracking = () => {
                             {(payment.status === 'pending' || payment.status === 'overdue') && (
                               <Button
                                 size="sm"
+                                variant="outline"
+                                disabled={markingPaidId === payment.id}
                                 onClick={() => {
+                                  // Track which payment is being marked
+                                  setMarkingPaidId(payment.id);
                                   // Open safety check modal with prefilled defaults
                                   setSafetyCheckPayment(payment);
                                   setSafetyCheckData({
@@ -383,8 +387,17 @@ export const PaymentTracking = () => {
                                   setIsSafetyCheckOpen(true);
                                 }}
                               >
-                                <Shield className="h-3 w-3 mr-1" />
-                                Mark Paid
+                                {markingPaidId === payment.id ? (
+                                  <>
+                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                    Processing...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Shield className="h-3 w-3 mr-1" />
+                                    Mark Paid
+                                  </>
+                                )}
                               </Button>
                             )}
                           </div>
@@ -734,16 +747,30 @@ export const PaymentTracking = () => {
               disabled={isUpdating}
               onClick={async () => {
                 if (!editingPayment) return;
+
+                // Validate amount
+                const amount = Number(editFormData.amount);
+                if (!amount || amount <= 0) {
+                  toast.error('Please enter a valid positive amount');
+                  return;
+                }
+
                 setIsUpdating(true);
-                await updatePayment(editingPayment.id, {
-                  amount: Number(editFormData.amount),
-                  status: editFormData.status,
-                  payment_mode: editFormData.payment_mode,
-                  payment_date: editFormData.payment_date || undefined,
-                  notes: editFormData.notes || undefined
-                });
-                setIsUpdating(false);
-                setIsEditDialogOpen(false);
+                try {
+                  await updatePayment(editingPayment.id, {
+                    amount,
+                    status: editFormData.status,
+                    payment_mode: editFormData.payment_mode,
+                    payment_date: editFormData.payment_date || undefined,
+                    notes: editFormData.notes || undefined
+                  });
+                  setIsEditDialogOpen(false);
+                  toast.success('Payment updated successfully');
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : 'Failed to update payment');
+                } finally {
+                  setIsUpdating(false);
+                }
               }}
             >
               {isUpdating ? 'Saving...' : 'Save Changes'}
@@ -864,7 +891,10 @@ export const PaymentTracking = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSafetyCheckOpen(false)}>
+            <Button variant="outline" onClick={() => {
+              setIsSafetyCheckOpen(false);
+              setMarkingPaidId(null);
+            }}>
               Cancel
             </Button>
             <Button
@@ -872,7 +902,7 @@ export const PaymentTracking = () => {
               onClick={async () => {
                 // Validation
                 if (safetyCheckData.payment_mode === 'upi') {
-                  if (!safetyCheckData.upi_last4 || !/^[A-Za-z0-9]{4}$/.test(safetyCheckData.upi_last4)) {
+                  if (!safetyCheckData.upi_last4 || !/^[A-Z0-9]{4}$/.test(safetyCheckData.upi_last4)) {
                     setSafetyCheckError('UPI last 4 digits are required for UPI payments. Must be exactly 4 alphanumeric characters.');
                     return;
                   }
@@ -899,6 +929,7 @@ export const PaymentTracking = () => {
 
                   setIsSafetyCheckOpen(false);
                   setSafetyCheckPayment(null);
+                  setMarkingPaidId(null);
                   setSafetyCheckData({
                     payment_mode: 'cash',
                     payment_date: format(new Date(), 'yyyy-MM-dd'),
@@ -909,6 +940,7 @@ export const PaymentTracking = () => {
                   setSafetyCheckError(error instanceof Error ? error.message : 'Failed to update payment');
                 } finally {
                   setIsSafetyCheckSubmitting(false);
+                  setMarkingPaidId(null);
                 }
               }}
             >
