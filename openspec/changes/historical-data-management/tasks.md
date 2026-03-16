@@ -2,40 +2,41 @@
 
 ## 1. Database Schema Migration
 
-- [x] 1.1 Create migration file `add_historical_tracking_columns.sql`- [ ] 1.2 Add effective_start_date, effective_end_date columns to riders table
-- [ ] 1.3 Add is_historical_import, data_source, import_batch_id, confidence_score columns to riders table
-- [ ] 1.4 Add historical tracking columns to vehicles table
-- [ ] 1.5 Add historical tracking columns to batteries table
-- [ ] 1.6 Add historical tracking columns to payments table
-- [ ] 1.7 Add historical tracking columns to rental_ledgers table
-- [ ] 1.8 Set effective_start_date = created_at for existing records
-- [ ] 1.9 Create indexes on (entity_id, effective_start_date, effective_end_date)
-- [ ] 1.10 Create indexes on import_batch_id for all tables
+- [x] 1.1 Create migration file `add_historical_tracking_columns.sql`
+- [x] 1.2 Add effective_start_date, effective_end_date columns to riders table
+- [x] 1.3 Add is_historical_import, data_source, import_batch_id, confidence_score columns to riders table
+- [x] 1.4 Add historical tracking columns to vehicles table
+- [x] 1.5 Add historical tracking columns to batteries table
+- [x] 1.6 Add historical tracking columns to payments table
+- [x] 1.7 Add historical tracking columns to rental_ledgers table
+- [x] 1.8 Set effective_start_date = created_at for existing records
+- [x] 1.9 Create indexes on (entity_id, effective_start_date, effective_end_date)
+- [x] 1.10 Create indexes on import_batch_id for all tables
 
 ## 2. New Tables Creation
 
-- [ ] 2.1 Create data_import_batches table with all columns
-- [ ] 2.2 Create retroactive_events table with FK to data_import_batches
-- [ ] 2.3 Add indexes for point-in-time query performance
+- [x] 2.1 Create data_import_batches table with all columns
+- [x] 2.2 Create retroactive_events table with FK to data_import_batches
+- [x] 2.3 Add indexes for point-in-time query performance
 - [ ] 2.4 Run migration and verify tables created
 
 ## 3. SQL Functions for Point-in-Time Queries
 
-- [ ] 3.1 Create get_entity_state_at_date(entity_type, entity_id, date) function
-- [ ] 3.2 Create get_active_riders_count_at_date(date) function
-- [ ] 3.3 Create get_deployed_vehicles_count_at_date(date) function
-- [ ] 3.4 Create get_revenue_by_period(start_date, end_date) function
-- [ ] 3.5 Create get_entity_timeline(entity_type, entity_id) function
+- [x] 3.1 Create get_entity_state_at_date(entity_type, entity_id, date) function
+- [x] 3.2 Create get_active_riders_count_at_date(date) function
+- [x] 3.3 Create get_deployed_vehicles_count_at_date(date) function
+- [x] 3.4 Create get_revenue_by_period(start_date, end_date) function
+- [x] 3.5 Create get_entity_timeline(entity_type, entity_id) function
 - [ ] 3.6 Test all SQL functions with sample data
 
 ## 4. TypeScript Types and Interfaces
 
-- [ ] 4.1 Update Supabase types with new columns
-- [ ] 4.2 Create HistoricalRecord interface in src/types/historical.ts
-- [ ] 4.3 Create DataSource type union
-- [ ] 4.4 Create DataImportBatch interface
-- [ ] 4.5 Create RetroactiveEvent interface
-- [ ] 4.6 Extend existing entity types (Rider, Vehicle, Battery, Payment) with historical fields
+- [x] 4.1 Update Supabase types with new columns
+- [x] 4.2 Create HistoricalRecord interface in src/types/historical.ts
+- [x] 4.3 Create DataSource type union
+- [x] 4.4 Create DataImportBatch interface
+- [x] 4.5 Create RetroactiveEvent interface
+- [x] 4.6 Extend existing entity types (Rider, Vehicle, Battery, Payment) with historical fields
 
 ## 5. Date Estimation Rules Engine
 

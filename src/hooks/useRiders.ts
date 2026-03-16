@@ -59,6 +59,14 @@ export interface Rider {
   
   // New status field
   duty_status?: string | null;
+
+  // Historical tracking fields
+  effective_start_date?: string | null;
+  effective_end_date?: string | null;
+  is_historical_import?: boolean;
+  data_source?: string;
+  import_batch_id?: string | null;
+  confidence_score?: number;
 }
 
 export const useRiders = () => {

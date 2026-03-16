@@ -29,6 +29,13 @@ export type Database = {
           usc_id: string | null
           vehicle_id: string | null
           zone_id: string | null
+          // Historical tracking fields
+          effective_start_date: string | null
+          effective_end_date: string | null
+          is_historical_import: boolean
+          data_source: string
+          import_batch_id: string | null
+          confidence_score: number
         }
         Insert: {
           battery_id: string
@@ -137,6 +144,13 @@ export type Database = {
           rider_name: string
           status: Database["public"]["Enums"]["payment_status"]
           updated_at: string
+          // Historical tracking fields
+          effective_start_date: string | null
+          effective_end_date: string | null
+          is_historical_import: boolean
+          data_source: string
+          import_batch_id: string | null
+          confidence_score: number
         }
         Insert: {
           amount: number
@@ -481,6 +495,13 @@ export type Database = {
           status: Database["public"]["Enums"]["rider_status"]
           updated_at: string
           vehicle_assigned: string | null
+          // Historical tracking fields
+          effective_start_date: string | null
+          effective_end_date: string | null
+          is_historical_import: boolean
+          data_source: string
+          import_batch_id: string | null
+          confidence_score: number
         }
         Insert: {
           aadhaar_number?: string | null
@@ -629,6 +650,13 @@ export type Database = {
           vehicle_number: string
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
           vendor: string
+          // Historical tracking fields
+          effective_start_date: string | null
+          effective_end_date: string | null
+          is_historical_import: boolean
+          data_source: string
+          import_batch_id: string | null
+          confidence_score: number
         }
         Insert: {
           battery_type: Database["public"]["Enums"]["battery_type"]

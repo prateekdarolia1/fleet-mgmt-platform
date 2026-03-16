@@ -30,6 +30,14 @@ export interface Vehicle {
   location?: string;
   created_at: string;
   updated_at: string;
+
+  // Historical tracking fields
+  effective_start_date?: string | null;
+  effective_end_date?: string | null;
+  is_historical_import?: boolean;
+  data_source?: string;
+  import_batch_id?: string | null;
+  confidence_score?: number;
 }
 
 export const useVehicles = () => {
