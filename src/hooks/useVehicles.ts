@@ -21,6 +21,7 @@ export interface Vehicle {
   vehicle_type: 'High Speed' | 'Low Speed';
   battery_type: 'Fixed' | 'Swappable';
   status: 'Ready for Deployment' | 'Deployed' | 'Under Maintenance';
+  battery_id?: string | null; // Battery mapped to this vehicle (CBU requirement)
   rider_id?: string;
   rider_name?: string;
   rental_start_date?: string;

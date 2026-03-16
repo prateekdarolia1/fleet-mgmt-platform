@@ -75,11 +75,15 @@ export const RiderActivationModal = ({
     mode: 'onChange'
   });
 
-  // Get vehicles available for deployment (with battery mapped)
+  // Get vehicles available for deployment (CBU requirement: must have battery mapped)
+  // A Complete Business Unit (CBU) = Vehicle + Battery + Rider
   const availableVehicles = vehicles.filter(
-    v => v.status === 'Ready for Deployment'
-    // Note: We don't check battery_id directly here since vehicles don't have that column
-    // This is enforced by the vehicle status rule we created
+    v => v.status === 'Ready for Deployment' && v.battery_id != null
+  );
+
+  // Vehicles without battery (for warning display)
+  const vehiclesWithoutBattery = vehicles.filter(
+    v => v.status === 'Ready for Deployment' && v.battery_id == null
   );
 
   // Update selected vehicle when vehicleId changes
@@ -148,6 +152,20 @@ export const RiderActivationModal = ({
                 </p>
               </div>
             </div>
+
+            {/* Warning: Vehicles without battery */}
+            {vehiclesWithoutBattery.length > 0 && (
+              <div className="rounded-lg bg-amber-50 p-4 border border-amber-200 flex gap-3">
+                <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-900">Incomplete Business Units</p>
+                  <p className="text-sm text-amber-800 mt-1">
+                    {vehiclesWithoutBattery.length} vehicle(s) are ready for deployment but have no battery mapped.
+                    Map a battery first to activate a rider with that vehicle.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Step 1: Vehicle Selection */}
             <div className="space-y-3">

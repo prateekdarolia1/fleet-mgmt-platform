@@ -163,6 +163,13 @@ export const RiderManagement = () => {
         return;
       }
 
+      // CBU Validation: Vehicle must have a battery mapped before activation
+      if (!selectedVehicle.battery_id) {
+        toast.error('Cannot activate rider: Vehicle does not have a battery mapped. Complete the Business Unit first.');
+        setIsActivationLoading(false);
+        return;
+      }
+
       // Update rider with:
       // - New status (Active)
       // - Vehicle assignment

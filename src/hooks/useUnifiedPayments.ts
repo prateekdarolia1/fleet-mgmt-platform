@@ -45,7 +45,7 @@ export function useUnifiedOverduePayments(limit = 50) {
       fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
       const overdueThreshold = fourDaysAgo.toISOString().split('T')[0];
 
-      // Fetch from rental_payments table
+      // Fetch from rental_payments table - ONLY status='overdue' or past-due pending/partial
       const { data: rentalPayments, error: rentalError } = await supabase
         .from('rental_payments')
         .select(`
@@ -70,11 +70,11 @@ export function useUnifiedOverduePayments(limit = 50) {
         console.error('Error fetching overdue rental_payments:', rentalError);
       }
 
-      // Fetch from payments table (where status is overdue OR pending with past due date)
+      // Fetch from payments table - ONLY status='overdue' or past-due pending/partial
       const { data: payments, error: paymentsError } = await supabase
         .from('payments')
         .select('id, payment_id, rider_id, rider_name, amount, due_date, status, ledger_id')
-        .in('status', ['overdue', 'pending'])
+        .in('status', ['overdue', 'pending', 'partial'])
         .lt('due_date', overdueThreshold)
         .order('due_date', { ascending: true })
         .limit(limit);
