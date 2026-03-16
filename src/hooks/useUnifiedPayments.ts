@@ -129,17 +129,32 @@ export function useUnifiedOverduePayments(limit = 50) {
 }
 
 /**
- * Fetch upcoming payments from BOTH tables (payments + rental_payments)
- * Payments due within the next X days
+ * Fetch upcoming/due payments from BOTH tables (payments + rental_payments)
+ * Includes:
+ * - Payments due within the next X days (future)
+ * - Payments that are 1-4 days past due (still in pending grace period)
+ *
+ * A payment becomes OVERDUE only after MORE than 4 days past due date.
  */
 export function useUnifiedUpcomingPayments(days = 7) {
-  const today = new Date().toISOString().split('T')[0];
-  const futureDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // 4 days ago - payments newer than this are still "pending" (not overdue)
+  const fourDaysAgo = new Date(today);
+  fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
+  const pendingThreshold = fourDaysAgo.toISOString().split('T')[0];
+
+  // Future date for "due this week"
+  const futureDate = new Date(today);
+  futureDate.setDate(futureDate.getDate() + days);
+  const futureDateStr = futureDate.toISOString().split('T')[0];
 
   return useQuery({
     queryKey: ['unified-payments', 'upcoming', days],
     queryFn: async (): Promise<UnifiedUpcomingPayment[]> => {
       // Fetch from rental_payments table
+      // Include payments that are within the 4-day grace period OR due within next X days
       const { data: rentalPayments, error: rentalError } = await supabase
         .from('rental_payments')
         .select(`
@@ -155,8 +170,8 @@ export function useUnifiedUpcomingPayments(days = 7) {
           )
         `)
         .in('status', ['pending', 'partial'])
-        .gte('due_date', today)
-        .lte('due_date', futureDate)
+        .gte('due_date', pendingThreshold)
+        .lte('due_date', futureDateStr)
         .order('due_date', { ascending: true });
 
       if (rentalError) {
@@ -168,8 +183,8 @@ export function useUnifiedUpcomingPayments(days = 7) {
         .from('payments')
         .select('id, payment_id, rider_id, rider_name, amount, due_date, status, ledger_id')
         .in('status', ['pending'])
-        .gte('due_date', today)
-        .lte('due_date', futureDate)
+        .gte('due_date', pendingThreshold)
+        .lte('due_date', futureDateStr)
         .order('due_date', { ascending: true });
 
       if (paymentsError) {
