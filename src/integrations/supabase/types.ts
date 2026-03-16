@@ -70,6 +70,56 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          created_at: string | null
+          id: string
+          message: string
+          payload: Json | null
+          priority: string | null
+          read: boolean | null
+          target_user_id: string
+          title: string | null
+          type: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          message: string
+          payload?: Json | null
+          priority?: string | null
+          read?: boolean | null
+          target_user_id: string
+          title?: string | null
+          type: string
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string | null
+          id?: string
+          message?: string
+          payload?: Json | null
+          priority?: string | null
+          read?: boolean | null
+          target_user_id?: string
+          title?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_target_user_id_fkey"
+            columns: ["target_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -191,6 +241,160 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      rental_ledgers: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          notes: string | null
+          rental_amount: number
+          rental_start_date: string | null
+          responsible_user_id: string | null
+          rider_id: string
+          rider_name: string
+          security_deposit: number | null
+          security_deposit_status: string | null
+          status: string
+          updated_at: string | null
+          vehicle_id: string | null
+          vehicle_number: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          rental_amount?: number
+          rental_start_date?: string | null
+          responsible_user_id?: string | null
+          rider_id: string
+          rider_name: string
+          security_deposit?: number | null
+          security_deposit_status?: string | null
+          status?: string
+          updated_at?: string | null
+          vehicle_id?: string | null
+          vehicle_number?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          rental_amount?: number
+          rental_start_date?: string | null
+          responsible_user_id?: string | null
+          rider_id?: string
+          rider_name?: string
+          security_deposit?: number | null
+          security_deposit_status?: string | null
+          status?: string
+          updated_at?: string | null
+          vehicle_id?: string | null
+          vehicle_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_ledgers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_ledgers_responsible_user_id_fkey"
+            columns: ["responsible_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_ledgers_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rental_payments: {
+        Row: {
+          amount_due: number
+          balance: number | null
+          created_at: string | null
+          due_date: string
+          external_ref: string | null
+          id: string
+          last_reminder_at: string | null
+          ledger_id: string
+          notes: string | null
+          paid_amount: number
+          payment_date: string | null
+          payment_mode: string | null
+          received_by: string | null
+          reminder_count: number | null
+          status: string
+          updated_at: string | null
+          upi_last4: string | null
+          week_number: number
+        }
+        Insert: {
+          amount_due?: number
+          balance?: number | null
+          created_at?: string | null
+          due_date: string
+          external_ref?: string | null
+          id?: string
+          last_reminder_at?: string | null
+          ledger_id: string
+          notes?: string | null
+          paid_amount?: number
+          payment_date?: string | null
+          payment_mode?: string | null
+          received_by?: string | null
+          reminder_count?: number | null
+          status?: string
+          updated_at?: string | null
+          upi_last4?: string | null
+          week_number: number
+        }
+        Update: {
+          amount_due?: number
+          balance?: number | null
+          created_at?: string | null
+          due_date?: string
+          external_ref?: string | null
+          id?: string
+          last_reminder_at?: string | null
+          ledger_id?: string
+          notes?: string | null
+          paid_amount?: number
+          payment_date?: string | null
+          payment_mode?: string | null
+          received_by?: string | null
+          reminder_count?: number | null
+          status?: string
+          updated_at?: string | null
+          upi_last4?: string | null
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rental_payments_ledger_id_fkey"
+            columns: ["ledger_id"]
+            isOneToOne: false
+            referencedRelation: "rental_ledgers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_payments_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rider_ledgers: {
         Row: {
@@ -480,219 +684,65 @@ export type Database = {
         }
         Relationships: []
       }
-      rental_ledgers: {
-        Row: {
-          id: string
-          rider_id: string
-          rider_name: string
-          vehicle_id: string | null
-          vehicle_number: string | null
-          rental_start_date: string | null
-          rental_amount: number
-          security_deposit: number | null
-          security_deposit_status: Database["public"]["Enums"]["rental_security_deposit_status"]
-          status: Database["public"]["Enums"]["rental_ledger_status"]
-          responsible_user_id: string | null
-          notes: string | null
-          created_at: string
-          updated_at: string
-          created_by: string | null
-        }
-        Insert: {
-          id?: string
-          rider_id: string
-          rider_name: string
-          vehicle_id?: string | null
-          vehicle_number?: string | null
-          rental_start_date?: string | null
-          rental_amount?: number
-          security_deposit?: number | null
-          security_deposit_status?: Database["public"]["Enums"]["rental_security_deposit_status"]
-          status?: Database["public"]["Enums"]["rental_ledger_status"]
-          responsible_user_id?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-          created_by?: string | null
-        }
-        Update: {
-          id?: string
-          rider_id?: string
-          rider_name?: string
-          vehicle_id?: string | null
-          vehicle_number?: string | null
-          rental_start_date?: string | null
-          rental_amount?: number
-          security_deposit?: number | null
-          security_deposit_status?: Database["public"]["Enums"]["rental_security_deposit_status"]
-          status?: Database["public"]["Enums"]["rental_ledger_status"]
-          responsible_user_id?: string | null
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-          created_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rental_ledgers_vehicle_id_fkey"
-            columns: ["vehicle_id"]
-            isOneToOne: false
-            referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rental_ledgers_responsible_user_id_fkey"
-            columns: ["responsible_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rental_ledgers_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      rental_payments: {
-        Row: {
-          id: string
-          ledger_id: string
-          week_number: number
-          due_date: string
-          amount_due: number
-          paid_amount: number | null
-          balance: number
-          status: Database["public"]["Enums"]["rental_payment_status"]
-          payment_date: string | null
-          payment_mode: Database["public"]["Enums"]["rental_payment_mode"] | null
-          upi_last4: string | null
-          received_by: string | null
-          external_ref: string | null
-          last_reminder_at: string | null
-          reminder_count: number
-          notes: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          ledger_id: string
-          week_number: number
-          due_date: string
-          amount_due: number
-          paid_amount?: number | null
-          status?: Database["public"]["Enums"]["rental_payment_status"]
-          payment_date?: string | null
-          payment_mode?: Database["public"]["Enums"]["rental_payment_mode"] | null
-          upi_last4?: string | null
-          received_by?: string | null
-          external_ref?: string | null
-          last_reminder_at?: string | null
-          reminder_count?: number
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          ledger_id?: string
-          week_number?: number
-          due_date?: string
-          amount_due?: number
-          paid_amount?: number | null
-          status?: Database["public"]["Enums"]["rental_payment_status"]
-          payment_date?: string | null
-          payment_mode?: Database["public"]["Enums"]["rental_payment_mode"] | null
-          upi_last4?: string | null
-          received_by?: string | null
-          external_ref?: string | null
-          last_reminder_at?: string | null
-          reminder_count?: number
-          notes?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rental_payments_ledger_id_fkey"
-            columns: ["ledger_id"]
-            isOneToOne: false
-            referencedRelation: "rental_ledgers"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "rental_payments_received_by_fkey"
-            columns: ["received_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notifications: {
-        Row: {
-          id: string
-          target_user_id: string
-          type: Database["public"]["Enums"]["notification_type"]
-          title: string
-          message: string
-          payload: Json
-          read: boolean
-          read_at: string | null
-          action_url: string | null
-          action_label: string | null
-          priority: Database["public"]["Enums"]["notification_priority"]
-          expires_at: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          target_user_id: string
-          type: Database["public"]["Enums"]["notification_type"]
-          title: string
-          message: string
-          payload?: Json
-          read?: boolean
-          read_at?: string | null
-          action_url?: string | null
-          action_label?: string | null
-          priority?: Database["public"]["Enums"]["notification_priority"]
-          expires_at?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          target_user_id?: string
-          type?: Database["public"]["Enums"]["notification_type"]
-          title?: string
-          message?: string
-          payload?: Json
-          read?: boolean
-          read_at?: string | null
-          action_url?: string | null
-          action_label?: string | null
-          priority?: Database["public"]["Enums"]["notification_priority"]
-          expires_at?: string | null
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_target_user_id_fkey"
-            columns: ["target_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      confirm_rental_start: {
+        Args: {
+          p_confirmed_by?: string
+          p_ledger_id: string
+          p_notes?: string
+          p_rental_start_date: string
+          p_responsible_user_id?: string
+          p_security_deposit?: number
+        }
+        Returns: Json
+      }
+      create_rental_ledger: {
+        Args: {
+          p_created_by?: string
+          p_rider_id: string
+          p_vehicle_id?: string
+        }
+        Returns: string
+      }
+      generate_weekly_payments: { Args: never; Returns: number }
+      get_overdue_payments_for_reminder: {
+        Args: never
+        Returns: {
+          amount_due: number
+          balance: number
+          days_overdue: number
+          due_date: string
+          ledger_id: string
+          payment_id: string
+          reminder_count: number
+          responsible_user_id: string
+          rider_id: string
+          rider_name: string
+          vehicle_number: string
+          week_number: number
+        }[]
+      }
+      increment_reminder_count: {
+        Args: { p_payment_id: string }
+        Returns: boolean
+      }
+      mark_overdue_payments: { Args: never; Returns: number }
+      mark_rental_payment_paid: {
+        Args: {
+          p_external_ref?: string
+          p_notes?: string
+          p_paid_amount: number
+          p_payment_id: string
+          p_payment_mode?: string
+          p_received_by?: string
+          p_upi_last4?: string
+        }
+        Returns: Json
+      }
       validate_battery_smart_id: {
         Args: { id: string }
         Returns: {
@@ -707,17 +757,11 @@ export type Database = {
       battery_plan: "D2D" | "B2B" | "OTHER"
       battery_status: "ACTIVE" | "MAPPED" | "UNMAPPED"
       battery_type: "Fixed" | "Swappable"
-      notification_priority: "low" | "normal" | "high" | "urgent"
-      notification_type: "payment_due" | "payment_overdue" | "payment_received" | "ledger_created" | "ledger_pending_confirmation"
       payment_mode: "cash" | "upi" | "bank-transfer" | "card"
       payment_status: "pending" | "paid" | "overdue" | "partial"
       payment_type: "security_deposit" | "rental"
       rental_frequency: "daily" | "weekly" | "monthly"
-      rental_ledger_status: "pending_start" | "active" | "suspended" | "closed" | "cancelled"
-      rental_payment_mode: "cash" | "upi" | "bank-transfer" | "card" | "other"
-      rental_payment_status: "pending" | "partial" | "paid" | "overdue" | "waived"
       rental_plan: "daily" | "weekly" | "monthly"
-      rental_security_deposit_status: "pending" | "collected" | "refunded"
       rider_status: "active" | "inactive" | "suspended" | "deboarded"
       service_provider: "BATTERY_SMART" | "OTHER"
       vehicle_status: "Ready for Deployment" | "Deployed" | "Under Maintenance"
@@ -854,17 +898,11 @@ export const Constants = {
       battery_plan: ["D2D", "B2B", "OTHER"],
       battery_status: ["ACTIVE", "MAPPED", "UNMAPPED"],
       battery_type: ["Fixed", "Swappable"],
-      notification_priority: ["low", "normal", "high", "urgent"],
-      notification_type: ["payment_due", "payment_overdue", "payment_received", "ledger_created", "ledger_pending_confirmation"],
       payment_mode: ["cash", "upi", "bank-transfer", "card"],
       payment_status: ["pending", "paid", "overdue", "partial"],
       payment_type: ["security_deposit", "rental"],
       rental_frequency: ["daily", "weekly", "monthly"],
-      rental_ledger_status: ["pending_start", "active", "suspended", "closed", "cancelled"],
-      rental_payment_mode: ["cash", "upi", "bank-transfer", "card", "other"],
-      rental_payment_status: ["pending", "partial", "paid", "overdue", "waived"],
       rental_plan: ["daily", "weekly", "monthly"],
-      rental_security_deposit_status: ["pending", "collected", "refunded"],
       rider_status: ["active", "inactive", "suspended", "deboarded"],
       service_provider: ["BATTERY_SMART", "OTHER"],
       vehicle_status: ["Ready for Deployment", "Deployed", "Under Maintenance"],
