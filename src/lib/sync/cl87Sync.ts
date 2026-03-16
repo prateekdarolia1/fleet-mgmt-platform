@@ -424,3 +424,101 @@ export async function previewCL87Sync(csvContent: string): Promise<{
     potentialChanges
   };
 }
+
+/**
+ * Generate SQL statements for direct database injection
+ * CSV data takes PRECEDENCE - this will overwrite existing mappings
+ */
+export async function generateCL87SQL(csvContent: string): Promise<{
+  sql: string;
+  summary: {
+    total: number;
+    updates: number;
+    skipped: number;
+    missing: { vehicles: string[]; batteries: string[]; riders: string[] };
+  };
+}> {
+  const mappings = parseCL87CSV(csvContent);
+  const supabaseData = await fetchSupabaseData();
+
+  const sqlLines: string[] = [];
+  const missing = { vehicles: [] as string[], batteries: [] as string[], riders: [] as string[] };
+  let updates = 0;
+  let skipped = 0;
+
+  sqlLines.push('-- CL87 Battery Smart Data Sync SQL');
+  sqlLines.push(`-- Generated: ${new Date().toISOString()}`);
+  sqlLines.push(`-- Total mappings: ${mappings.length}`);
+  sqlLines.push('-- CSV data takes PRECEDENCE over existing data');
+  sqlLines.push('');
+  sqlLines.push('BEGIN;');
+  sqlLines.push('');
+
+  for (const mapping of mappings) {
+    const existingVehicle = supabaseData.vehicles.find(v => v.vehicle_number === mapping.vehicle_id);
+    const existingBattery = supabaseData.batteries.find(b => b.battery_id === mapping.battery_id);
+    const existingRider = supabaseData.riders.find(r => r.rider_id === mapping.driver_id);
+
+    // Track missing entities
+    if (!existingVehicle) {
+      missing.vehicles.push(mapping.vehicle_id);
+      skipped++;
+      sqlLines.push(`-- SKIP: Vehicle ${mapping.vehicle_id} not found in database`);
+      continue;
+    }
+    if (!existingBattery) {
+      missing.batteries.push(mapping.battery_id);
+      skipped++;
+      sqlLines.push(`-- SKIP: Battery ${mapping.battery_id} not found in database`);
+      continue;
+    }
+    if (!existingRider) {
+      missing.riders.push(mapping.driver_id);
+      skipped++;
+      sqlLines.push(`-- SKIP: Rider ${mapping.driver_id} not found in database`);
+      continue;
+    }
+
+    // Generate UPDATE statements
+    sqlLines.push(`-- Mapping: ${mapping.vehicle_id} -> ${mapping.driver_id} -> ${mapping.battery_id}`);
+
+    // Update vehicle with battery and rider
+    sqlLines.push(`UPDATE vehicles SET`);
+    sqlLines.push(`  battery_id = '${existingBattery.id}',`);
+    sqlLines.push(`  rider_id = '${mapping.driver_id}',`);
+    sqlLines.push(`  rider_name = '${existingRider.name.replace(/'/g, "''")}'`);
+    sqlLines.push(`WHERE vehicle_number = '${mapping.vehicle_id}';`);
+    sqlLines.push('');
+
+    // Update rider with vehicle and battery_smart_id
+    const batterySmartId = existingBattery.battery_smart_id;
+    sqlLines.push(`UPDATE riders SET`);
+    sqlLines.push(`  vehicle_assigned = '${mapping.vehicle_id}'${batterySmartId ? ',' : ''}`);
+    if (batterySmartId) {
+      sqlLines.push(`  battery_smart_id = '${batterySmartId}'`);
+    }
+    sqlLines.push(`WHERE rider_id = '${mapping.driver_id}';`);
+    sqlLines.push('');
+
+    // Update battery with vehicle mapping
+    sqlLines.push(`UPDATE batteries SET`);
+    sqlLines.push(`  vehicle_id = '${existingVehicle.id}',`);
+    sqlLines.push(`  status = 'MAPPED'`);
+    sqlLines.push(`WHERE battery_id = '${mapping.battery_id}';`);
+    sqlLines.push('');
+
+    updates++;
+  }
+
+  sqlLines.push('COMMIT;');
+
+  return {
+    sql: sqlLines.join('\n'),
+    summary: {
+      total: mappings.length,
+      updates,
+      skipped,
+      missing
+    }
+  };
+}
