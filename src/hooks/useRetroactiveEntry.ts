@@ -114,11 +114,13 @@ export function useRetroactiveEntry({
 
   const confirmHistorical = useCallback(() => {
     setShowConfirmation(false);
+    // Call the pending callback if provided (for date field updates)
     if (selectedDate && pendingCallback) {
       pendingCallback(selectedDate);
     }
-    // The form can now submit with isHistorical = true
-  }, [selectedDate, pendingCallback]);
+    // Always call onConfirm to signal that historical entry was confirmed
+    onConfirm({ isHistorical: true });
+  }, [selectedDate, pendingCallback, onConfirm]);
 
   const cancelHistorical = useCallback(() => {
     setShowConfirmation(false);
