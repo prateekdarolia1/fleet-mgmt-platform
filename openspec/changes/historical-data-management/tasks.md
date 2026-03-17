@@ -102,11 +102,11 @@
 
 ## 11. Historical Data Dashboard
 
-- [ ] 11.1 Create src/components/historical/HistoricalDatePicker.tsx
-- [ ] 11.2 Create src/components/historical/HistoricalMetricsCard.tsx
-- [ ] 11.3 Create src/components/historical/DataQualityIndicator.tsx
-- [ ] 11.4 Add historical view toggle to main dashboard
-- [ ] 11.5 Update dashboard metrics to use point-in-time queries when historical date selected
+- [x] 11.1 Create src/components/historical/HistoricalDatePicker.tsx
+- [x] 11.2 Create src/components/historical/HistoricalMetricsCard.tsx
+- [x] 11.3 Create src/components/historical/DataQualityIndicator.tsx
+- [x] 11.4 Add historical view toggle to main dashboard
+- [x] 11.5 Update dashboard metrics to use point-in-time queries when historical date selected
 
 ## 12. CL87 CSV Import Integration
 
