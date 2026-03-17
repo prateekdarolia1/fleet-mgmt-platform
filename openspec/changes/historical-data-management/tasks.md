@@ -80,16 +80,15 @@
 - [ ] 8.10 Add integration tests for full import workflow
 
 ## 9. React Query Hooks
-
-- [ ] 9.1 Create src/hooks/usePointInTimeQueries.ts
-- [ ] 9.2 Implement useEntityStateAtDate(entityType, entityId, date) hook
-- [ ] 9.3 Implement useActiveRidersCountAtDate(date) hook
-- [ ] 9.4 Implement useRevenueByPeriod(startDate, endDate) hook
-- [ ] 9.5 Implement useEntityTimeline(entityType, entityId) hook
-- [ ] 9.6 Create src/hooks/useImportBatch.ts
-- [ ] 9.7 Implement useImportBatch(batchId) hook
-- [ ] 9.8 Implement useCreateImportBatch() mutation hook
-- [ ] 9.9 Implement useUpdateImportBatch() mutation hook
+- [x] 9.1 Create src/hooks/usePointInTimeQueries.ts
+- [x] 9.2 Implement useEntityStateAtDate(entityType, entityId, date) hook
+- [x] 9.3 Implement useActiveRidersCountAtDate(date) hook
+- [x] 9.4 Implement useRevenueByPeriod(startDate, endDate) hook
+- [x] 9.5 Implement useEntityTimeline(entityType, entityId) hook
+- [x] 9.6 Create src/hooks/useImportBatch.ts
+- [x] 9.7 Implement useImportBatch(batchId) hook
+- [x] 9.8 Implement useCreateImportBatch() mutation hook
+- [x] 9.9 Implement useUpdateImportBatch() mutation hook
 
 ## 10. Import UI Components
 
