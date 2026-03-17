@@ -110,21 +110,21 @@
 
 ## 12. CL87 CSV Import Integration
 
-- [ ] 12.1 Update src/lib/sync/cl87Sync.ts to use historical import system
-- [ ] 12.2 Add confidence scores to CL87 CSV parsing
-- [ ] 12.3 Generate retroactive events during CL87 sync
-- [ ] 12.4 Track CL87 imports in data_import_batches
-- [ ] 12.5 Test CL87 import with historical tracking enabled
+- [x] 12.1 Update src/lib/sync/cl87Sync.ts to use historical import system
+- [x] 12.2 Add confidence scores to CL87 CSV parsing
+- [x] 12.3 Generate retroactive events during CL87 sync
+- [x] 12.4 Track CL87 imports in data_import_batches
+- [x] 12.5 Test CL87 import with historical tracking enabled
 
 ## 13. Testing
 
-- [ ] 13.1 Create test fixtures with historical CSV data
-- [ ] 13.2 Write unit tests for date estimation rules
-- [ ] 13.3 Write unit tests for reconciliation engine
-- [ ] 13.4 Write unit tests for transform engine
-- [ ] 13.5 Write integration tests for full import workflow
+- [x] 13.1 Create test fixtures with historical CSV data
+- [x] 13.2 Write unit tests for date estimation rules
+- [x] 13.3 Write unit tests for reconciliation engine
+- [x] 13.4 Write unit tests for transform engine
+- [x] 13.5 Write integration tests for full import workflow
 - [ ] 13.6 Write E2E tests for historical import UI
-- [ ] 13.7 Write tests for point-in-time query functions
+- [x] 13.7 Write tests for point-in-time query functions
 
 ## 14. Documentation
 

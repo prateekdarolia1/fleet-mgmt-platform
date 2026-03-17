@@ -4,12 +4,20 @@
  * This utility syncs vehicle-battery-driver mappings from the CL87 CSV file
  * to Supabase. CSV data takes PRECEDENCE over Supabase data when there are conflicts.
  *
+ * Historical Import Integration:
+ * - Uses the historical import system for retroactive data loading
+ * - Adds confidence scores based on data source
+ * - Creates retroactive events for timeline reconstruction
+ * - Tracks imports in data_import_batches table
+ *
  * Usage:
  *   import { syncCL87Data } from '@/lib/sync/cl87Sync';
  *   const result = await syncCL87Data();
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import type { DataSource, RetroactiveEvent } from '@/types/historical';
+import { DATA_SOURCE_CONFIDENCE } from '@/lib/import/dateEstimation';
 
 export interface CL87Mapping {
   vehicle_id: string;
@@ -21,6 +29,11 @@ export interface CL87Mapping {
   make_model: string;
   speed_type: string;
   deployment_date: string;
+  // Historical tracking fields
+  confidence_score?: number;
+  data_source?: DataSource;
+  import_batch_id?: string;
+  is_historical_import?: boolean;
 }
 
 export interface SyncResult {
@@ -521,4 +534,296 @@ export async function generateCL87SQL(csvContent: string): Promise<{
       missing
     }
   };
+}
+
+// ============================================================================
+// HISTORICAL IMPORT INTEGRATION
+// ============================================================================
+
+/**
+ * Import CL87 data with historical tracking
+ * Creates import batch, retroactive events, and tracks confidence scores
+ */
+export async function importCL87Historical(
+  csvContent: string,
+  options: {
+    batchName?: string;
+    dryRun?: boolean;
+    progressCallback?: (progress: { current: number; total: number; message: string }) => void;
+  } = {}
+): Promise<{
+  success: boolean;
+  batchId?: string;
+  summary?: {
+    totalRecords: number;
+    recordsCreated: number;
+    recordsUpdated: number;
+    retroactiveEventsCreated: number;
+    avgConfidenceScore: number;
+  };
+  error?: string;
+}> {
+  const { batchName = `CL87 Import ${new Date().toISOString().split('T')[0]}`, dryRun = false, progressCallback } = options;
+
+  try {
+    const mappings = parseCL87CSV(csvContent);
+    progressCallback?.({ current: 0, total: mappings.length, message: 'Starting import...' });
+
+    // Create import batch
+    let batchId: string | undefined;
+
+    if (!dryRun) {
+      const { data: batch, error: batchError } = await supabase
+        .from('data_import_batches')
+        .insert({
+          batch_name: batchName,
+          source_file: 'CL87_CSV',
+          data_source: 'CL87_CSV',
+          status: 'in_progress',
+          records_total: mappings.length,
+        })
+        .select('id')
+        .single();
+
+      if (batchError || !batch) {
+        throw new Error(`Failed to create batch: ${batchError?.message}`);
+      }
+
+      batchId = batch.id;
+    }
+
+    const supabaseData = await fetchSupabaseData();
+    const retroactiveEvents: RetroactiveEvent[] = [];
+    let recordsCreated = 0;
+    let recordsUpdated = 0;
+    let totalConfidence = 0;
+
+    // Process each mapping
+    for (let i = 0; i < mappings.length; i++) {
+      const mapping = mappings[i];
+      progressCallback?.({
+        current: i + 1,
+        total: mappings.length,
+        message: `Processing ${mapping.vehicle_id}...`,
+      });
+
+      const confidenceScore = calculateCL87Confidence(mapping);
+      totalConfidence += confidenceScore;
+
+      if (!dryRun && batchId) {
+        // Create retroactive events for timeline reconstruction
+        const events = await createRetroactiveEventsForMapping(mapping, batchId, confidenceScore);
+        retroactiveEvents.push(...events);
+
+        // Sync the mapping with historical fields
+        const syncResult = await syncMappingWithHistorical(mapping, supabaseData, batchId, confidenceScore);
+
+        if (syncResult.action === 'created') recordsCreated++;
+        if (syncResult.action === 'updated') recordsUpdated++;
+      }
+    }
+
+    // Update batch status
+    if (!dryRun && batchId) {
+      await supabase
+        .from('data_import_batches')
+        .update({
+          status: 'completed',
+          records_created: recordsCreated,
+          records_updated: recordsUpdated,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', batchId);
+
+      // Insert retroactive events
+      if (retroactiveEvents.length > 0) {
+        await supabase.from('retroactive_events').insert(retroactiveEvents);
+      }
+    }
+
+    return {
+      success: true,
+      batchId,
+      summary: {
+        totalRecords: mappings.length,
+        recordsCreated,
+        recordsUpdated,
+        retroactiveEventsCreated: retroactiveEvents.length,
+        avgConfidenceScore: mappings.length > 0 ? totalConfidence / mappings.length : 1,
+      },
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Calculate confidence score for CL87 mapping
+ */
+function calculateCL87Confidence(mapping: CL87Mapping): number {
+  let score = DATA_SOURCE_CONFIDENCE.CL87_CSV;
+
+  // Reduce confidence if deployment date is missing or invalid
+  if (!mapping.deployment_date) {
+    score *= 0.8;
+  } else {
+    const date = new Date(mapping.deployment_date);
+    if (isNaN(date.getTime())) {
+      score *= 0.7;
+    }
+  }
+
+  // Reduce confidence if any IDs are missing
+  if (!mapping.vehicle_id || !mapping.driver_id || !mapping.battery_id) {
+    score *= 0.5;
+  }
+
+  return Math.max(0.3, Math.min(1.0, score));
+}
+
+/**
+ * Create retroactive events for a mapping
+ */
+async function createRetroactiveEventsForMapping(
+  mapping: CL87Mapping,
+  batchId: string,
+  confidenceScore: number
+): Promise<RetroactiveEvent[]> {
+  const events: RetroactiveEvent[] = [];
+  const deploymentDate = mapping.deployment_date
+    ? new Date(mapping.deployment_date)
+    : new Date();
+
+  // Vehicle deployment event
+  events.push({
+    id: '', // Will be generated by DB
+    entity_type: 'vehicle',
+    entity_id: mapping.vehicle_id,
+    event_type: 'DEPLOY',
+    effective_date: deploymentDate.toISOString(),
+    recorded_date: new Date().toISOString(),
+    event_data: {
+      make_model: mapping.make_model,
+      speed_type: mapping.speed_type,
+      chassis_number: mapping.chassis_number,
+      zone_id: mapping.zone_id,
+    },
+    source: 'CL87_CSV',
+    confidence: confidenceScore,
+    notes: 'Imported from CL87 CSV',
+    import_batch_id: batchId,
+    created_at: new Date().toISOString(),
+  });
+
+  // Rider assignment event
+  events.push({
+    id: '',
+    entity_type: 'rider',
+    entity_id: mapping.driver_id,
+    event_type: 'ASSIGN',
+    effective_date: deploymentDate.toISOString(),
+    recorded_date: new Date().toISOString(),
+    event_data: {
+      vehicle_id: mapping.vehicle_id,
+      battery_id: mapping.battery_id,
+      usc_id: mapping.usc_id,
+    },
+    source: 'CL87_CSV',
+    confidence: confidenceScore,
+    notes: 'Imported from CL87 CSV',
+    import_batch_id: batchId,
+    created_at: new Date().toISOString(),
+  });
+
+  // Battery assignment event
+  events.push({
+    id: '',
+    entity_type: 'battery',
+    entity_id: mapping.battery_id,
+    event_type: 'ASSIGN',
+    effective_date: deploymentDate.toISOString(),
+    recorded_date: new Date().toISOString(),
+    event_data: {
+      vehicle_id: mapping.vehicle_id,
+      rider_id: mapping.driver_id,
+    },
+    source: 'CL87_CSV',
+    confidence: confidenceScore,
+    notes: 'Imported from CL87 CSV',
+    import_batch_id: batchId,
+    created_at: new Date().toISOString(),
+  });
+
+  return events;
+}
+
+/**
+ * Sync mapping with historical tracking fields
+ */
+async function syncMappingWithHistorical(
+  mapping: CL87Mapping,
+  supabaseData: Awaited<ReturnType<typeof fetchSupabaseData>>,
+  batchId: string,
+  confidenceScore: number
+): Promise<{ action: 'created' | 'updated' | 'skipped'; details: string }> {
+  const { vehicles, batteries, riders } = supabaseData;
+
+  const existingVehicle = vehicles.find(v => v.vehicle_number === mapping.vehicle_id);
+  const existingBattery = batteries.find(b => b.battery_id === mapping.battery_id);
+  const existingRider = riders.find(r => r.rider_id === mapping.driver_id);
+
+  // Skip if any entity is missing
+  if (!existingVehicle || !existingBattery || !existingRider) {
+    return { action: 'skipped', details: 'Missing entities' };
+  }
+
+  // Update vehicle with historical tracking
+  await supabase
+    .from('vehicles')
+    .update({
+      rider_id: mapping.driver_id,
+      rider_name: existingRider.name,
+      // Historical tracking fields
+      effective_start_date: mapping.deployment_date || existingVehicle.created_at,
+      is_historical_import: true,
+      data_source: 'CL87_CSV',
+      import_batch_id: batchId,
+      confidence_score: confidenceScore,
+    })
+    .eq('id', existingVehicle.id);
+
+  // Update rider with historical tracking
+  await supabase
+    .from('riders')
+    .update({
+      vehicle_assigned: mapping.vehicle_id,
+      battery_smart_id: existingBattery.battery_smart_id,
+      // Historical tracking fields
+      effective_start_date: mapping.deployment_date || existingRider.created_at,
+      is_historical_import: true,
+      data_source: 'CL87_CSV',
+      import_batch_id: batchId,
+      confidence_score: confidenceScore,
+    })
+    .eq('id', existingRider.id);
+
+  // Update battery with historical tracking
+  await supabase
+    .from('batteries')
+    .update({
+      vehicle_id: existingVehicle.id,
+      status: 'MAPPED',
+      // Historical tracking fields
+      effective_start_date: mapping.deployment_date || existingBattery.created_at,
+      is_historical_import: true,
+      data_source: 'CL87_CSV',
+      import_batch_id: batchId,
+      confidence_score: confidenceScore,
+    })
+    .eq('id', existingBattery.id);
+
+  return { action: 'updated', details: `Updated ${mapping.vehicle_id}` };
 }
