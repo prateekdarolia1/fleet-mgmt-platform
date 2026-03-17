@@ -28,20 +28,19 @@ import { Loader2, Calendar, User, IndianRupee, AlertCircle, CheckCircle2 } from 
 import { cn } from '@/lib/utils';
 import { useConfirmRentalStart } from '@/hooks/useRentalLedgers';
 import { useProfiles } from '@/hooks/useProfiles';
+import { PastDateConfirmationDialog } from '@/components/shared';
+import { getHistoricalTrackingFields } from '@/hooks/useRetroactiveEntry';
 
 /**
  * Validation schema for rental confirmation
- * Enforces: Valid start date, numeric deposit
+ * Allows: Any valid date (past dates trigger confirmation dialog)
  */
 const rentalConfirmSchema = z.object({
   rental_start_date: z.string()
     .refine((date) => {
       const d = new Date(date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const twoDaysAgo = addDays(today, -2);
-      return d >= twoDaysAgo && d <= addDays(today, 1);
-    }, { message: 'Start date must be within 2 days past or 1 day future' }),
+      return !isNaN(d.getTime());
+    }, { message: 'Please enter a valid date' }),
   security_deposit: z.number()
     .min(0, 'Security deposit cannot be negative')
     .max(50000, 'Security deposit seems too high (max ₹50,000)'),
@@ -85,6 +84,9 @@ export const RentalLedgerConfirmModal = ({
   onSuccess
 }: RentalLedgerConfirmModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPastDateDialog, setShowPastDateDialog] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<RentalConfirmFormData | null>(null);
+  const [isHistorical, setIsHistorical] = useState(false);
 
   const confirmRentalStart = useConfirmRentalStart();
   const { profiles } = useProfiles();
@@ -100,29 +102,45 @@ export const RentalLedgerConfirmModal = ({
     }
   });
 
-  // Get today's date for date picker min/max
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const minDate = format(addDays(today, -2), 'yyyy-MM-dd');
-  const maxDate = format(addDays(today, 1), 'yyyy-MM-dd');
-
-  const handleSubmit = async (data: RentalConfirmFormData) => {
+  const handleSubmit = async (data: RentalConfirmFormData, forceHistorical = false) => {
     if (!ledgerId) {
+      return;
+    }
+
+    // Check if date is in the past
+    const selectedDate = new Date(data.rental_start_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    if (!forceHistorical && selectedDate < today) {
+      // Past date detected - show confirmation
+      setPendingFormData(data);
+      setShowPastDateDialog(true);
       return;
     }
 
     setIsSubmitting(true);
     try {
+      const historicalFields = forceHistorical || isHistorical
+        ? getHistoricalTrackingFields(true)
+        : {};
+
       await confirmRentalStart.mutateAsync({
         ledger_id: ledgerId,
         rental_start_date: data.rental_start_date,
         security_deposit: data.security_deposit,
         responsible_user_id: data.responsible_user_id || undefined,
-        notes: data.notes || undefined
+        notes: data.notes || undefined,
+        is_historical: forceHistorical || isHistorical,
+        ...historicalFields,
       });
 
       // Reset form and close modal
       form.reset();
+      setShowPastDateDialog(false);
+      setPendingFormData(null);
+      setIsHistorical(false);
       onOpenChange(false);
 
       // Call success callback
@@ -133,6 +151,19 @@ export const RentalLedgerConfirmModal = ({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleConfirmHistorical = () => {
+    setShowPastDateDialog(false);
+    setIsHistorical(true);
+    if (pendingFormData) {
+      handleSubmit(pendingFormData, true);
+    }
+  };
+
+  const handleCancelHistorical = () => {
+    setShowPastDateDialog(false);
+    setPendingFormData(null);
   };
 
   const handleClose = () => {
@@ -214,8 +245,6 @@ export const RentalLedgerConfirmModal = ({
                     <Input
                       type="date"
                       {...field}
-                      min={minDate}
-                      max={maxDate}
                       disabled={isSubmitting}
                       className={cn(
                         'text-base font-medium border-2 transition-colors',
@@ -225,7 +254,7 @@ export const RentalLedgerConfirmModal = ({
                     />
                   </FormControl>
                   <FormDescription>
-                    Must be within 2 days past or 1 day in future
+                    Select the rental start date. Past dates will be marked as historical entries.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -370,6 +399,17 @@ export const RentalLedgerConfirmModal = ({
             </DialogFooter>
           </form>
         </Form>
+
+        {/* Past Date Confirmation Dialog */}
+        <PastDateConfirmationDialog
+          open={showPastDateDialog}
+          onOpenChange={(open) => {
+            if (!open) handleCancelHistorical();
+          }}
+          onConfirm={handleConfirmHistorical}
+          date={pendingFormData ? new Date(pendingFormData.rental_start_date) : null}
+          entityType="ledger"
+        />
       </DialogContent>
     </Dialog>
   );

@@ -153,13 +153,26 @@ export function useConfirmRentalStart() {
       security_deposit?: number;
       responsible_user_id?: string;
       confirmed_by?: string;
-    }): Promise<{ success: boolean; payments_created: number }> => {
+      // Historical tracking parameters
+      is_historical?: boolean;
+      data_source?: string;
+      confidence_score?: number;
+    }): Promise<{
+      success: boolean;
+      payments_created: number;
+      is_historical: boolean;
+      data_source: string;
+      confidence_score: number;
+    }> => {
       const { data, error } = await supabase.rpc('confirm_rental_start', {
         p_ledger_id: params.ledger_id,
         p_rental_start_date: params.rental_start_date,
         p_security_deposit: params.security_deposit || 0,
         p_responsible_user_id: params.responsible_user_id || null,
         p_confirmed_by: params.confirmed_by || null,
+        p_is_historical: params.is_historical || false,
+        p_data_source: params.data_source || 'PLATFORM',
+        p_confidence_score: params.confidence_score || 1.0,
       });
 
       if (error) {
@@ -167,13 +180,23 @@ export function useConfirmRentalStart() {
         throw error;
       }
 
-      return data as { success: boolean; payments_created: number };
+      return data as {
+        success: boolean;
+        payments_created: number;
+        is_historical: boolean;
+        data_source: string;
+        confidence_score: number;
+      };
     },
     onSuccess: (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['rental-ledgers'] });
       queryClient.invalidateQueries({ queryKey: ['rental-ledger', variables.ledger_id] });
       queryClient.invalidateQueries({ queryKey: ['rental-payments'] });
-      toast.success(`Rental started! ${result.payments_created} payment entries created.`);
+
+      const historicalNote = result.is_historical
+        ? ' (marked as historical entry)'
+        : '';
+      toast.success(`Rental started! ${result.payments_created} payment entries created${historicalNote}.`);
     },
     onError: (error: Error) => {
       toast.error(`Failed to confirm rental start: ${error.message}`);

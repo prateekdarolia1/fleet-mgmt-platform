@@ -25,6 +25,10 @@ export interface CreateLedgerData {
   rental_amount: number;
   rental_start_date: string;
   swaps_allowed_per_month?: number;
+  // Historical tracking fields (for retroactive entries)
+  is_historical?: boolean;
+  data_source?: string;
+  confidence_score?: number;
 }
 
 export const useRiderLedgers = () => {

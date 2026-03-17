@@ -137,6 +137,70 @@ if (invalid_date) score *= 0.7;
 if (!vehicle_id || !driver_id || !battery_id) score *= 0.5;
 ```
 
+## UI-Based Retroactive Entry
+
+### Overview
+
+In addition to CSV imports, you can create historical records directly through the UI. This is useful for:
+- Creating a single ledger for a past date
+- Adding missed payment entries
+- Correcting historical data
+
+### How It Works
+
+When you select a past date in a form (e.g., rental start date before today):
+
+1. **Detection**: The system detects the date is in the past
+2. **Confirmation**: A dialog appears explaining the implications
+3. **Confirmation Required**: You must explicitly confirm to proceed
+4. **Historical Tracking**: The record is automatically tagged with:
+   - `data_source = 'MANUAL_ENTRY'`
+   - `confidence_score = 0.70`
+   - `is_historical_import = true`
+   - `effective_start_date = [selected past date]`
+
+### Confidence Score for Manual Entries
+
+| Entry Type | Confidence Score | Quality Level |
+|------------|-----------------|---------------|
+| UI-based past date entry | 0.70 | Moderate |
+| CSV import (CL87) | 0.90 | High |
+| Platform real-time | 1.00 | High |
+
+**Note**: Manual entries have a lower confidence score because they rely on human input without source documentation. Always verify dates before confirming.
+
+### Supported Forms
+
+| Form | Past Date Field | Historical Tracking |
+|------|----------------|---------------------|
+| Create Ledger | Rental Start Date | ✓ Yes |
+| Confirm Rental Start | Start Date | ✓ Yes |
+| Add Rider | Joined Since | ✓ Yes |
+
+### Best Practices for Manual Historical Entry
+
+1. **Verify Dates**: Double-check the date before confirming
+2. **Document Reason**: Add notes explaining why the entry is retrospective
+3. **Review Later**: Check the record after creation for accuracy
+4. **Use CSV for Bulk**: For multiple historical records, prefer CSV import
+
+### Example: Creating a Historical Ledger
+
+1. Navigate to **Fleet > Ledgers > Create**
+2. Fill in the required fields
+3. Select a past date for "Rental Start Date"
+4. A confirmation dialog appears:
+   ```
+   Historical Entry Detected
+   The date June 15, 2024 is in the past.
+   This rental ledger will be created as a historical entry with:
+   • Confidence score of 70% (manual entry)
+   • Marked as historical data in reports
+   • Effective from the selected date
+   ```
+5. Click "Confirm as Historical Entry" to proceed
+6. The ledger is created with historical tracking
+
 ## Ghost Entities
 
 ### What are Ghost Entities?

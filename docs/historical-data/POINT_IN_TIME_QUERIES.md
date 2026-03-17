@@ -358,3 +358,96 @@ async function validateHistoricalData(date: Date) {
   }
 }
 ```
+
+## Querying Manually Entered Historical Data
+
+### Understanding Manual Entry Data Source
+
+When records are created through the UI with past dates, they are automatically tagged with:
+- `data_source = 'MANUAL_ENTRY'`
+- `confidence_score = 0.70`
+
+These records are included in point-in-time queries alongside CSV-imported and platform-captured data.
+
+### Filtering by Data Source
+
+```typescript
+// Get entity state and check if it's a manual entry
+const { data } = useEntityStateAtDate('rider', 'DR001', new Date('2024-06-15'));
+
+if (data?.data_source === 'MANUAL_ENTRY') {
+  console.log('This record was manually entered with 70% confidence');
+}
+```
+
+### Querying Mixed Data Sources
+
+Point-in-time queries return data from all sources, ranked by confidence:
+
+```sql
+-- Get all active riders at a date, sorted by confidence
+SELECT
+  rider_id,
+  name,
+  data_source,
+  confidence_score
+FROM riders
+WHERE effective_start_date <= '2024-06-15'
+  AND (effective_end_date IS NULL OR effective_end_date > '2024-06-15')
+  AND status = 'active'
+ORDER BY confidence_score DESC;
+```
+
+### Timeline with Manual Entries
+
+The entity timeline includes manually entered events:
+
+```typescript
+const { data: events } = useEntityTimeline('ledger', ledgerId);
+
+// Events with is_historical = true may be from:
+// - CSV imports (CL87, payment records, etc.)
+// - UI-based retroactive entry (MANUAL_ENTRY)
+
+events?.forEach(event => {
+  if (event.is_historical && event.confidence < 0.80) {
+    console.log(`Low confidence event: ${event.event_type} on ${event.event_date}`);
+  }
+});
+```
+
+### Data Quality Considerations
+
+When querying historical data that includes manual entries:
+
+| Data Source | Confidence | Considerations |
+|-------------|------------|----------------|
+| PLATFORM | 1.00 | Definitive - captured in real-time |
+| CL87_CSV | 0.90 | High confidence - from official export |
+| MANUAL_ENTRY | 0.70 | Moderate confidence - verify if possible |
+
+### Example: Comparing Data Sources
+
+```typescript
+import { useActiveRidersCountAtDate } from '@/hooks/usePointInTimeQueries';
+
+function HistoricalDataQualityReport({ date }: { date: Date }) {
+  const { data } = useActiveRidersCountAtDate(date);
+
+  return (
+    <div>
+      <h3>Data Quality for {date.toDateString()}</h3>
+      <p>Active Riders: {data?.active_riders_count}</p>
+      <p>Avg Confidence: {(data?.avg_confidence_score * 100).toFixed(0)}%</p>
+      <p>Quality: {data?.data_quality}</p>
+
+      {data?.avg_confidence_score < 0.80 && (
+        <p className="warning">
+          This date includes manually entered data.
+          Consider verifying critical metrics.
+        </p>
+      )}
+    </div>
+  );
+}
+```

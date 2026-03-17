@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +13,8 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useRiderLedgers, CreateLedgerData } from "@/hooks/useRiderLedgers";
+import { PastDateConfirmationDialog } from "@/components/shared";
+import { useRetroactiveEntry, getHistoricalTrackingFields } from "@/hooks/useRetroactiveEntry";
 
 const ledgerSchema = z.object({
   rider_id: z.string().min(1, "Please select a rider"),
@@ -41,6 +43,25 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
   const { createLedger, getRidersWithoutLedgers } = useRiderLedgers();
   const [availableRiders, setAvailableRiders] = useState<Array<{ rider_id: string; name: string }>>([]);
   const [loading, setLoading] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<LedgerFormData | null>(null);
+
+  // Retroactive entry state for rental_start_date
+  const {
+    isHistorical,
+    showConfirmation: showPastDateDialog,
+    selectedDate,
+    handleDateChange,
+    confirmHistorical,
+    cancelHistorical,
+  } = useRetroactiveEntry({
+    entityType: 'ledger',
+    onConfirm: () => {
+      // Called after confirmation - will submit with historical flags
+      if (pendingFormData) {
+        executeSubmit(pendingFormData, true);
+      }
+    },
+  });
 
   const form = useForm<LedgerFormData>({
     resolver: zodResolver(ledgerSchema),
@@ -67,13 +88,39 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
 
   const onSubmit = async (data: LedgerFormData) => {
     if (loading) return;
-    
+
+    // If historical entry is already confirmed, proceed with submission
+    if (isHistorical) {
+      await executeSubmit(data, true);
+      return;
+    }
+
+    // Check if rental_start_date is in the past
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const startDate = new Date(data.rental_start_date);
+    startDate.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      // Past date detected - store form data and show confirmation
+      setPendingFormData(data);
+      handleDateChange(data.rental_start_date);
+      return;
+    }
+
+    // Normal submission for current/future dates
+    await executeSubmit(data, false);
+  };
+
+  const executeSubmit = async (data: LedgerFormData, isHistoricalEntry: boolean) => {
     setLoading(true);
     try {
       const selectedRider = availableRiders.find(r => r.rider_id === data.rider_id);
       if (!selectedRider) {
         throw new Error('Selected rider not found');
       }
+
+      const historicalFields = getHistoricalTrackingFields(isHistoricalEntry);
 
       const ledgerData: CreateLedgerData = {
         rider_id: data.rider_id,
@@ -84,11 +131,14 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
         rental_frequency: data.rental_frequency,
         rental_amount: data.rental_amount,
         rental_start_date: data.rental_start_date.toISOString().split('T')[0],
-        swaps_allowed_per_month: data.swaps_allowed_per_month ?? 4
+        swaps_allowed_per_month: data.swaps_allowed_per_month ?? 4,
+        // Include historical tracking fields
+        ...historicalFields,
       };
 
       await createLedger(ledgerData);
       form.reset();
+      setPendingFormData(null);
       onSuccess();
     } catch (error) {
       console.error('Error creating ledger:', error);
@@ -313,9 +363,6 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < new Date(new Date().setHours(0, 0, 0, 0))
-                    }
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
                   />
@@ -332,6 +379,20 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
             {loading ? "Creating..." : "Create Ledger"}
           </Button>
         </div>
+
+        {/* Past Date Confirmation Dialog */}
+        <PastDateConfirmationDialog
+          open={showPastDateDialog}
+          onOpenChange={(open) => {
+            if (!open) {
+              cancelHistorical();
+              setPendingFormData(null);
+            }
+          }}
+          onConfirm={confirmHistorical}
+          date={selectedDate}
+          entityType="ledger"
+        />
       </form>
     </Form>
   );
