@@ -92,13 +92,13 @@
 
 ## 10. Import UI Components
 
-- [ ] 10.1 Create src/components/import/HistoricalImportPanel.tsx
-- [ ] 10.2 Create src/components/import/ImportPreview.tsx with conflict display
-- [ ] 10.3 Create src/components/import/ImportProgress.tsx with phase indicators
-- [ ] 10.4 Create src/components/import/ImportSummary.tsx with results table
-- [ ] 10.5 Create src/components/import/ConflictResolutionDialog.tsx
-- [ ] 10.6 Create src/components/import/LowConfidenceWarning.tsx
-- [ ] 10.7 Integrate HistoricalImportPanel into existing upload panel
+- [x] 10.1 Create src/components/import/HistoricalImportPanel.tsx
+- [x] 10.2 Create src/components/import/ImportPreview.tsx with conflict display
+- [x] 10.3 Create src/components/import/ImportProgress.tsx with phase indicators
+- [x] 10.4 Create src/components/import/ImportSummary.tsx with results table
+- [x] 10.5 Create src/components/import/ConflictResolutionDialog.tsx
+- [x] 10.6 Create src/components/import/LowConfidenceWarning.tsx
+- [x] 10.7 Integrate HistoricalImportPanel into existing upload panel
 
 ## 11. Historical Data Dashboard
 
