@@ -66,3 +66,80 @@ When spawning subagents (Agent/Task tool), the routing block is automatically in
 | `ctx stats` | Call the `ctx_stats` MCP tool and display the full output verbatim |
 | `ctx doctor` | Call the `ctx_doctor` MCP tool, run the returned shell command, display as checklist |
 | `ctx upgrade` | Call the `ctx_upgrade` MCP tool, run the returned shell command, display as checklist |
+
+---
+
+## Project: Fleet Management Platform
+
+A B2B electric vehicle fleet management platform built with React + Vite + Supabase. Focuses on battery management, rider assignments, and vehicle tracking for EV rental services.
+
+## Commands
+
+```bash
+npm run dev          # Start dev server on port 8082
+npm run build        # Production build
+npm run build:dev    # Development build
+npm run lint         # Run ESLint
+npm run preview      # Preview production build
+
+# Battery/Database scripts (run against Supabase)
+npm run setup:batteries    # Setup batteries table
+npm run verify:batteries   # Verify batteries table
+npm run test:batteries-validation  # Test battery validation
+npm run test:battery-events        # Test battery events
+npm run test:vehicles-battery      # Test vehicle-battery mapping
+npm run test:map-battery           # Test map battery RPC
+```
+
+## Tech Stack
+
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI**: shadcn/ui (Radix primitives) + Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
+- **State**: TanStack Query (React Query)
+- **Testing**: Vitest + Testing Library
+
+## Architecture
+
+```text
+src/
+├── components/       # UI components (shadcn/ui based)
+├── hooks/           # React Query hooks for data fetching
+├── integrations/
+│   └── supabase/    # Supabase client & generated types
+├── lib/
+│   ├── batteries/   # Battery domain logic
+│   ├── riders/      # Rider domain logic
+│   ├── vehicles/    # Vehicle domain logic
+│   └── import/      # ERP-grade CSV import system
+├── types/           # TypeScript types (historical, import)
+├── pages/           # Page components
+└── __tests__/       # Vitest tests (mirrors src structure)
+```
+
+### Key Patterns
+
+1. **Domain-Driven Structure**: Code organized by business domain (vehicles, riders, batteries) in `src/lib/`
+2. **React Query Hooks**: All data fetching via hooks in `src/hooks/` (e.g., `useVehicles.ts`, `useBatteries.ts`)
+3. **Supabase Client**: Import from `@/integrations/supabase/client` — never create new clients
+4. **Event Sourcing**: All entity changes logged via `*_events` tables for audit trail
+5. **Historical Data**: Point-in-time queries with confidence scores (see `src/types/historical.ts`)
+
+### Database Conventions
+
+- Tables: `vehicles`, `riders`, `batteries`, `payments`, `vehicle_events`, `rider_events`
+- RLS (Row Level Security) enabled on all tables
+- RPC functions for complex operations (e.g., `map_battery_to_vehicle`)
+
+## Testing
+
+- Unit tests: `vitest` with jsdom environment
+- Test files: `src/__tests__/` mirroring source structure, or `tests/` for integration tests
+- Setup file: `src/test/setup.ts`
+- Run tests: `npx vitest run` or `npx vitest watch`
+
+## Important Files
+
+- `TECH_ARCHITECTURE.md` — Detailed system architecture documentation
+- `src/integrations/supabase/types.ts` — Generated database types
+- `src/types/historical.ts` — Historical data & confidence scoring types
