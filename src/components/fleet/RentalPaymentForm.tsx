@@ -24,7 +24,7 @@ import { toast } from 'sonner';
  */
 const paymentFormSchema = z.object({
   paid_amount: z.number()
-    .positive('Amount must be greater than 0')
+    .min(0.01, 'Amount must be greater than 0')
     .max(100000, 'Amount seems too high (max ₹1,00,000)'),
   payment_mode: z.enum(['cash', 'upi', 'bank-transfer', 'card', 'other'] as const),
   upi_last4: z.string()
