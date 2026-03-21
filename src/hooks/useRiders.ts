@@ -250,7 +250,7 @@ export const useRiders = () => {
 
   useEffect(() => {
     fetchRiders();
-    
+
     // Set up real-time subscription for duty status changes
     const channel = supabase
       .channel('riders-changes')
@@ -263,19 +263,28 @@ export const useRiders = () => {
         },
         (payload) => {
           console.log('Real-time rider update:', payload);
-          
+
           if (payload.eventType === 'INSERT') {
             setRiders(prev => [payload.new as Rider, ...prev]);
           } else if (payload.eventType === 'UPDATE') {
-            setRiders(prev => prev.map(rider => 
+            setRiders(prev => prev.map(rider =>
               rider.id === payload.new.id ? { ...rider, ...payload.new } as Rider : rider
             ));
           } else if (payload.eventType === 'DELETE') {
-            setRiders(prev => prev.filter(rider => rider.id !== payload.old.id));
+            // Fix: Use id from old payload for deletion
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              setRiders(prev => prev.filter(rider => rider.id !== deletedId));
+            }
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // Refetch on successful subscription to ensure fresh data
+        if (status === 'SUBSCRIBED') {
+          fetchRiders();
+        }
+      });
 
     return () => {
       supabase.removeChannel(channel);
