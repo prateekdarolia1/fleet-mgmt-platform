@@ -64,7 +64,7 @@ interface RiderFormData {
 export const RiderManagement = () => {
   const navigate = useNavigate();
   const { riders, loading, addRider, updateRider } = useRiders();
-  const { vehicles, updateVehicle } = useVehicles();
+  const { vehicles, updateVehicle, refetch: refetchVehicles } = useVehicles();
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddRiderOpen, setIsAddRiderOpen] = useState(false);
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
@@ -120,6 +120,7 @@ export const RiderManagement = () => {
         originalDutyStatus: currentDutyStatus
       });
       setIsEditStatusOpen(false); // Close status edit dialog
+      refetchVehicles(); // Refetch vehicles to get latest battery mappings
       setIsActivationModalOpen(true); // Open activation modal
       return;
     }

@@ -42,7 +42,8 @@ export const InventoryManagement = () => {
     addVehicle,
     updateVehicle,
     deleteVehicle,
-    toggleVehicleStatus
+    toggleVehicleStatus,
+    refetch: refetchVehicles
   } = useVehicles();
   const {
     riders: availableRiders,
@@ -323,7 +324,7 @@ export const InventoryManagement = () => {
         <div className="flex flex-col sm:flex-row gap-4 mb-6 bg-accent/50 p-4 rounded-lg">
           <div className="relative flex-1">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search by vehicle number, model, chassis number, or rider assigned..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-8" />
+            <Input placeholder="Search by vehicle number, model, chassis number, or rider assigned..." value={searchTerm} onChange={e => setFuzzySearchTerm(e.target.value)} className="pl-8" />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
@@ -1170,8 +1171,8 @@ export const InventoryManagement = () => {
             vehicleId={selectedVehicleForMap.id}
             vehicleDisplayId={selectedVehicleForMap.vehicle_number}
             onSuccess={() => {
-              // SOLID: Separation of concerns - modal handles its own success
-              // The hook will auto-refresh via query invalidation
+              // Refetch vehicles to update battery_id status
+              refetchVehicles();
               setSelectedVehicleForMap(null);
             }}
           />

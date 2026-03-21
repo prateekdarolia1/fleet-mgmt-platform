@@ -49,16 +49,40 @@ export const useVehicles = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const { data, error } = await supabase
+
+      // Fetch vehicles
+      const { data: vehiclesData, error: vehiclesError } = await supabase
         .from('vehicles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (vehiclesError) throw vehiclesError;
 
-      setVehicles(data || []);
-      console.log('Successfully loaded vehicles from database:', data?.length || 0);
+      // Fetch batteries with vehicle mappings (vehicle_id is the FK in batteries table)
+      const { data: batteriesData, error: batteriesError } = await supabase
+        .from('batteries')
+        .select('id, vehicle_id')
+        .not('vehicle_id', 'is', null);
+
+      if (batteriesError) throw batteriesError;
+
+      // Create a map of vehicle_id -> battery_id
+      const vehicleBatteryMap = new Map<string, string>();
+      (batteriesData || []).forEach(battery => {
+        if (battery.vehicle_id) {
+          vehicleBatteryMap.set(battery.vehicle_id, battery.id);
+        }
+      });
+
+      // Merge battery_id into vehicles
+      const vehiclesWithBattery = (vehiclesData || []).map(vehicle => ({
+        ...vehicle,
+        battery_id: vehicleBatteryMap.get(vehicle.id) || null
+      }));
+
+      setVehicles(vehiclesWithBattery);
+      console.log('Successfully loaded vehicles from database:', vehiclesWithBattery?.length || 0);
+      console.log('Vehicles with batteries:', vehiclesWithBattery?.filter(v => v.battery_id).length || 0);
     } catch (err) {
       console.error('Error loading vehicles:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
