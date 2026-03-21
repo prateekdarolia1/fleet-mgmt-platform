@@ -89,7 +89,7 @@ export const RentalLedgerConfirmModal = ({
   const [isHistorical, setIsHistorical] = useState(false);
 
   const confirmRentalStart = useConfirmRentalStart();
-  const { profiles } = useProfiles();
+  const { data: profiles } = useProfiles();
 
   const form = useForm<RentalConfirmFormData>({
     resolver: zodResolver(rentalConfirmSchema),
