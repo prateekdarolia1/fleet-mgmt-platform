@@ -120,35 +120,36 @@ export const useRiderLedgers = () => {
 
       const isRetroactive = ledgerData.is_historical || startDate < today;
       const rentalPayments = [];
+      let foundFirstPending = false; // Track if we've found the current period for retroactive
 
       // Calculate number of periods to generate
       let periodsToGenerate: number;
       if (isRetroactive) {
-        // For retroactive: calculate periods from start date to today, PLUS future periods
+        // For retroactive: generate all periods UP TO current period (no future)
+        // Past periods → OVERDUE
+        // Current period (due_date >= today) → PENDING
+        // Future periods → NOT generated (handled by cron job)
         const diffTime = today.getTime() - startDate.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         switch (ledgerData.rental_frequency) {
           case 'daily':
-            // Include today and future days
-            periodsToGenerate = diffDays + 6; // Past days + 6 future days
+            periodsToGenerate = diffDays + 1; // Past days + current day
             break;
           case 'weekly':
-            // Past weeks + 6 future weeks
-            periodsToGenerate = Math.ceil(diffDays / 7) + 6;
+            periodsToGenerate = Math.ceil(diffDays / 7) + 1; // Past weeks + current week
             break;
           case 'monthly':
-            // Past months + 6 future months
-            periodsToGenerate = Math.ceil(diffDays / 30) + 6;
+            periodsToGenerate = Math.ceil(diffDays / 30) + 1; // Past months + current month
             break;
           default:
             periodsToGenerate = 6;
         }
-        // Ensure at least 1 period and cap at reasonable limit (2 years worth + 6 future)
-        const maxPeriods = ledgerData.rental_frequency === 'daily' ? 736 : ledgerData.rental_frequency === 'weekly' ? 110 : 30;
+        // Cap at reasonable limits
+        const maxPeriods = ledgerData.rental_frequency === 'daily' ? 400 : ledgerData.rental_frequency === 'weekly' ? 60 : 24;
         periodsToGenerate = Math.max(1, Math.min(periodsToGenerate, maxPeriods));
       } else {
-        // For normal entries: generate 6 months of future payments
+        // For normal entries (future start date): generate 6 pending payments
         periodsToGenerate = 6;
       }
 
@@ -171,12 +172,29 @@ export const useRiderLedgers = () => {
         }
         dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
 
-        // For retroactive entries:
-        // - Payments with due_date < today are past -> marked as 'overdue' (unpaid past payments)
-        // - Payments with due_date >= today are current/future -> marked as 'pending'
-        const isPastPayment = dueDate < today;
-        const paymentStatus = isRetroactive && isPastPayment ? 'overdue' : 'pending';
-        const paymentDate = null; // Not paid yet - payment_date should be null
+        // For retroactive: stop generating once we've passed the current period
+        if (isRetroactive && foundFirstPending) {
+          break;
+        }
+
+        // Determine payment status:
+        // For RETROACTIVE entries:
+        //   - All past periods (due_date < today) → OVERDUE
+        //   - Current period (first due_date >= today) → PENDING
+        // For LIVE entries:
+        //   - All 6 periods → PENDING (will become overdue after 4 days past due)
+        let paymentStatus: 'pending' | 'overdue';
+        if (isRetroactive) {
+          const isPastPayment = dueDate < today;
+          if (isPastPayment) {
+            paymentStatus = 'overdue';
+          } else {
+            paymentStatus = 'pending';
+            foundFirstPending = true; // This is the current period
+          }
+        } else {
+          paymentStatus = 'pending';
+        }
 
         const paymentId = `P${nextNumber.toString().padStart(3, '0')}`;
 
@@ -186,7 +204,7 @@ export const useRiderLedgers = () => {
           rider_name: ledgerData.rider_name,
           amount: ledgerData.rental_amount,
           due_date: dueDate.toISOString().split('T')[0],
-          payment_date: paymentDate,
+          payment_date: null, // Not paid yet
           status: paymentStatus,
           payment_type: 'rental' as const,
           rental_period: `${ledgerData.rental_frequency.charAt(0).toUpperCase() + ledgerData.rental_frequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,

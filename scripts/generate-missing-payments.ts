@@ -170,22 +170,26 @@ async function generateMissingPayments() {
 
       let periodsToGenerate: number;
       if (isRetroactive) {
-        // For retroactive: past periods + 6 future periods
-        periodsToGenerate = calculatePeriods(startDate, today, ledger.rental_frequency) + 6;
+        // For retroactive: generate all periods UP TO current period (no future)
+        // Past periods → OVERDUE
+        // Current period (due_date >= today) → PENDING
+        // Future periods → NOT generated (handled by cron job)
+        periodsToGenerate = calculatePeriods(startDate, today, ledger.rental_frequency) + 1; // +1 for current period
       } else {
-        // For future start dates: 6 periods
+        // For future start dates: 6 periods (all pending)
         periodsToGenerate = 6;
       }
 
       // Cap at reasonable limits
-      const maxPeriods = ledger.rental_frequency === 'daily' ? 736 :
-                         ledger.rental_frequency === 'weekly' ? 110 : 30;
+      const maxPeriods = ledger.rental_frequency === 'daily' ? 400 :
+                         ledger.rental_frequency === 'weekly' ? 60 : 24;
       periodsToGenerate = Math.max(1, Math.min(periodsToGenerate, maxPeriods));
 
       console.log(`  Periods to generate: ${periodsToGenerate} (retroactive: ${isRetroactive})`);
 
       // Generate payment records
       const newPayments: any[] = [];
+      let foundFirstPending = false; // Track if we've found the current period
 
       for (let i = 0; i < periodsToGenerate; i++) {
         const dueDate = new Date(startDate);
@@ -204,11 +208,32 @@ async function generateMissingPayments() {
         }
         const normalizedDueDate = normalizeDate(dueDate);
 
+        // For retroactive: stop generating once we've passed the current period
+        // (current period = first one with due_date >= today)
+        if (isRetroactive && foundFirstPending) {
+          break;
+        }
+
         // Determine payment status:
-        // - If due_date < today → OVERDUE (past payment not yet paid)
-        // - If due_date >= today → PENDING (current/future payment)
-        const isPastDue = normalizedDueDate < today;
-        const paymentStatus = isPastDue ? 'overdue' : 'pending';
+        // For RETROACTIVE entries:
+        //   - All past periods (due_date < today) → OVERDUE
+        //   - Current period (first due_date >= today) → PENDING
+        //   - Future periods → NOT generated
+        // For LIVE entries:
+        //   - All 6 periods → PENDING (will become overdue after 4 days past due)
+        let paymentStatus: string;
+        if (isRetroactive) {
+          const isPastDue = normalizedDueDate < today;
+          if (isPastDue) {
+            paymentStatus = 'overdue';
+          } else {
+            paymentStatus = 'pending';
+            foundFirstPending = true; // This is the current period
+          }
+        } else {
+          // Live entries: all pending initially
+          paymentStatus = 'pending';
+        }
 
         const paymentId = `P${nextPaymentNumber.toString().padStart(3, '0')}`;
 
