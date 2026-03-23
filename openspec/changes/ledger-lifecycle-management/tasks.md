@@ -10,7 +10,7 @@
 - [x] 1.6 Add `cancelled` value to `payment_status` enum
 - [x] 1.7 Add `cancelled_at`, `cancelled_by` columns to `payments` table
 - [x] 1.8 Create indexes on `rider_ledgers.status` and `payments.status`
-- [ ] 1.9 Run migration against development database
+- [x] 1.9 Run migration against development database
 - [x] 1.10 Verify migration with SQL tests (from specs)
 
 ## 2. Payment Deletion Capability
@@ -141,13 +141,13 @@
 
 ## Task Summary
 
-| Section | Tasks | Description |
-|---------|-------|-------------|
-| 1. Database Migration | 10 | Schema changes, indexes, verification |
-| 2. Payment Deletion | 13 | Hook, UI, query updates, tests |
-| 3. Ledger Pause | 13 | Hook, UI, cron update, tests |
-| 4. Ledger Reactivation | 18 | Validation, hook, UI, tests |
-| 5. Deposit Tracking | 12 | Hook, UI, validation, tests |
-| 6. Integration | 10 | Types, polish, testing, deploy |
-| 7. Documentation | 4 | API docs, user guide, schema |
-| **Total** | **80** | |
+| Section | Completed | Total |
+|---------|-----------|-------|
+| 1. Database Migration | 10 | 10 |
+| 2. Payment Deletion | 9 | 13 |
+| 3. Ledger Pause | 9 | 13 |
+| 4. Ledger Reactivation | 14 | 18 |
+| 5. Deposit Tracking | 9 | 12 |
+| 6. Integration | 1 | 10 |
+| 7. Documentation | 0 | 4 |
+| **Total** | **52** | **80** |

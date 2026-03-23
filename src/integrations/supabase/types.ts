@@ -151,6 +151,9 @@ export type Database = {
           data_source: string
           import_batch_id: string | null
           confidence_score: number
+          // Payment cancellation fields
+          cancelled_at: string | null
+          cancelled_by: string | null
         }
         Insert: {
           amount: number
@@ -168,6 +171,9 @@ export type Database = {
           rider_name: string
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
+          // Payment cancellation fields
+          cancelled_at?: string | null
+          cancelled_by?: string | null
         }
         Update: {
           amount?: number
@@ -185,6 +191,9 @@ export type Database = {
           rider_name?: string
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
+          // Payment cancellation fields
+          cancelled_at?: string | null
+          cancelled_by?: string | null
         }
         Relationships: [
           {
@@ -421,6 +430,14 @@ export type Database = {
           rider_name: string
           security_deposit_amount: number
           updated_at: string
+          // Ledger lifecycle fields
+          status: Database["public"]["Enums"]["ledger_status"]
+          paused_at: string | null
+          paused_reason: string | null
+          reactivated_at: string | null
+          security_deposit_status: Database["public"]["Enums"]["security_deposit_status"]
+          deposit_refunded_at: string | null
+          deposit_refunded_amount: number | null
         }
         Insert: {
           created_at?: string
@@ -432,6 +449,14 @@ export type Database = {
           rider_name: string
           security_deposit_amount: number
           updated_at?: string
+          // Ledger lifecycle fields
+          status?: Database["public"]["Enums"]["ledger_status"]
+          paused_at?: string | null
+          paused_reason?: string | null
+          reactivated_at?: string | null
+          security_deposit_status?: Database["public"]["Enums"]["security_deposit_status"]
+          deposit_refunded_at?: string | null
+          deposit_refunded_amount?: number | null
         }
         Update: {
           created_at?: string
@@ -443,6 +468,14 @@ export type Database = {
           rider_name?: string
           security_deposit_amount?: number
           updated_at?: string
+          // Ledger lifecycle fields
+          status?: Database["public"]["Enums"]["ledger_status"]
+          paused_at?: string | null
+          paused_reason?: string | null
+          reactivated_at?: string | null
+          security_deposit_status?: Database["public"]["Enums"]["security_deposit_status"]
+          deposit_refunded_at?: string | null
+          deposit_refunded_amount?: number | null
         }
         Relationships: []
       }
@@ -785,12 +818,14 @@ export type Database = {
       battery_plan: "D2D" | "B2B" | "OTHER"
       battery_status: "ACTIVE" | "MAPPED" | "UNMAPPED"
       battery_type: "Fixed" | "Swappable"
+      ledger_status: "active" | "paused" | "closed"
       payment_mode: "cash" | "upi" | "bank-transfer" | "card"
-      payment_status: "pending" | "paid" | "overdue" | "partial"
+      payment_status: "pending" | "paid" | "overdue" | "partial" | "cancelled"
       payment_type: "security_deposit" | "rental"
       rental_frequency: "daily" | "weekly" | "monthly"
       rental_plan: "daily" | "weekly" | "monthly"
       rider_status: "active" | "inactive" | "suspended" | "deboarded"
+      security_deposit_status: "retained" | "refunded" | "partially_refunded"
       service_provider: "BATTERY_SMART" | "OTHER"
       vehicle_status: "Ready for Deployment" | "Deployed" | "Under Maintenance"
       vehicle_type: "High Speed" | "Low Speed"
@@ -926,12 +961,14 @@ export const Constants = {
       battery_plan: ["D2D", "B2B", "OTHER"],
       battery_status: ["ACTIVE", "MAPPED", "UNMAPPED"],
       battery_type: ["Fixed", "Swappable"],
+      ledger_status: ["active", "paused", "closed"],
       payment_mode: ["cash", "upi", "bank-transfer", "card"],
-      payment_status: ["pending", "paid", "overdue", "partial"],
+      payment_status: ["pending", "paid", "overdue", "partial", "cancelled"],
       payment_type: ["security_deposit", "rental"],
       rental_frequency: ["daily", "weekly", "monthly"],
       rental_plan: ["daily", "weekly", "monthly"],
       rider_status: ["active", "inactive", "suspended", "deboarded"],
+      security_deposit_status: ["retained", "refunded", "partially_refunded"],
       service_provider: ["BATTERY_SMART", "OTHER"],
       vehicle_status: ["Ready for Deployment", "Deployed", "Under Maintenance"],
       vehicle_type: ["High Speed", "Low Speed"],

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock, Lock, AlertTriangle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { usePayments, type Payment } from "@/hooks/usePayments";
+import { usePayments, type Payment, type PaymentStatus } from "@/hooks/usePayments";
 import { useRiders } from "@/hooks/useRiders";
 import { useUnifiedOverduePayments, useUnifiedUpcomingPayments, type UnifiedOverduePayment, type UnifiedUpcomingPayment } from "@/hooks/useUnifiedPayments";
 import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
@@ -20,7 +20,7 @@ import { RentalLedgerDetail } from "./RentalLedgerDetail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const PaymentTracking = () => {
-  const { payments, loading, getTotalStats, updatePayment, markPaymentAsPaid } = usePayments();
+  const { payments, loading, getTotalStats, updatePayment, markPaymentAsPaid, deletePayment } = usePayments();
   const { riders } = useRiders();
 
   // Create a lookup map for rider vehicles
@@ -44,6 +44,8 @@ export const PaymentTracking = () => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Safety check modal state for marking payments as paid
   const [isSafetyCheckOpen, setIsSafetyCheckOpen] = useState(false);
@@ -79,18 +81,20 @@ export const PaymentTracking = () => {
       paid: 'default',
       pending: 'secondary',
       overdue: 'destructive',
-      partial: 'outline'
+      partial: 'outline',
+      cancelled: 'outline'
     } as const;
-    
+
     const icons = {
       paid: <CheckCircle className="h-3 w-3 mr-1" />,
       pending: <Calendar className="h-3 w-3 mr-1" />,
       overdue: <AlertCircle className="h-3 w-3 mr-1" />,
-      partial: <AlertCircle className="h-3 w-3 mr-1" />
+      partial: <AlertCircle className="h-3 w-3 mr-1" />,
+      cancelled: <AlertTriangle className="h-3 w-3 mr-1" />
     };
-    
+
     return (
-      <Badge variant={variants[status]} className="flex items-center">
+      <Badge variant={variants[status]} className={`flex items-center ${status === 'cancelled' ? 'text-muted-foreground' : ''}`}>
         {icons[status]}
         {status}
       </Badge>
@@ -134,6 +138,11 @@ export const PaymentTracking = () => {
   };
 
   const stats = getTotalStats();
+
+  // Helper function to check if a payment can be deleted
+  const canDeletePaymentLocal = (payment: Payment): boolean => {
+    return payment.status === 'pending' || payment.status === 'overdue';
+  };
 
   return (
     <div className="space-y-6">
@@ -233,6 +242,7 @@ export const PaymentTracking = () => {
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="overdue">Overdue</SelectItem>
                     <SelectItem value="partial">Partial</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
                 <Dialog open={isAddPaymentOpen} onOpenChange={setIsAddPaymentOpen}>
@@ -735,6 +745,7 @@ export const PaymentTracking = () => {
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="overdue">Overdue</SelectItem>
                   <SelectItem value="partial">Partial</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -774,43 +785,104 @@ export const PaymentTracking = () => {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              disabled={isUpdating}
-              onClick={async () => {
-                if (!editingPayment) return;
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {/* Delete button - only for pending/overdue payments */}
+            {editingPayment && canDeletePaymentLocal(editingPayment) && (
+              <Button
+                variant="destructive"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full sm:w-auto"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Delete Payment
+                  </>
+                )}
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={isUpdating}
+                onClick={async () => {
+                  if (!editingPayment) return;
 
-                // Validate amount
-                const amount = Number(editFormData.amount);
-                if (!amount || amount <= 0) {
-                  toast.error('Please enter a valid positive amount');
-                  return;
-                }
+                  // Validate amount
+                  const amount = Number(editFormData.amount);
+                  if (!amount || amount <= 0) {
+                    toast.error('Please enter a valid positive amount');
+                    return;
+                  }
 
-                setIsUpdating(true);
-                try {
-                  await updatePayment(editingPayment.id, {
-                    amount,
-                    status: editFormData.status,
-                    payment_mode: editFormData.payment_mode,
-                    payment_date: editFormData.payment_date || undefined,
-                    notes: editFormData.notes || undefined
-                  });
-                  setIsEditDialogOpen(false);
-                  toast.success('Payment updated successfully');
-                } catch (error) {
-                  toast.error(error instanceof Error ? error.message : 'Failed to update payment');
-                } finally {
-                  setIsUpdating(false);
-                }
-              }}
-            >
-              {isUpdating ? 'Saving...' : 'Save Changes'}
-            </Button>
+                  setIsUpdating(true);
+                  try {
+                    await updatePayment(editingPayment.id, {
+                      amount,
+                      status: editFormData.status,
+                      payment_mode: editFormData.payment_mode,
+                      payment_date: editFormData.payment_date || undefined,
+                      notes: editFormData.notes || undefined
+                    });
+                    setIsEditDialogOpen(false);
+                    toast.success('Payment updated successfully');
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : 'Failed to update payment');
+                  } finally {
+                    setIsUpdating(false);
+                  }
+                }}
+              >
+                {isUpdating ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
           </DialogFooter>
+
+          {/* Delete Confirmation Alert */}
+          {showDeleteConfirm && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>Are you sure you want to cancel this payment? This action cannot be undone.</span>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowDeleteConfirm(false)}
+                  >
+                    No, Keep It
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={async () => {
+                      if (!editingPayment) return;
+                      setIsDeleting(true);
+                      try {
+                        await deletePayment(editingPayment.id);
+                        setShowDeleteConfirm(false);
+                        setIsEditDialogOpen(false);
+                      } catch (error) {
+                        // Error toast is handled in the hook
+                      } finally {
+                        setIsDeleting(false);
+                      }
+                    }}
+                  >
+                    Yes, Cancel Payment
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
         </DialogContent>
       </Dialog>
 

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'partial' | 'cancelled';
+
 export interface Payment {
   id: string;
   payment_id: string;
@@ -10,7 +12,7 @@ export interface Payment {
   amount: number;
   due_date: string;
   payment_date?: string;
-  status: 'pending' | 'paid' | 'overdue' | 'partial';
+  status: PaymentStatus;
   payment_mode?: 'cash' | 'upi' | 'bank-transfer' | 'card';
   rental_period: string;
   notes?: string;
@@ -18,6 +20,9 @@ export interface Payment {
   ledger_id?: string;
   created_at: string;
   updated_at: string;
+  // Cancellation fields
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
 }
 
 export const usePayments = () => {
@@ -25,13 +30,19 @@ export const usePayments = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (includeCancelled = false) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('payments')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*');
+
+      // Exclude cancelled payments by default
+      if (!includeCancelled) {
+        query = query.neq('status', 'cancelled');
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
       setPayments(data || []);
@@ -130,35 +141,68 @@ export const usePayments = () => {
     }
   };
 
-  const deletePayment = async (id: string) => {
+  const deletePayment = async (id: string, cancelledBy?: string) => {
     try {
+      // First check if payment can be cancelled (only pending/overdue can be cancelled)
+      const payment = payments.find(p => p.id === id);
+      if (!payment) {
+        throw new Error('Payment not found');
+      }
+
+      if (payment.status === 'paid') {
+        throw new Error('Cannot cancel a paid payment');
+      }
+
+      if (payment.status === 'cancelled') {
+        throw new Error('Payment is already cancelled');
+      }
+
+      // Soft delete: set status to cancelled
       const { error } = await supabase
         .from('payments')
-        .delete()
+        .update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: cancelledBy || 'system'
+        })
         .eq('id', id);
 
       if (error) throw error;
 
-      setPayments(prev => prev.filter(payment => payment.id !== id));
-      toast.success('Payment record removed successfully!');
+      // Update local state
+      setPayments(prev => prev.map(p =>
+        p.id === id
+          ? { ...p, status: 'cancelled' as const, cancelled_at: new Date().toISOString(), cancelled_by: cancelledBy || 'system' }
+          : p
+      ));
+
+      toast.success('Payment cancelled successfully!');
     } catch (err) {
-      console.error('Error deleting payment:', err);
-      toast.error('Failed to remove payment record');
+      console.error('Error cancelling payment:', err);
+      const message = err instanceof Error ? err.message : 'Failed to cancel payment';
+      toast.error(message);
       throw err;
     }
   };
 
+  const canDeletePayment = (payment: Payment): boolean => {
+    return payment.status === 'pending' || payment.status === 'overdue';
+  };
+
   const getTotalStats = () => {
-    const totalAmount = payments.reduce((sum, payment) => sum + Number(payment.amount), 0);
-    const paidAmount = payments
+    // Exclude cancelled payments from all calculations
+    const activePayments = payments.filter(p => p.status !== 'cancelled');
+    const totalAmount = activePayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+    const paidAmount = activePayments
       .filter(p => p.status === 'paid')
       .reduce((sum, payment) => sum + Number(payment.amount), 0);
-    const pendingAmount = payments
+    const pendingAmount = activePayments
       .filter(p => p.status === 'pending' || p.status === 'overdue')
       .reduce((sum, payment) => sum + Number(payment.amount), 0);
-    const overdueCount = payments.filter(p => p.status === 'overdue').length;
-    
-    return { totalAmount, paidAmount, pendingAmount, overdueCount };
+    const overdueCount = activePayments.filter(p => p.status === 'overdue').length;
+    const cancelledCount = payments.filter(p => p.status === 'cancelled').length;
+
+    return { totalAmount, paidAmount, pendingAmount, overdueCount, cancelledCount };
   };
 
   useEffect(() => {
@@ -173,6 +217,7 @@ export const usePayments = () => {
     updatePayment,
     markPaymentAsPaid,
     deletePayment,
+    canDeletePayment,
     getTotalStats,
     refetch: fetchPayments
   };
