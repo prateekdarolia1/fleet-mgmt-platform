@@ -538,7 +538,7 @@ export const PaymentTracking = () => {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Truck className="h-4 w-4 text-muted-foreground" />
-                              {payment.vehicle_number || 'N/A'}
+                              {getVehicleForRider(payment.rider_id)}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -644,7 +644,7 @@ export const PaymentTracking = () => {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Truck className="h-4 w-4 text-muted-foreground" />
-                              {payment.vehicle_number || 'N/A'}
+                              {getVehicleForRider(payment.rider_id)}
                             </div>
                           </TableCell>
                           <TableCell>
