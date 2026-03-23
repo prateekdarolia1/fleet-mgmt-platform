@@ -56,8 +56,16 @@ export const useRiderLedgers = () => {
 
   const createLedger = async (ledgerData: CreateLedgerData) => {
     try {
-      // First create the ledger (exclude payment fields that don't belong in ledger table)
-      const { payment_date, transaction_id, ...ledgerOnlyData } = ledgerData;
+      // First create the ledger (exclude payment fields and historical tracking fields)
+      const {
+        payment_date,
+        transaction_id,
+        is_historical,
+        data_source,
+        confidence_score,
+        ...ledgerOnlyData
+      } = ledgerData;
+
       const { data: ledger, error: ledgerError } = await supabase
         .from('rider_ledgers')
         .insert([ledgerOnlyData])
@@ -172,12 +180,9 @@ export const useRiderLedgers = () => {
           payment_type: 'rental' as const,
           rental_period: `${ledgerData.rental_frequency.charAt(0).toUpperCase() + ledgerData.rental_frequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
           ledger_id: ledger.id,
-          // Mark as historical for retroactive payments
-          ...(isRetroactive && isPastPayment && {
-            is_historical: true,
-            data_source: ledgerData.data_source || 'MANUAL_ENTRY',
-            confidence_score: ledgerData.confidence_score || 0.70
-          })
+          // Note: Retroactive payments are marked as 'paid' with the due date as payment_date
+          // Historical tracking fields (is_historical, data_source, confidence_score)
+          // are not stored in payments table - only in main entity tables
         });
 
         nextNumber++;
