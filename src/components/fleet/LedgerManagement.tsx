@@ -59,9 +59,12 @@ export const LedgerManagement = () => {
   const [refundAmount, setRefundAmount] = useState<number | undefined>(undefined);
   const [isRefunding, setIsRefunding] = useState(false);
 
+  // Status filter state
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'closed'>('all');
+
   // Use fuzzy search for ledgers
   const {
-    results: filteredLedgers,
+    results: searchResults,
     searchTerm,
     setSearchTerm,
   } = useFuzzySearch(
@@ -69,6 +72,11 @@ export const LedgerManagement = () => {
     ['rider_name', 'rider_id'],
     { threshold: 0.3 }
   );
+
+  // Apply status filter to search results
+  const filteredLedgers = statusFilter === 'all'
+    ? searchResults
+    : searchResults.filter(ledger => ledger.status === statusFilter);
 
   const getFrequencyBadge = (frequency: string) => {
     const variants = {
@@ -221,7 +229,7 @@ export const LedgerManagement = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-5">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Ledgers</CardTitle>
@@ -231,19 +239,31 @@ export const LedgerManagement = () => {
             <div className="text-2xl font-bold">{ledgers.length}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Daily Rentals</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active</CardTitle>
+            <Play className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {ledgers.filter(l => l.rental_frequency === 'daily').length}
+            <div className="text-2xl font-bold text-green-600">
+              {ledgers.filter(l => l.status === 'active').length}
             </div>
           </CardContent>
         </Card>
-        
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Paused</CardTitle>
+            <Pause className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">
+              {ledgers.filter(l => l.status === 'paused').length}
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Weekly Rentals</CardTitle>
@@ -255,7 +275,7 @@ export const LedgerManagement = () => {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Monthly Rentals</CardTitle>
@@ -276,7 +296,7 @@ export const LedgerManagement = () => {
           <CardDescription>View and manage all rider payment ledgers</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-2 mb-4">
+          <div className="flex items-center gap-4 mb-4">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -286,6 +306,17 @@ export const LedgerManagement = () => {
                 className="pl-8"
               />
             </div>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Ledgers Table */}
