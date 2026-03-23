@@ -172,11 +172,11 @@ export const useRiderLedgers = () => {
         dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
 
         // For retroactive entries:
-        // - Payments with due_date < today are past -> marked as 'paid'
+        // - Payments with due_date < today are past -> marked as 'overdue' (unpaid past payments)
         // - Payments with due_date >= today are current/future -> marked as 'pending'
         const isPastPayment = dueDate < today;
-        const paymentStatus = isRetroactive && isPastPayment ? 'paid' : 'pending';
-        const paymentDate = isRetroactive && isPastPayment ? dueDate.toISOString().split('T')[0] : null;
+        const paymentStatus = isRetroactive && isPastPayment ? 'overdue' : 'pending';
+        const paymentDate = null; // Not paid yet - payment_date should be null
 
         const paymentId = `P${nextNumber.toString().padStart(3, '0')}`;
 
