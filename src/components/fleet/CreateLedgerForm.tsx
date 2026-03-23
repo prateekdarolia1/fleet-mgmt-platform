@@ -228,7 +228,7 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-[100]" align="start">
                   <Calendar
                     mode="single"
                     selected={field.value}
@@ -332,7 +332,7 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
           )}
         />
 
-        {/* Rental Start Date */}
+        {/* Rental Start Date - Allows past dates for retroactive ledger creation */}
         <FormField
           control={form.control}
           name="rental_start_date"
@@ -358,16 +358,22 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
                     </Button>
                   </FormControl>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0 z-[100]" align="start">
                   <Calendar
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
                     initialFocus
                     className={cn("p-3 pointer-events-auto")}
+                    // Allow past dates for retroactive ledger entries
+                    disabled={undefined}
+                    fromDate={undefined}
                   />
                 </PopoverContent>
               </Popover>
+              <p className="text-xs text-muted-foreground mt-1">
+                Past dates allowed for retroactive entries
+              </p>
               <FormMessage />
             </FormItem>
           )}
