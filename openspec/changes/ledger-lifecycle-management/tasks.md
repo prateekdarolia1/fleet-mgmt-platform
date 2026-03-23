@@ -13,6 +13,8 @@
 - [x] 1.9 Run migration against development database
 - [x] 1.10 Verify migration with SQL tests (from specs)
 
+**Migration applied 2026-03-23 via Supabase SQL Editor. Verified: all columns and enums present.**
+
 ## 2. Payment Deletion Capability
 
 ### 2.1 Backend/Hook Implementation
