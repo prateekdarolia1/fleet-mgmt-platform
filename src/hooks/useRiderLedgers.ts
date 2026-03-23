@@ -110,11 +110,13 @@ export const useRiderLedgers = () => {
       nextNumber++;
 
       // Generate rental payments
-      // For retroactive entries: generate all payments from start date to today
+      // For retroactive entries: generate all payments from start date to today + future periods
       // For normal entries: generate 6 months of future payments
       const startDate = new Date(ledgerData.rental_start_date);
+      startDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
       const today = new Date();
-      today.setHours(23, 59, 59, 999); // End of today
+      today.setHours(0, 0, 0, 0); // Start of today for comparison
 
       const isRetroactive = ledgerData.is_historical || startDate < today;
       const rentalPayments = [];
@@ -122,29 +124,35 @@ export const useRiderLedgers = () => {
       // Calculate number of periods to generate
       let periodsToGenerate: number;
       if (isRetroactive) {
-        // For retroactive: calculate periods from start date to today
-        const diffTime = Math.abs(today.getTime() - startDate.getTime());
+        // For retroactive: calculate periods from start date to today, PLUS future periods
+        const diffTime = today.getTime() - startDate.getTime();
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         switch (ledgerData.rental_frequency) {
           case 'daily':
-            periodsToGenerate = diffDays;
+            // Include today and future days
+            periodsToGenerate = diffDays + 6; // Past days + 6 future days
             break;
           case 'weekly':
-            periodsToGenerate = Math.ceil(diffDays / 7);
+            // Past weeks + 6 future weeks
+            periodsToGenerate = Math.ceil(diffDays / 7) + 6;
             break;
           case 'monthly':
-            periodsToGenerate = Math.ceil(diffDays / 30);
+            // Past months + 6 future months
+            periodsToGenerate = Math.ceil(diffDays / 30) + 6;
             break;
           default:
             periodsToGenerate = 6;
         }
-        // Ensure at least 1 period and cap at reasonable limit (2 years worth)
-        periodsToGenerate = Math.max(1, Math.min(periodsToGenerate, ledgerData.rental_frequency === 'daily' ? 730 : ledgerData.rental_frequency === 'weekly' ? 104 : 24));
+        // Ensure at least 1 period and cap at reasonable limit (2 years worth + 6 future)
+        const maxPeriods = ledgerData.rental_frequency === 'daily' ? 736 : ledgerData.rental_frequency === 'weekly' ? 110 : 30;
+        periodsToGenerate = Math.max(1, Math.min(periodsToGenerate, maxPeriods));
       } else {
         // For normal entries: generate 6 months of future payments
         periodsToGenerate = 6;
       }
+
+      console.log(`[createLedger] Generating ${periodsToGenerate} rental payments for ${ledgerData.rental_frequency} frequency, isRetroactive: ${isRetroactive}`);
 
       for (let i = 0; i < periodsToGenerate; i++) {
         const dueDate = new Date(startDate);
@@ -161,8 +169,11 @@ export const useRiderLedgers = () => {
             dueDate.setMonth(dueDate.getMonth() + i);
             break;
         }
+        dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
 
-        // For retroactive entries, mark past payments as 'paid' with estimated payment date
+        // For retroactive entries:
+        // - Payments with due_date < today are past -> marked as 'paid'
+        // - Payments with due_date >= today are current/future -> marked as 'pending'
         const isPastPayment = dueDate < today;
         const paymentStatus = isRetroactive && isPastPayment ? 'paid' : 'pending';
         const paymentDate = isRetroactive && isPastPayment ? dueDate.toISOString().split('T')[0] : null;
@@ -180,20 +191,24 @@ export const useRiderLedgers = () => {
           payment_type: 'rental' as const,
           rental_period: `${ledgerData.rental_frequency.charAt(0).toUpperCase() + ledgerData.rental_frequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
           ledger_id: ledger.id,
-          // Note: Retroactive payments are marked as 'paid' with the due date as payment_date
-          // Historical tracking fields (is_historical, data_source, confidence_score)
-          // are not stored in payments table - only in main entity tables
         });
 
         nextNumber++;
       }
+
+      console.log(`[createLedger] Inserting ${rentalPayments.length} rental payments:`, rentalPayments.map(p => ({ id: p.payment_id, due: p.due_date, status: p.status })));
 
       // Insert all rental payments
       const { error: rentalPaymentsError } = await supabase
         .from('payments')
         .insert(rentalPayments);
 
-      if (rentalPaymentsError) throw rentalPaymentsError;
+      if (rentalPaymentsError) {
+        console.error('[createLedger] Error inserting rental payments:', rentalPaymentsError);
+        throw rentalPaymentsError;
+      }
+
+      console.log(`[createLedger] Successfully inserted ${rentalPayments.length} rental payments`);
 
       setLedgers(prev => [ledger, ...prev]);
       toast.success(`Ledger created successfully for ${ledgerData.rider_name}!`);
