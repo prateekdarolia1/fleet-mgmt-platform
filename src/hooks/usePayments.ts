@@ -157,6 +157,17 @@ export const usePayments = () => {
         throw new Error('Payment is already cancelled');
       }
 
+      console.log(`[AUDIT] Payment cancellation initiated`, {
+        payment_id: id,
+        payment_display_id: payment.payment_id,
+        rider_id: payment.rider_id,
+        rider_name: payment.rider_name,
+        amount: payment.amount,
+        previous_status: payment.status,
+        cancelled_by: cancelledBy || 'system',
+        timestamp: new Date().toISOString()
+      });
+
       // Soft delete: set status to cancelled
       const { error } = await supabase
         .from('payments')
@@ -169,6 +180,12 @@ export const usePayments = () => {
 
       if (error) throw error;
 
+      console.log(`[AUDIT] Payment cancelled successfully`, {
+        payment_id: id,
+        payment_display_id: payment.payment_id,
+        new_status: 'cancelled'
+      });
+
       // Update local state
       setPayments(prev => prev.map(p =>
         p.id === id
@@ -178,7 +195,7 @@ export const usePayments = () => {
 
       toast.success('Payment cancelled successfully!');
     } catch (err) {
-      console.error('Error cancelling payment:', err);
+      console.error('[AUDIT] Payment cancellation failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to cancel payment';
       toast.error(message);
       throw err;

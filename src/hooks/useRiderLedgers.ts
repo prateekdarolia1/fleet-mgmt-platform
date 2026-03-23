@@ -344,6 +344,14 @@ export const useRiderLedgers = () => {
         throw new Error('Pause reason is required');
       }
 
+      console.log(`[AUDIT] Ledger pause initiated`, {
+        ledger_id: id,
+        rider_id: ledger.rider_id,
+        rider_name: ledger.rider_name,
+        reason: reason.trim(),
+        timestamp: new Date().toISOString()
+      });
+
       const { data, error } = await supabase
         .from('rider_ledgers')
         .update({
@@ -357,6 +365,12 @@ export const useRiderLedgers = () => {
 
       if (error) throw error;
 
+      console.log(`[AUDIT] Ledger paused successfully`, {
+        ledger_id: id,
+        rider_id: ledger.rider_id,
+        new_status: 'paused'
+      });
+
       setLedgers(prev => prev.map(l =>
         l.id === id ? { ...l, ...data } : l
       ));
@@ -364,7 +378,7 @@ export const useRiderLedgers = () => {
       toast.success('Ledger paused successfully!');
       return data;
     } catch (err) {
-      console.error('Error pausing ledger:', err);
+      console.error('[AUDIT] Ledger pause failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to pause ledger';
       toast.error(message);
       throw err;
@@ -462,6 +476,17 @@ export const useRiderLedgers = () => {
       if (ledger.security_deposit_status !== 'retained' && !params.new_security_deposit) {
         throw new Error('Security deposit required (previous deposit was refunded)');
       }
+
+      console.log(`[AUDIT] Ledger reactivation initiated`, {
+        ledger_id: id,
+        rider_id: ledger.rider_id,
+        rider_name: ledger.rider_name,
+        new_start_date: params.start_date,
+        new_rental_amount: params.rental_amount,
+        new_frequency: params.rental_frequency,
+        new_deposit: params.new_security_deposit,
+        timestamp: new Date().toISOString()
+      });
 
       // Delete existing pending payments (preserve paid/overdue)
       const { error: deleteError } = await supabase
@@ -582,6 +607,13 @@ export const useRiderLedgers = () => {
           });
       }
 
+      console.log(`[AUDIT] Ledger reactivated successfully`, {
+        ledger_id: id,
+        rider_id: ledger.rider_id,
+        new_status: 'active',
+        payments_generated: newPayments.length
+      });
+
       setLedgers(prev => prev.map(l =>
         l.id === id ? { ...l, ...updatedLedger } : l
       ));
@@ -589,7 +621,7 @@ export const useRiderLedgers = () => {
       toast.success('Ledger reactivated successfully!');
       return updatedLedger;
     } catch (err) {
-      console.error('Error reactivating ledger:', err);
+      console.error('[AUDIT] Ledger reactivation failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to reactivate ledger';
       toast.error(message);
       throw err;
@@ -621,6 +653,16 @@ export const useRiderLedgers = () => {
         depositStatus = 'partially_refunded';
       }
 
+      console.log(`[AUDIT] Deposit refund initiated`, {
+        ledger_id: id,
+        rider_id: ledger.rider_id,
+        rider_name: ledger.rider_name,
+        original_deposit: ledger.security_deposit_amount,
+        refund_amount: refundAmount,
+        refund_status: depositStatus,
+        timestamp: new Date().toISOString()
+      });
+
       const { data, error } = await supabase
         .from('rider_ledgers')
         .update({
@@ -634,6 +676,12 @@ export const useRiderLedgers = () => {
 
       if (error) throw error;
 
+      console.log(`[AUDIT] Deposit refund completed`, {
+        ledger_id: id,
+        refund_status: depositStatus,
+        refund_amount: refundAmount
+      });
+
       setLedgers(prev => prev.map(l =>
         l.id === id ? { ...l, ...data } : l
       ));
@@ -641,7 +689,7 @@ export const useRiderLedgers = () => {
       toast.success(`Deposit marked as ${depositStatus === 'refunded' ? 'fully refunded' : 'partially refunded'}!`);
       return data;
     } catch (err) {
-      console.error('Error marking deposit refunded:', err);
+      console.error('[AUDIT] Deposit refund failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to mark deposit as refunded';
       toast.error(message);
       throw err;
