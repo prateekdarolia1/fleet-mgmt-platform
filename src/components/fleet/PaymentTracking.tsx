@@ -21,6 +21,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const PaymentTracking = () => {
   const { payments, loading, getTotalStats, updatePayment, markPaymentAsPaid } = usePayments();
+  const { riders } = useRiders();
+
+  // Create a lookup map for rider vehicles
+  const riderVehicleMap = new Map(
+    riders?.map(r => [r.rider_id, r.vehicle_assigned]) || []
+  );
+
+  const getVehicleForRider = (riderId: string): string => {
+    return riderVehicleMap.get(riderId) || 'N/A';
+  };
 
   // Edit payment state
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
