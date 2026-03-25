@@ -997,14 +997,14 @@ export const PaymentTracking = () => {
             </div>
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row sm:justify-between gap-2">
             {/* Delete button - only for pending/overdue payments */}
             {safetyCheckPayment && canDeletePaymentLocal(safetyCheckPayment) && (
               <Button
                 variant="destructive"
                 disabled={isDeleting}
                 onClick={() => setShowDeleteConfirm(true)}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto order-3 sm:order-1"
               >
                 {isDeleting ? (
                   <>
@@ -1019,14 +1019,15 @@ export const PaymentTracking = () => {
                 )}
               </Button>
             )}
-            <div className="flex gap-2 ml-auto">
-              <Button variant="outline" onClick={() => {
+            <div className="flex gap-2 w-full sm:w-auto sm:ml-auto order-1 sm:order-2">
+              <Button variant="outline" className="flex-1 sm:flex-initial" onClick={() => {
                 setIsSafetyCheckOpen(false);
                 setMarkingPaidId(null);
               }}>
                 Cancel
               </Button>
               <Button
+                className="flex-1 sm:flex-initial"
                 disabled={isSafetyCheckSubmitting}
                 onClick={async () => {
                 // Validation
