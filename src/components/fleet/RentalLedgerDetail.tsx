@@ -38,6 +38,7 @@ const getStatusBadge = (status: string) => {
   const styles: Record<string, string> = {
     pending_start: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     active: 'bg-green-100 text-green-800 border-green-200',
+    paused: 'bg-amber-100 text-amber-800 border-amber-200',
     suspended: 'bg-orange-100 text-orange-800 border-orange-200',
     closed: 'bg-gray-100 text-gray-800 border-gray-200',
     cancelled: 'bg-red-100 text-red-800 border-red-200'
@@ -46,6 +47,7 @@ const getStatusBadge = (status: string) => {
   const labels: Record<string, string> = {
     pending_start: 'Pending Start',
     active: 'Active',
+    paused: 'Paused',
     suspended: 'Suspended',
     closed: 'Closed',
     cancelled: 'Cancelled'

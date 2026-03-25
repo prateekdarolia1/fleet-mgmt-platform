@@ -356,6 +356,16 @@ export const LedgerManagement = () => {
                               Paused: {new Date(ledger.paused_at).toLocaleDateString()}
                             </div>
                           )}
+                          {ledger.status === 'paused' && ledger.paused_reason && (
+                            <div className="text-xs text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200 max-w-[200px] truncate" title={ledger.paused_reason}>
+                              {ledger.paused_reason}
+                            </div>
+                          )}
+                          {ledger.status === 'active' && ledger.reactivated_at && (
+                            <div className="text-xs text-green-600">
+                              Reactivated: {new Date(ledger.reactivated_at).toLocaleDateString()}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
