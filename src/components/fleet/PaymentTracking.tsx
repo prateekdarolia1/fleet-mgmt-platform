@@ -997,16 +997,38 @@ export const PaymentTracking = () => {
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsSafetyCheckOpen(false);
-              setMarkingPaidId(null);
-            }}>
-              Cancel
-            </Button>
-            <Button
-              disabled={isSafetyCheckSubmitting}
-              onClick={async () => {
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {/* Delete button - only for pending/overdue payments */}
+            {safetyCheckPayment && canDeletePaymentLocal(safetyCheckPayment) && (
+              <Button
+                variant="destructive"
+                disabled={isDeleting}
+                onClick={() => setShowDeleteConfirm(true)}
+                className="w-full sm:w-auto"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Delete Payment
+                  </>
+                )}
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="outline" onClick={() => {
+                setIsSafetyCheckOpen(false);
+                setMarkingPaidId(null);
+              }}>
+                Cancel
+              </Button>
+              <Button
+                disabled={isSafetyCheckSubmitting}
+                onClick={async () => {
                 // Validation
                 if (safetyCheckData.payment_mode === 'upi') {
                   if (!safetyCheckData.upi_last4 || !/^[A-Z0-9]{4}$/.test(safetyCheckData.upi_last4)) {
@@ -1063,7 +1085,46 @@ export const PaymentTracking = () => {
                 </>
               )}
             </Button>
+            </div>
           </DialogFooter>
+
+          {/* Delete Confirmation Alert - for Safety Check modal */}
+          {showDeleteConfirm && safetyCheckPayment && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>Are you sure you want to cancel this payment? This action cannot be undone.</span>
+                <div className="flex gap-2 ml-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowDeleteConfirm(false)}
+                  >
+                    No, Keep It
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={async () => {
+                      setIsDeleting(true);
+                      try {
+                        await deletePayment(safetyCheckPayment.id);
+                        setShowDeleteConfirm(false);
+                        setIsSafetyCheckOpen(false);
+                        setSafetyCheckPayment(null);
+                      } catch (error) {
+                        // Error toast is handled in the hook
+                      } finally {
+                        setIsDeleting(false);
+                      }
+                    }}
+                  >
+                    Yes, Cancel Payment
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
         </DialogContent>
       </Dialog>
     </div>
