@@ -642,7 +642,12 @@ export const LedgerManagement = () => {
                 </Button>
                 <Button
                   onClick={handleReactivateLedger}
-                  disabled={isReactivating || !reactivateParams.start_date || (reactivationEligibility?.ledger?.paused_at && new Date(reactivateParams.start_date) < new Date(reactivationEligibility.ledger.paused_at))}
+                  disabled={
+                    isReactivating ||
+                    !reactivateParams.start_date ||
+                    (reactivationEligibility?.ledger?.paused_at && new Date(reactivateParams.start_date) < new Date(reactivationEligibility.ledger.paused_at)) ||
+                    (reactivationEligibility?.ledger?.security_deposit_status !== 'retained' && reactivateParams.new_security_deposit <= 0)
+                  }
                   className="bg-green-500 hover:bg-green-600"
                 >
                   {isReactivating ? (
