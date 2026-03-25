@@ -559,11 +559,24 @@ export const LedgerManagement = () => {
                     id="startDate"
                     type="date"
                     value={reactivateParams.start_date}
+                    min={reactivationEligibility.ledger?.paused_at ? new Date(reactivationEligibility.ledger.paused_at).toISOString().split('T')[0] : undefined}
                     onChange={(e) => setReactivateParams(prev => ({ ...prev, start_date: e.target.value }))}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    First payment will be due on this date
-                  </p>
+                  {reactivationEligibility.ledger?.paused_at && (
+                    <p className="text-xs text-muted-foreground">
+                      Must be on or after pause date: {new Date(reactivationEligibility.ledger.paused_at).toLocaleDateString()}
+                    </p>
+                  )}
+                  {reactivationEligibility.ledger?.paused_at && reactivateParams.start_date && new Date(reactivateParams.start_date) < new Date(reactivationEligibility.ledger.paused_at) && (
+                    <p className="text-xs text-red-600 font-medium">
+                      ⚠️ Start date cannot be before pause date
+                    </p>
+                  )}
+                  {!reactivationEligibility.ledger?.paused_at && (
+                    <p className="text-xs text-muted-foreground">
+                      First payment will be due on this date
+                    </p>
+                  )}
                 </div>
 
                 {/* Rental Amount */}
@@ -629,7 +642,7 @@ export const LedgerManagement = () => {
                 </Button>
                 <Button
                   onClick={handleReactivateLedger}
-                  disabled={isReactivating || !reactivateParams.start_date}
+                  disabled={isReactivating || !reactivateParams.start_date || (reactivationEligibility?.ledger?.paused_at && new Date(reactivateParams.start_date) < new Date(reactivationEligibility.ledger.paused_at))}
                   className="bg-green-500 hover:bg-green-600"
                 >
                   {isReactivating ? (
