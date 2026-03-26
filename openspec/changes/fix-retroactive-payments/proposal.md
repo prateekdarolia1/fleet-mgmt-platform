@@ -29,6 +29,7 @@ When creating a new ledger with a past (retroactive) start date, or reactivating
 - `retroactive-payment-generation`: Automatic generation of payment entries for historical periods when creating ledgers with past start dates
 - `gap-period-payments`: Payment generation for the time period between ledger pause and reactivation
 - `payment-id-sequence`: Reliable, collision-free payment ID generation system
+- `table-synchronization`: Automatic synchronization between rider_ledgers/payments and rental_ledgers/rental_payments via database triggers
 
 ### Modified Capabilities
 - None (this is fixing broken functionality, not changing established requirements)
