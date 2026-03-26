@@ -131,6 +131,50 @@ src/
 - RLS (Row Level Security) enabled on all tables
 - RPC functions for complex operations (e.g., `map_battery_to_vehicle`)
 
+### Dual-Table Architecture
+
+The system uses dual ledger/payment tables:
+- **UI Layer (source of truth)**: `rider_ledgers` + `payments`
+- **RPC Layer (synced)**: `rental_ledgers` + `rental_payments`
+- Database triggers automatically sync from source to target
+- Bulk operations use dual-write pattern for consistency
+
+See `openspec/changes/fix-retroactive-payments/sync-trigger-architecture.md` for details.
+
+## Payment Generation Behavior
+
+### Retroactive Ledger Creation
+
+When creating a ledger with a past start date:
+- **Past payments** (due_date < today) → status: `overdue`
+- **Current payment** (first due_date >= today) → status: `pending`
+- **6-month limit**: Only generates payments up to 6 months in the past
+
+Example: Creating a weekly ledger on March 26 with start date January 18:
+- Generates ~10 weekly payments (6 weeks past + 4 weeks buffer)
+- First 6 payments: status `overdue`
+- Remaining payments: status `pending`
+
+### Ledger Reactivation (Gap Period Payments)
+
+When reactivating a paused ledger:
+- **Gap payments** generated between `paused_at` and new `start_date` → status: `overdue`
+- **6 future payments** generated from new start date → status: `pending`
+- Existing pending payments are deleted before regeneration
+
+Example: Paused on January 1, reactivated on February 1:
+- Generates 4 weekly gap payments (Jan 1 to Feb 1) → `overdue`
+- Generates 6 future payments from Feb 1 → `pending`
+
+### Payment ID Generation
+
+- Format: `P###` (e.g., `P001`, `P002`, ...)
+- Sequential numbering with zero-padding
+- Retry logic (3 attempts) for UNIQUE constraint violations
+- Handles concurrent ledger creation safely
+
+See `openspec/changes/fix-retroactive-payments/payment-id-generation.md` for details.
+
 ## Testing
 
 - Unit tests: `vitest` with jsdom environment

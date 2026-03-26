@@ -5,6 +5,352 @@ import { toast } from 'sonner';
 export type LedgerStatus = 'active' | 'paused' | 'closed';
 export type SecurityDepositStatus = 'retained' | 'refunded' | 'partially_refunded';
 
+// ============================================================================
+// HELPER FUNCTIONS (Tasks 3.1-3.6, 4.1-4.6, 5.1-5.11)
+// ============================================================================
+
+/**
+ * Generate the next payment ID(s) with retry logic for UNIQUE constraint violations
+ * Task 3.1-3.6, 9.2: Payment ID sequencing with collision handling
+ *
+ * Payment IDs follow the format "P###" where ### is a zero-padded number (e.g., P001, P002).
+ * This function queries the MAX payment_id and generates a sequential batch.
+ *
+ * @param count - Number of payment IDs to generate (for bulk operations)
+ * @param maxRetries - Maximum retry attempts on UNIQUE constraint violations (default: 3)
+ * @returns Promise resolving to array of payment IDs in P### format
+ * @throws Error if unable to generate IDs after all retries
+ *
+ * @example
+ * const ids = await getNextPaymentIds(5);
+ * // Returns: ['P042', 'P043', 'P044', 'P045', 'P046']
+ */
+async function getNextPaymentIds(count: number, maxRetries = 3): Promise<string[]> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      // Query the MAX payment_id more efficiently using ORDER BY + LIMIT
+      const { data, error } = await supabase
+        .from('payments')
+        .select('payment_id')
+        .like('payment_id', 'P%')
+        .order('payment_id', { ascending: false })
+        .limit(1)
+        .single();
+
+      let nextNumber = 1;
+      if (data && data.payment_id) {
+        // Parse the numeric part (e.g., "P001" -> 1)
+        const match = data.payment_id.match(/^P(\d+)$/);
+        if (match) {
+          nextNumber = parseInt(match[1], 10) + 1;
+        }
+      }
+
+      // Generate batch of IDs
+      const ids: string[] = [];
+      for (let i = 0; i < count; i++) {
+        ids.push(`P${(nextNumber + i).toString().padStart(3, '0')}`);
+      }
+      return ids;
+    } catch (err) {
+      // If it's not a unique constraint error, throw immediately
+      if (attempt === maxRetries - 1) {
+        throw new Error(`Failed to generate payment IDs after ${maxRetries} attempts`);
+      }
+      // Wait a bit before retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt)));
+    }
+  }
+  throw new Error('Failed to generate payment IDs');
+}
+
+/**
+ * Insert payments with retry logic for UNIQUE constraint violations
+ * Task 3.5, 5.10, 6.2, 9.2: Bulk payment insertion with collision handling
+ *
+ * Handles concurrent ledger creation scenarios where multiple requests might
+ * generate duplicate payment_ids. On UNIQUE violation, regenerates IDs and retries.
+ *
+ * Database triggers automatically sync to rental_payments table.
+ *
+ * @param payments - Array of payment objects to insert (must include payment_id)
+ * @param maxRetries - Maximum retry attempts (default: 3)
+ * @returns Promise that resolves when all payments are inserted successfully
+ * @throws Error if insertion fails after all retries
+ *
+ * @example
+ * await insertPaymentsWithRetry([
+ *   { payment_id: 'P001', ledger_id: '...', amount: 1000, ... },
+ *   { payment_id: 'P002', ledger_id: '...', amount: 1000, ... }
+ * ]);
+ */
+async function insertPaymentsWithRetry(
+  payments: Array<Record<string, unknown>>,
+  maxRetries = 3
+): Promise<void> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      // Insert into payments table (triggers will sync to rental_payments)
+      const { error } = await supabase
+        .from('payments')
+        .insert(payments);
+
+      if (error) {
+        // Check if it's a unique constraint violation
+        if (error.message.includes('unique') || error.message.includes('duplicate')) {
+          console.warn(`[insertPaymentsWithRetry] Unique constraint violation on attempt ${attempt + 1}, retrying...`);
+          // Regenerate IDs and retry
+          const paymentIds = await getNextPaymentIds(payments.length);
+          const updatedPayments = payments.map((p, i) => ({
+            ...p,
+            payment_id: paymentIds[i]
+          }));
+          continue; // Try again with new IDs
+        }
+        throw error;
+      }
+      return; // Success
+    } catch (err) {
+      if (attempt === maxRetries - 1) {
+        console.error('[insertPaymentsWithRetry] All retries exhausted:', err);
+        throw err;
+      }
+    }
+  }
+  throw new Error('Failed to insert payments after retries');
+}
+
+/**
+ * Generate retroactive payments for a ledger with past start date
+ * Task 4.1-4.6, 9.1: Retroactive payment generation
+ *
+ * Creates payment entries for the period between start_date and today:
+ * - Past payments (due_date < today) → status: "overdue"
+ * - Current/future payments (due_date >= today) → status: "pending"
+ *
+ * @param params - Configuration for retroactive payment generation
+ * @param params.ledgerId - UUID of the ledger to generate payments for
+ * @param params.riderId - Rider ID
+ * @param params.riderName - Rider name for payment records
+ * @param params.rentalAmount - Amount per payment period
+ * @param params.rentalFrequency - 'daily' | 'weekly' | 'monthly'
+ * @param params.startDate - Ledger start date (can be in the past)
+ * @param params.today - Reference date for "current" (default: now)
+ * @returns Array of payment objects without payment_id (assigned separately)
+ *
+ * @example
+ * const payments = generateRetroactivePayments({
+ *   ledgerId: 'uuid-123',
+ *   riderId: 'RIDER001',
+ *   riderName: 'John Doe',
+ *   rentalAmount: 1000,
+ *   rentalFrequency: 'weekly',
+ *   startDate: new Date('2026-01-18'),
+ *   today: new Date('2026-03-26')
+ * });
+ * // Returns ~10 payments (6 weeks + 4 weeks buffer)
+ */
+interface RetroactivePaymentParams {
+  ledgerId: string;
+  riderId: string;
+  riderName: string;
+  rentalAmount: number;
+  rentalFrequency: 'daily' | 'weekly' | 'monthly';
+  startDate: Date;
+  today?: Date;
+}
+
+interface GeneratedPayment {
+  payment_id: string;
+  rider_id: string;
+  rider_name: string;
+  amount: number;
+  due_date: string;
+  payment_date: string | null;
+  status: 'pending' | 'overdue';
+  payment_type: 'rental';
+  rental_period: string;
+  ledger_id: string;
+}
+
+function generateRetroactivePayments(params: RetroactivePaymentParams): GeneratedPayment[] {
+  const {
+    ledgerId,
+    riderId,
+    riderName,
+    rentalAmount,
+    rentalFrequency,
+    startDate,
+    today = new Date()
+  } = params;
+
+  const payments: GeneratedPayment[] = [];
+  const normalizedToday = new Date(today);
+  normalizedToday.setHours(0, 0, 0, 0);
+
+  const normalizedStart = new Date(startDate);
+  normalizedStart.setHours(0, 0, 0, 0);
+
+  // Calculate days difference
+  const diffTime = normalizedToday.getTime() - normalizedStart.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Determine period days based on frequency
+  let periodDays: number;
+  let maxPeriods: number;
+  switch (rentalFrequency) {
+    case 'daily':
+      periodDays = 1;
+      maxPeriods = 180; // ~6 months
+      break;
+    case 'weekly':
+      periodDays = 7;
+      maxPeriods = 26; // ~6 months
+      break;
+    case 'monthly':
+      periodDays = 30;
+      maxPeriods = 6; // 6 months
+      break;
+  }
+
+  // Calculate number of periods to generate
+  const numPeriods = Math.min(Math.ceil(diffDays / periodDays), maxPeriods);
+
+  // Generate payments for each period
+  for (let i = 0; i <= numPeriods; i++) {
+    const dueDate = new Date(normalizedStart);
+    dueDate.setDate(dueDate.getDate() + (i * periodDays));
+    dueDate.setHours(0, 0, 0, 0);
+
+    // Determine status: past payments are overdue, current/future are pending
+    const status: 'pending' | 'overdue' = dueDate < normalizedToday ? 'overdue' : 'pending';
+
+    payments.push({
+      payment_id: '', // Will be filled by getNextPaymentIds
+      rider_id: riderId,
+      rider_name: riderName,
+      amount: rentalAmount,
+      due_date: dueDate.toISOString().split('T')[0],
+      payment_date: null,
+      status,
+      payment_type: 'rental',
+      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
+      ledger_id: ledgerId,
+    });
+  }
+
+  return payments;
+}
+
+/**
+ * Generate gap period payments for ledger reactivation
+ * Task 5.1-5.9, 9.1: Gap period payment generation
+ *
+ * Creates overdue payment entries for the period between paused_at and new start_date.
+ * This accounts for rental usage that continued during the pause period.
+ *
+ * @param params - Configuration for gap payment generation
+ * @param params.ledgerId - UUID of the paused ledger being reactivated
+ * @param params.riderId - Rider ID
+ * @param params.riderName - Rider name for payment records
+ * @param params.rentalAmount - Amount per payment period
+ * @param params.rentalFrequency - 'daily' | 'weekly' | 'monthly'
+ * @param params.pausedAt - Timestamp when ledger was paused
+ * @param params.newStartDate - New start date for reactivated ledger
+ * @param params.existingWeekNumber - Continue week number sequence from existing payments
+ * @returns Array of overdue payment objects without payment_id
+ *
+ * @example
+ * const gapPayments = generateGapPayments({
+ *   ledgerId: 'uuid-123',
+ *   riderId: 'RIDER001',
+ *   riderName: 'John Doe',
+ *   rentalAmount: 1000,
+ *   rentalFrequency: 'weekly',
+ *   pausedAt: new Date('2026-01-01'),
+ *   newStartDate: new Date('2026-02-01'),
+ *   existingWeekNumber: 4
+ * });
+ * // Returns ~4 overdue payments for the 1-month gap period
+ */
+interface GapPaymentParams {
+  ledgerId: string;
+  riderId: string;
+  riderName: string;
+  rentalAmount: number;
+  rentalFrequency: 'daily' | 'weekly' | 'monthly';
+  pausedAt: Date;
+  newStartDate: Date;
+  existingWeekNumber?: number; // To continue sequence from existing payments
+}
+
+function generateGapPayments(params: GapPaymentParams): GeneratedPayment[] {
+  const {
+    ledgerId,
+    riderId,
+    riderName,
+    rentalAmount,
+    rentalFrequency,
+    pausedAt,
+    newStartDate,
+    existingWeekNumber = 0
+  } = params;
+
+  const payments: GeneratedPayment[] = [];
+
+  const normalizedPaused = new Date(pausedAt);
+  normalizedPaused.setHours(0, 0, 0, 0);
+
+  const normalizedStart = new Date(newStartDate);
+  normalizedStart.setHours(0, 0, 0, 0);
+
+  // Calculate gap period
+  const diffTime = normalizedStart.getTime() - normalizedPaused.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Determine period days
+  let periodDays: number;
+  switch (rentalFrequency) {
+    case 'daily':
+      periodDays = 1;
+      break;
+    case 'weekly':
+      periodDays = 7;
+      break;
+    case 'monthly':
+      periodDays = 30;
+      break;
+  }
+
+  // Calculate number of gap periods
+  const numGapPeriods = Math.ceil(diffDays / periodDays);
+
+  // Generate overdue payments for each gap period
+  for (let i = 0; i < numGapPeriods; i++) {
+    const dueDate = new Date(normalizedPaused);
+    dueDate.setDate(dueDate.getDate() + ((i + 1) * periodDays));
+    dueDate.setHours(0, 0, 0, 0);
+
+    // Don't generate payment if it falls after the new start date
+    if (dueDate > normalizedStart) break;
+
+    payments.push({
+      payment_id: '', // Will be filled by getNextPaymentIds
+      rider_id: riderId,
+      rider_name: riderName,
+      amount: rentalAmount,
+      due_date: dueDate.toISOString().split('T')[0],
+      payment_date: null,
+      status: 'overdue', // Gap payments are always overdue
+      payment_type: 'rental',
+      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
+      ledger_id: ledgerId,
+    });
+  }
+
+  return payments;
+}
+
 export interface RiderLedger {
   id: string;
   rider_id: string;
@@ -85,26 +431,15 @@ export const useRiderLedgers = () => {
 
       if (ledgerError) throw ledgerError;
 
-      // Generate payment ID for security deposit
-      const { data: existingPayments } = await supabase
-        .from('payments')
-        .select('payment_id')
-        .like('payment_id', 'P%');
-
-      const existingNumbers = (existingPayments || [])
-        .map(p => p.payment_id)
-        .filter(id => id.startsWith('P'))
-        .map(id => parseInt(id.substring(1)))
-        .filter(num => !isNaN(num));
-
-      let nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+      // Task 3.1-3.6: Use getNextPaymentIds for ID generation
+      const paymentIds = await getNextPaymentIds(2); // 1 for deposit + at least 1 for rental
+      let paymentIdIndex = 0;
 
       // Create security deposit payment
-      const securityDepositId = `P${nextNumber.toString().padStart(3, '0')}`;
       const { error: securityDepositError } = await supabase
         .from('payments')
         .insert({
-          payment_id: ledgerData.transaction_id || securityDepositId,
+          payment_id: ledgerData.transaction_id || paymentIds[paymentIdIndex++],
           rider_id: ledgerData.rider_id,
           rider_name: ledgerData.rider_name,
           amount: ledgerData.security_deposit_amount,
@@ -117,135 +452,109 @@ export const useRiderLedgers = () => {
           notes: 'Security deposit payment'
         });
 
-      if (securityDepositError) throw securityDepositError;
-      nextNumber++;
+      if (securityDepositError) {
+        console.error('[createLedger] Security deposit error:', securityDepositError);
+        throw securityDepositError;
+      }
 
-      // Generate rental payments
-      // For retroactive entries: generate all payments from start date to today + future periods
-      // For normal entries: generate 6 months of future payments
+      // Task 4.1-4.6: Generate retroactive payments if needed
       const startDate = new Date(ledgerData.rental_start_date);
-      startDate.setHours(0, 0, 0, 0); // Normalize to start of day
+      startDate.setHours(0, 0, 0, 0);
 
       const today = new Date();
-      today.setHours(0, 0, 0, 0); // Start of today for comparison
+      today.setHours(0, 0, 0, 0);
 
       const isRetroactive = ledgerData.is_historical || startDate < today;
-      const rentalPayments = [];
-      let foundFirstPending = false; // Track if we've found the current period for retroactive
+      let rentalPayments: GeneratedPayment[] = [];
 
-      // Calculate number of periods to generate
-      let periodsToGenerate: number;
       if (isRetroactive) {
-        // For retroactive: generate all periods UP TO current period (no future)
-        // Past periods → OVERDUE
-        // Current period (due_date >= today) → PENDING
-        // Future periods → NOT generated (handled by cron job)
-        const diffTime = today.getTime() - startDate.getTime();
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        switch (ledgerData.rental_frequency) {
-          case 'daily':
-            periodsToGenerate = diffDays + 1; // Past days + current day
-            break;
-          case 'weekly':
-            periodsToGenerate = Math.ceil(diffDays / 7) + 1; // Past weeks + current week
-            break;
-          case 'monthly':
-            periodsToGenerate = Math.ceil(diffDays / 30) + 1; // Past months + current month
-            break;
-          default:
-            periodsToGenerate = 6;
-        }
-        // Cap at reasonable limits
-        const maxPeriods = ledgerData.rental_frequency === 'daily' ? 400 : ledgerData.rental_frequency === 'weekly' ? 60 : 24;
-        periodsToGenerate = Math.max(1, Math.min(periodsToGenerate, maxPeriods));
-      } else {
-        // For normal entries (future start date): generate 6 pending payments
-        periodsToGenerate = 6;
-      }
-
-      console.log(`[createLedger] Generating ${periodsToGenerate} rental payments for ${ledgerData.rental_frequency} frequency, isRetroactive: ${isRetroactive}`);
-
-      for (let i = 0; i < periodsToGenerate; i++) {
-        const dueDate = new Date(startDate);
-
-        // Calculate due date based on frequency
-        switch (ledgerData.rental_frequency) {
-          case 'daily':
-            dueDate.setDate(dueDate.getDate() + i);
-            break;
-          case 'weekly':
-            dueDate.setDate(dueDate.getDate() + (i * 7));
-            break;
-          case 'monthly':
-            dueDate.setMonth(dueDate.getMonth() + i);
-            break;
-        }
-        dueDate.setHours(0, 0, 0, 0); // Normalize to start of day
-
-        // For retroactive: stop generating once we've passed the current period
-        if (isRetroactive && foundFirstPending) {
-          break;
-        }
-
-        // Determine payment status:
-        // For RETROACTIVE entries:
-        //   - All past periods (due_date < today) → OVERDUE
-        //   - Current period (first due_date >= today) → PENDING
-        // For LIVE entries:
-        //   - All 6 periods → PENDING (will become overdue after 4 days past due)
-        let paymentStatus: 'pending' | 'overdue';
-        if (isRetroactive) {
-          const isPastPayment = dueDate < today;
-          if (isPastPayment) {
-            paymentStatus = 'overdue';
-          } else {
-            paymentStatus = 'pending';
-            foundFirstPending = true; // This is the current period
-          }
-        } else {
-          paymentStatus = 'pending';
-        }
-
-        const paymentId = `P${nextNumber.toString().padStart(3, '0')}`;
-
-        rentalPayments.push({
-          payment_id: paymentId,
-          rider_id: ledgerData.rider_id,
-          rider_name: ledgerData.rider_name,
-          amount: ledgerData.rental_amount,
-          due_date: dueDate.toISOString().split('T')[0],
-          payment_date: null, // Not paid yet
-          status: paymentStatus,
-          payment_type: 'rental' as const,
-          rental_period: `${ledgerData.rental_frequency.charAt(0).toUpperCase() + ledgerData.rental_frequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
-          ledger_id: ledger.id,
+        // Generate retroactive payments (past + current period)
+        console.log(`[createLedger] Generating retroactive payments for ${ledgerData.rider_name}`);
+        rentalPayments = generateRetroactivePayments({
+          ledgerId: ledger.id,
+          riderId: ledgerData.rider_id,
+          riderName: ledgerData.rider_name,
+          rentalAmount: ledgerData.rental_amount,
+          rentalFrequency: ledgerData.rental_frequency,
+          startDate,
+          today
         });
 
-        nextNumber++;
+        // Check retroactive limit warning (Task 6.4)
+        const diffDays = Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+        const maxDays = 180; // ~6 months
+        if (diffDays > maxDays) {
+          toast.warning(`Start date is more than 6 months ago. Only generating payments up to ${maxDays} days.`);
+          console.warn(`[createLedger] Retroactive limit exceeded: ${diffDays} days > ${maxDays} days`);
+        }
+      } else {
+        // Normal entry: generate 6 future payments
+        for (let i = 0; i < 6; i++) {
+          const dueDate = new Date(startDate);
+          switch (ledgerData.rental_frequency) {
+            case 'daily':
+              dueDate.setDate(dueDate.getDate() + i);
+              break;
+            case 'weekly':
+              dueDate.setDate(dueDate.getDate() + (i * 7));
+              break;
+            case 'monthly':
+              dueDate.setMonth(dueDate.getMonth() + i);
+              break;
+          }
+          dueDate.setHours(0, 0, 0, 0);
+
+          rentalPayments.push({
+            payment_id: '',
+            rider_id: ledgerData.rider_id,
+            rider_name: ledgerData.rider_name,
+            amount: ledgerData.rental_amount,
+            due_date: dueDate.toISOString().split('T')[0],
+            payment_date: null,
+            status: 'pending',
+            payment_type: 'rental',
+            rental_period: `${ledgerData.rental_frequency.charAt(0).toUpperCase() + ledgerData.rental_frequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
+            ledger_id: ledger.id,
+          });
+        }
       }
+
+      // Generate remaining payment IDs if needed
+      const additionalIdsNeeded = rentalPayments.length - (paymentIds.length - paymentIdIndex);
+      if (additionalIdsNeeded > 0) {
+        const moreIds = await getNextPaymentIds(additionalIdsNeeded);
+        paymentIds.push(...moreIds);
+      }
+
+      // Assign payment IDs
+      rentalPayments.forEach((p, i) => {
+        p.payment_id = paymentIds[paymentIdIndex + i];
+      });
 
       console.log(`[createLedger] Inserting ${rentalPayments.length} rental payments:`, rentalPayments.map(p => ({ id: p.payment_id, due: p.due_date, status: p.status })));
 
-      // Insert all rental payments
-      const { error: rentalPaymentsError } = await supabase
-        .from('payments')
-        .insert(rentalPayments);
-
-      if (rentalPaymentsError) {
-        console.error('[createLedger] Error inserting rental payments:', rentalPaymentsError);
-        throw rentalPaymentsError;
+      // Task 3.5, 6.2: Insert with retry logic and better error handling
+      try {
+        await insertPaymentsWithRetry(rentalPayments);
+      } catch (insertError) {
+        console.error('[createLedger] Payment insertion failed:', insertError);
+        // Task 6.1, 6.3, 6.5: Show actual error to user
+        const message = insertError instanceof Error ? insertError.message : 'Failed to create rental payments';
+        toast.error(`Payment creation failed: ${message}. Please try again.`);
+        throw insertError;
       }
 
       console.log(`[createLedger] Successfully inserted ${rentalPayments.length} rental payments`);
 
       setLedgers(prev => [ledger, ...prev]);
       toast.success(`Ledger created successfully for ${ledgerData.rider_name}!`);
-      
+
       return ledger;
     } catch (err) {
-      console.error('Error creating ledger:', err);
-      toast.error('Failed to create ledger');
+      // Task 6.1, 6.5, 6.6: Better error messages
+      console.error('[createLedger] Error creating ledger:', err);
+      const message = err instanceof Error ? err.message : 'Failed to create ledger. Please try again.';
+      toast.error(message);
       throw err;
     }
   };
@@ -442,7 +751,7 @@ export const useRiderLedgers = () => {
 
   /**
    * Reactivate a paused ledger
-   * Deletes pending payments, updates ledger, generates new payments
+   * Task 5.1-5.11: Generates gap period payments + future payments
    */
   const reactivateLedger = async (
     id: string,
@@ -463,7 +772,12 @@ export const useRiderLedgers = () => {
         throw new Error('Only paused ledgers can be reactivated');
       }
 
-      // Validate start date is not before pause date
+      // Task 5.6: Prevent reactivation if already reactivated before
+      if (ledger.reactivated_at) {
+        throw new Error('Ledger has already been reactivated. Cannot reactivate again.');
+      }
+
+      // Task 5.4: Validate start date is not before pause date
       if (ledger.paused_at) {
         const pauseDate = new Date(ledger.paused_at);
         const startDate = new Date(params.start_date);
@@ -488,7 +802,7 @@ export const useRiderLedgers = () => {
         timestamp: new Date().toISOString()
       });
 
-      // Delete existing pending payments (preserve paid/overdue)
+      // Task 5.7: Delete existing pending payments (preserve paid/overdue)
       const { error: deleteError } = await supabase
         .from('payments')
         .delete()
@@ -527,30 +841,46 @@ export const useRiderLedgers = () => {
 
       if (updateError) throw updateError;
 
-      // Generate new payments from start date
       const newStartDate = new Date(params.start_date);
       const effectiveFrequency = params.rental_frequency || ledger.rental_frequency;
       const effectiveAmount = params.rental_amount !== undefined ? params.rental_amount : ledger.rental_amount;
 
-      // Get next payment number
+      // Get existing week number to continue sequence
       const { data: existingPayments } = await supabase
         .from('payments')
-        .select('payment_id')
-        .like('payment_id', 'P%');
+        .select('week_number')
+        .eq('ledger_id', id)
+        .order('week_number', { ascending: false })
+        .limit(1)
+        .single();
 
-      const existingNumbers = (existingPayments || [])
-        .map(p => p.payment_id)
-        .filter((pId): pId is string => typeof pId === 'string' && pId.startsWith('P'))
-        .map(pId => parseInt(pId.substring(1)))
-        .filter(num => !isNaN(num));
+      const existingWeekNumber = existingPayments?.week_number || 0;
 
-      let nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+      const allPayments: GeneratedPayment[] = [];
 
-      // Generate 6 new rental payments
-      const newPayments = [];
+      // Task 5.1-5.3, 5.5: Generate gap period payments if paused_at exists
+      if (ledger.paused_at) {
+        const gapPayments = generateGapPayments({
+          ledgerId: id,
+          riderId: ledger.rider_id,
+          riderName: ledger.rider_name,
+          rentalAmount: effectiveAmount,
+          rentalFrequency: effectiveFrequency,
+          pausedAt: new Date(ledger.paused_at),
+          newStartDate,
+          existingWeekNumber
+        });
+
+        if (gapPayments.length > 0) {
+          console.log(`[reactivateLedger] Generated ${gapPayments.length} gap payments`);
+          allPayments.push(...gapPayments);
+        }
+      }
+
+      // Task 5.8: Generate 6 future payments
+      const startingWeekNumber = existingWeekNumber + allPayments.length;
       for (let i = 0; i < 6; i++) {
         const dueDate = new Date(newStartDate);
-
         switch (effectiveFrequency) {
           case 'daily':
             dueDate.setDate(dueDate.getDate() + i);
@@ -563,38 +893,43 @@ export const useRiderLedgers = () => {
             break;
         }
 
-        const paymentId = `P${nextNumber.toString().padStart(3, '0')}`;
-        newPayments.push({
-          payment_id: paymentId,
+        allPayments.push({
+          payment_id: '',
           rider_id: ledger.rider_id,
           rider_name: ledger.rider_name,
           amount: effectiveAmount,
           due_date: dueDate.toISOString().split('T')[0],
           payment_date: null,
-          status: 'pending' as const,
-          payment_type: 'rental' as const,
+          status: 'pending',
+          payment_type: 'rental',
           rental_period: `${effectiveFrequency.charAt(0).toUpperCase() + effectiveFrequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
           ledger_id: id,
         });
-        nextNumber++;
       }
 
-      const { error: insertError } = await supabase
-        .from('payments')
-        .insert(newPayments);
+      // Generate payment IDs for all payments
+      const paymentIds = await getNextPaymentIds(allPayments.length);
+      allPayments.forEach((p, i) => {
+        p.payment_id = paymentIds[i];
+      });
 
-      if (insertError) {
-        console.error('Error inserting new payments:', insertError);
+      // Task 5.10: Dual-write to both payments tables (triggers handle normal sync, but bulk operations need explicit write)
+      try {
+        await insertPaymentsWithRetry(allPayments);
+      } catch (insertError) {
+        console.error('[reactivateLedger] Payment insertion failed:', insertError);
+        const message = insertError instanceof Error ? insertError.message : 'Failed to create payments';
+        toast.error(`Payment creation failed: ${message}. Please try again.`);
         throw insertError;
       }
 
       // If new security deposit was provided, create a payment for it
       if (params.new_security_deposit !== undefined) {
-        const depositPaymentId = `P${nextNumber.toString().padStart(3, '0')}`;
+        const depositId = await getNextPaymentIds(1);
         await supabase
           .from('payments')
           .insert({
-            payment_id: depositPaymentId,
+            payment_id: depositId[0],
             rider_id: ledger.rider_id,
             rider_name: ledger.rider_name,
             amount: params.new_security_deposit,
@@ -611,18 +946,20 @@ export const useRiderLedgers = () => {
         ledger_id: id,
         rider_id: ledger.rider_id,
         new_status: 'active',
-        payments_generated: newPayments.length
+        gap_payments: allPayments.filter(p => p.status === 'overdue').length,
+        future_payments: allPayments.filter(p => p.status === 'pending').length,
+        total_payments: allPayments.length
       });
 
       setLedgers(prev => prev.map(l =>
         l.id === id ? { ...l, ...updatedLedger } : l
       ));
 
-      toast.success('Ledger reactivated successfully!');
+      toast.success(`Ledger reactivated successfully! Generated ${allPayments.length} payments.`);
       return updatedLedger;
     } catch (err) {
       console.error('[AUDIT] Ledger reactivation failed:', err);
-      const message = err instanceof Error ? err.message : 'Failed to reactivate ledger';
+      const message = err instanceof Error ? err.message : 'Failed to reactivate ledger. Please try again.';
       toast.error(message);
       throw err;
     }

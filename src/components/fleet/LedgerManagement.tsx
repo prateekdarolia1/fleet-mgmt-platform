@@ -530,7 +530,7 @@ export const LedgerManagement = () => {
               Reactivate Ledger
             </DialogTitle>
             <DialogDescription>
-              Resume payment generation for this ledger. Existing pending payments will be replaced.
+              Resume payment generation for this ledger. Gap period payments will be generated as overdue, and 6 future payments will be created.
             </DialogDescription>
           </DialogHeader>
 
