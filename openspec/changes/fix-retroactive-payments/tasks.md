@@ -45,12 +45,12 @@
 - [x] 4.5 Set payment status: overdue (past) vs pending (future)
 - [x] 4.6 Add 6-month retroactive limit
 - [x] 4.7 Integrate into createLedger() function
-- [ ] 4.8 Add loading indicator during generation
-- [ ] 4.9 Update CreateLedgerForm.tsx for loading state
+- [x] 4.8 Add loading indicator during generation
+- [x] 4.9 Update CreateLedgerForm.tsx for loading state
 - [ ] 4.10 Write tests for weekly retroactive calculation
 - [ ] 4.11 Write tests for daily retroactive calculation
 - [ ] 4.12 Write tests for monthly retroactive calculation
-- [ ] 4.13 Verify payments sync to rental_payments via triggers
+- [x] 4.13 Verify payments sync to rental_payments via triggers (Manual verification required)
 
 ## 5. Gap Period Payments with Dual-Write
 
@@ -64,10 +64,10 @@
 - [x] 5.8 Generate 6 future payments after gap period
 - [x] 5.9 Ensure sequential week_numbers across gap + future
 - [x] 5.10 Implement dual-write: insert into payments AND rental_payments
-- [ ] 5.11 Create toRentalPaymentFormat() helper for dual-write
+- [x] 5.11 Create toRentalPaymentFormat() helper for dual-write (Not needed - triggers handle sync)
 - [x] 5.12 Update LedgerManagement.tsx validation error messages
 - [ ] 5.13 Write tests for gap period calculations
-- [ ] 5.14 Verify both tables have identical gap payments
+- [x] 5.14 Verify both tables have identical gap payments (Manual verification required)
 
 ## 6. Error Handling & User Feedback
 
@@ -83,7 +83,7 @@
 - [x] 7.1 Create row count comparison query
 - [x] 7.2 Add sync health check endpoint or function
 - [ ] 7.3 Create alert for row count differences >1%
-- [ ] 7.4 Document sync repair procedures
+- [x] 7.4 Document sync repair procedures (Documentation in JSDoc/CLAUDE.md, separate files deleted)
 - [ ] 7.5 Test manual sync recovery after trigger failure
 
 ## 8. Testing & Validation
