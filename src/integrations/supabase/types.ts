@@ -29,13 +29,6 @@ export type Database = {
           usc_id: string | null
           vehicle_id: string | null
           zone_id: string | null
-          // Historical tracking fields
-          effective_start_date: string | null
-          effective_end_date: string | null
-          is_historical_import: boolean
-          data_source: string
-          import_batch_id: string | null
-          confidence_score: number
         }
         Insert: {
           battery_id: string
@@ -130,6 +123,8 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string
           due_date: string
           id: string
@@ -144,19 +139,11 @@ export type Database = {
           rider_name: string
           status: Database["public"]["Enums"]["payment_status"]
           updated_at: string
-          // Historical tracking fields
-          effective_start_date: string | null
-          effective_end_date: string | null
-          is_historical_import: boolean
-          data_source: string
-          import_batch_id: string | null
-          confidence_score: number
-          // Payment cancellation fields
-          cancelled_at: string | null
-          cancelled_by: string | null
         }
         Insert: {
           amount: number
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           due_date: string
           id?: string
@@ -171,12 +158,11 @@ export type Database = {
           rider_name: string
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
-          // Payment cancellation fields
-          cancelled_at?: string | null
-          cancelled_by?: string | null
         }
         Update: {
           amount?: number
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string
           due_date?: string
           id?: string
@@ -191,9 +177,6 @@ export type Database = {
           rider_name?: string
           status?: Database["public"]["Enums"]["payment_status"]
           updated_at?: string
-          // Payment cancellation fields
-          cancelled_at?: string | null
-          cancelled_by?: string | null
         }
         Relationships: [
           {
@@ -267,10 +250,19 @@ export type Database = {
       }
       rental_ledgers: {
         Row: {
+          confidence_score: number | null
           created_at: string | null
           created_by: string | null
+          data_source: string | null
+          deposit_refunded_amount: number | null
+          deposit_refunded_at: string | null
+          effective_start_date: string | null
           id: string
+          is_historical_import: boolean | null
           notes: string | null
+          paused_at: string | null
+          paused_reason: string | null
+          reactivated_at: string | null
           rental_amount: number
           rental_start_date: string | null
           responsible_user_id: string | null
@@ -284,10 +276,19 @@ export type Database = {
           vehicle_number: string | null
         }
         Insert: {
+          confidence_score?: number | null
           created_at?: string | null
           created_by?: string | null
+          data_source?: string | null
+          deposit_refunded_amount?: number | null
+          deposit_refunded_at?: string | null
+          effective_start_date?: string | null
           id?: string
+          is_historical_import?: boolean | null
           notes?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          reactivated_at?: string | null
           rental_amount?: number
           rental_start_date?: string | null
           responsible_user_id?: string | null
@@ -301,10 +302,19 @@ export type Database = {
           vehicle_number?: string | null
         }
         Update: {
+          confidence_score?: number | null
           created_at?: string | null
           created_by?: string | null
+          data_source?: string | null
+          deposit_refunded_amount?: number | null
+          deposit_refunded_at?: string | null
+          effective_start_date?: string | null
           id?: string
+          is_historical_import?: boolean | null
           notes?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          reactivated_at?: string | null
           rental_amount?: number
           rental_start_date?: string | null
           responsible_user_id?: string | null
@@ -345,6 +355,8 @@ export type Database = {
         Row: {
           amount_due: number
           balance: number | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           created_at: string | null
           due_date: string
           external_ref: string | null
@@ -354,6 +366,7 @@ export type Database = {
           notes: string | null
           paid_amount: number
           payment_date: string | null
+          payment_id: string
           payment_mode: string | null
           received_by: string | null
           reminder_count: number | null
@@ -365,6 +378,8 @@ export type Database = {
         Insert: {
           amount_due?: number
           balance?: number | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string | null
           due_date: string
           external_ref?: string | null
@@ -374,6 +389,7 @@ export type Database = {
           notes?: string | null
           paid_amount?: number
           payment_date?: string | null
+          payment_id: string
           payment_mode?: string | null
           received_by?: string | null
           reminder_count?: number | null
@@ -385,6 +401,8 @@ export type Database = {
         Update: {
           amount_due?: number
           balance?: number | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           created_at?: string | null
           due_date?: string
           external_ref?: string | null
@@ -394,6 +412,7 @@ export type Database = {
           notes?: string | null
           paid_amount?: number
           payment_date?: string | null
+          payment_id?: string
           payment_mode?: string | null
           received_by?: string | null
           reminder_count?: number | null
@@ -421,61 +440,82 @@ export type Database = {
       }
       rider_ledgers: {
         Row: {
+          confidence_score: number | null
           created_at: string
+          data_source: string | null
+          deposit_refunded_amount: number | null
+          deposit_refunded_at: string | null
+          effective_end_date: string | null
+          effective_start_date: string | null
           id: string
-          rental_amount: number
-          rental_frequency: Database["public"]["Enums"]["rental_frequency"]
-          rental_start_date: string
-          rider_id: string
-          rider_name: string
-          security_deposit_amount: number
-          updated_at: string
-          // Ledger lifecycle fields
-          status: Database["public"]["Enums"]["ledger_status"]
+          is_historical: boolean | null
           paused_at: string | null
           paused_reason: string | null
           reactivated_at: string | null
-          security_deposit_status: Database["public"]["Enums"]["security_deposit_status"]
-          deposit_refunded_at: string | null
-          deposit_refunded_amount: number | null
-        }
-        Insert: {
-          created_at?: string
-          id?: string
           rental_amount: number
           rental_frequency: Database["public"]["Enums"]["rental_frequency"]
           rental_start_date: string
           rider_id: string
           rider_name: string
           security_deposit_amount: number
-          updated_at?: string
-          // Ledger lifecycle fields
-          status?: Database["public"]["Enums"]["ledger_status"]
+          security_deposit_status:
+            | Database["public"]["Enums"]["security_deposit_status"]
+            | null
+          status: Database["public"]["Enums"]["ledger_status"] | null
+          swaps_allowed_per_month: number | null
+          updated_at: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          data_source?: string | null
+          deposit_refunded_amount?: number | null
+          deposit_refunded_at?: string | null
+          effective_end_date?: string | null
+          effective_start_date?: string | null
+          id?: string
+          is_historical?: boolean | null
           paused_at?: string | null
           paused_reason?: string | null
           reactivated_at?: string | null
-          security_deposit_status?: Database["public"]["Enums"]["security_deposit_status"]
-          deposit_refunded_at?: string | null
-          deposit_refunded_amount?: number | null
+          rental_amount: number
+          rental_frequency: Database["public"]["Enums"]["rental_frequency"]
+          rental_start_date: string
+          rider_id: string
+          rider_name: string
+          security_deposit_amount: number
+          security_deposit_status?:
+            | Database["public"]["Enums"]["security_deposit_status"]
+            | null
+          status?: Database["public"]["Enums"]["ledger_status"] | null
+          swaps_allowed_per_month?: number | null
+          updated_at?: string
         }
         Update: {
+          confidence_score?: number | null
           created_at?: string
+          data_source?: string | null
+          deposit_refunded_amount?: number | null
+          deposit_refunded_at?: string | null
+          effective_end_date?: string | null
+          effective_start_date?: string | null
           id?: string
+          is_historical?: boolean | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          reactivated_at?: string | null
           rental_amount?: number
           rental_frequency?: Database["public"]["Enums"]["rental_frequency"]
           rental_start_date?: string
           rider_id?: string
           rider_name?: string
           security_deposit_amount?: number
+          security_deposit_status?:
+            | Database["public"]["Enums"]["security_deposit_status"]
+            | null
+          status?: Database["public"]["Enums"]["ledger_status"] | null
+          swaps_allowed_per_month?: number | null
           updated_at?: string
-          // Ledger lifecycle fields
-          status?: Database["public"]["Enums"]["ledger_status"]
-          paused_at?: string | null
-          paused_reason?: string | null
-          reactivated_at?: string | null
-          security_deposit_status?: Database["public"]["Enums"]["security_deposit_status"]
-          deposit_refunded_at?: string | null
-          deposit_refunded_amount?: number | null
         }
         Relationships: []
       }
@@ -528,13 +568,6 @@ export type Database = {
           status: Database["public"]["Enums"]["rider_status"]
           updated_at: string
           vehicle_assigned: string | null
-          // Historical tracking fields
-          effective_start_date: string | null
-          effective_end_date: string | null
-          is_historical_import: boolean
-          data_source: string
-          import_batch_id: string | null
-          confidence_score: number
         }
         Insert: {
           aadhaar_number?: string | null
@@ -636,6 +669,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_errors: {
+        Row: {
+          created_at: string | null
+          error_details: Json | null
+          error_message: string
+          id: string
+          operation: string
+          source_id: string
+          source_table: string
+          target_table: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_details?: Json | null
+          error_message: string
+          id?: string
+          operation: string
+          source_id: string
+          source_table: string
+          target_table: string
+        }
+        Update: {
+          created_at?: string | null
+          error_details?: Json | null
+          error_message?: string
+          id?: string
+          operation?: string
+          source_id?: string
+          source_table?: string
+          target_table?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -659,6 +725,8 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          battery_id: string | null
+          battery_smart_id: string | null
           battery_type: Database["public"]["Enums"]["battery_type"]
           chassis_number: string
           color: string
@@ -683,15 +751,10 @@ export type Database = {
           vehicle_number: string
           vehicle_type: Database["public"]["Enums"]["vehicle_type"]
           vendor: string
-          // Historical tracking fields
-          effective_start_date: string | null
-          effective_end_date: string | null
-          is_historical_import: boolean
-          data_source: string
-          import_batch_id: string | null
-          confidence_score: number
         }
         Insert: {
+          battery_id?: string | null
+          battery_smart_id?: string | null
           battery_type: Database["public"]["Enums"]["battery_type"]
           chassis_number: string
           color: string
@@ -718,6 +781,8 @@ export type Database = {
           vendor: string
         }
         Update: {
+          battery_id?: string | null
+          battery_smart_id?: string | null
           battery_type?: Database["public"]["Enums"]["battery_type"]
           chassis_number?: string
           color?: string
@@ -743,24 +808,46 @@ export type Database = {
           vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
           vendor?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_battery_id_fkey"
+            columns: ["battery_id"]
+            isOneToOne: false
+            referencedRelation: "batteries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      confirm_rental_start: {
-        Args: {
-          p_confirmed_by?: string
-          p_ledger_id: string
-          p_notes?: string
-          p_rental_start_date: string
-          p_responsible_user_id?: string
-          p_security_deposit?: number
-        }
-        Returns: Json
-      }
+      confirm_rental_start:
+        | {
+            Args: {
+              p_confidence_score?: number
+              p_confirmed_by?: string
+              p_data_source?: string
+              p_is_historical?: boolean
+              p_ledger_id: string
+              p_rental_start_date: string
+              p_responsible_user_id?: string
+              p_security_deposit?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_confirmed_by?: string
+              p_ledger_id: string
+              p_notes?: string
+              p_rental_start_date: string
+              p_responsible_user_id?: string
+              p_security_deposit?: number
+            }
+            Returns: Json
+          }
       create_rental_ledger: {
         Args: {
           p_created_by?: string
@@ -791,19 +878,35 @@ export type Database = {
         Args: { p_payment_id: string }
         Returns: boolean
       }
+      manual_sync_rider_ledger: { Args: { p_ledger_id: string }; Returns: Json }
       mark_overdue_payments: { Args: never; Returns: number }
-      mark_rental_payment_paid: {
-        Args: {
-          p_external_ref?: string
-          p_notes?: string
-          p_paid_amount: number
-          p_payment_id: string
-          p_payment_mode?: string
-          p_received_by?: string
-          p_upi_last4?: string
-        }
-        Returns: Json
-      }
+      mark_rental_payment_paid:
+        | {
+            Args: {
+              p_external_ref?: string
+              p_notes?: string
+              p_paid_amount: number
+              p_payment_id: string
+              p_payment_mode?: string
+              p_received_by?: string
+              p_upi_last4?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_external_ref?: string
+              p_notes?: string
+              p_paid_amount: number
+              p_payment_id: string
+              p_payment_mode?: string
+              p_received_by?: string
+              p_upi_last4?: string
+            }
+            Returns: Json
+          }
+      sync_health_check: { Args: never; Returns: Json }
+      sync_repair: { Args: { p_mode?: string }; Returns: Json }
       validate_battery_smart_id: {
         Args: { id: string }
         Returns: {
