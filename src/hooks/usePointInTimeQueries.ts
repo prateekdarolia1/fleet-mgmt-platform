@@ -168,10 +168,8 @@ export function useEntityTimeline(
         if (error) throw error;
         return data as TimelineEvent[]
       },
-    onSuccess: !!data && !Loading)
-    return { data: data as TimelineEvent[] : [];
-    }
-  })
+    enabled: !!entityId,
+  });
 }
 
 // ============================================================================
