@@ -146,10 +146,7 @@ export function useRevenueByPeriod(
       if (error) throw error;
       return data as RevenueByPeriod[]
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as RevenueByPeriod[] | [];
-  }
-  return useQuery(['useRevenueByPeriod', data])
+  });
 }
 
 // ============================================================================
