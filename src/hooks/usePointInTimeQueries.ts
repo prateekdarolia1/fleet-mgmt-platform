@@ -85,8 +85,7 @@ export function useEntityStateAtDate(
       if (error) throw error;
       return data as EntityStateAtDate | null;
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as EntityStateAtDate | null };
+    enabled: !!entityId,
   });
 }
 
