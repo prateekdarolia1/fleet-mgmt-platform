@@ -122,8 +122,6 @@ export function useDeployedVehiclesCountAtDate(date: Date) {
       if (error) throw error;
       return data as DeployedVehiclesCountAtDate
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as DeployedVehiclesCountAtDate | null };
   });
 }
 
