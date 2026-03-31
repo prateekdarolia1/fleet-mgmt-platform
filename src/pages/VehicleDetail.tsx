@@ -59,22 +59,20 @@ export default function VehicleDetail() {
   // Fetch vehicle events
   const { data: events, isLoading: eventsLoading } = useVehicleEvents(vehicleId);
 
-  // Fetch battery details if vehicle has a battery assigned
+  // Fetch battery details by looking up which battery has this vehicle_id
   const { data: batteryDetails } = useQuery({
-    queryKey: ['vehicle-battery', vehicle?.battery_id],
+    queryKey: ['vehicle-battery', vehicleId],
     queryFn: async () => {
-      if (!vehicle?.battery_id) return null;
-
       const { data, error } = await supabase
         .from('batteries')
         .select('battery_id, battery_smart_id, service_provider, status, zone_id, battery_plan')
-        .eq('battery_id', vehicle.battery_id)
-        .single();
+        .eq('vehicle_id', vehicleId)
+        .maybeSingle();
 
       if (error) throw new Error(`Failed to fetch battery details: ${error.message}`);
       return data;
     },
-    enabled: !!vehicle?.battery_id,
+    enabled: !!vehicleId,
   });
 
   if (isLoading) {

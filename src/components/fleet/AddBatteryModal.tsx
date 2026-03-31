@@ -43,13 +43,7 @@ const addBatterySchema = z.object({
     errorMap: () => ({ message: 'Please select a service provider' })
   }),
 
-  // Business Rule: Zone ID is now REQUIRED (not optional)
-  zone_id: z
-    .string()
-    .min(1, 'Zone ID is required')
-    .min(7, 'Zone ID must be at least 7 characters')
-    .max(8, 'Zone ID must be 7-8 characters')
-    .regex(ALPHANUMERIC_7_TO_8_CHARS_REGEX, `Zone ID ${ALPHANUMERIC_7_TO_8_CHARS_MESSAGE}`),
+  zone_id: z.string().optional(),
 
   location: z.enum(['NOIDA', 'OTHER']).optional(),
 

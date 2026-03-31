@@ -50,9 +50,6 @@ function validateInput(input: AddBatteryInput): string[] {
     errors.push('service_provider must be BATTERY_SMART or OTHER');
   }
 
-  if (input.zone_id && !/^[A-Z0-9]{7,8}$/.test(input.zone_id)) {
-    errors.push('zone_id must be 7-8 uppercase alphanumeric characters');
-  }
 
   if (input.battery_plan && !['D2D', 'B2B', 'OTHER'].includes(input.battery_plan)) {
     errors.push('battery_plan must be D2D, B2B, or OTHER');
