@@ -104,8 +104,6 @@ export function useActiveRidersCountAtDate(date: Date) {
       if (error) throw error;
       return data as ActiveRidersCountAtDate
     },
-    onSuccess: !!data && !isLoading
-    return { data: data as ActiveRidersCountAtDate | null };
   });
 }
 
