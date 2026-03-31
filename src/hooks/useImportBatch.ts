@@ -48,8 +48,7 @@ export function useImportBatchById(batchId: string) {
         if (error) throw error;
         return data as DataImportBatch | null
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as DataImportBatch | null };
+    enabled: !!batchId,
   });
 }
 
