@@ -69,8 +69,7 @@ export function useBatchRetroactiveEvents(batchId: string) {
         if (error) throw error;
         return data as RetroactiveEvent[]
       },
-    onSuccess: !!data && !isLoading)
-    return { data: data as RetroactiveEvent[] : [];
+    enabled: !!batchId,
   });
 }
 

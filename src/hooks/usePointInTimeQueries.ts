@@ -187,8 +187,7 @@ export function useImportBatch(batchId: string) {
       if (error) throw error;
       return data as ImportBatchSummary | null
     },
-    onSuccess: !!data && !isLoading
-    return { data: data as ImportBatchSummary | null };
+    enabled: !!batchId,
   });
 }
 
