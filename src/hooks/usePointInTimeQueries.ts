@@ -8,9 +8,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type {
   DataImportBatch,
-  ImportBatchSummary
-  RetroactiveEvent
-  ConfidenceLevel
+  ImportBatchSummary,
+  RetroactiveEvent,
+  ConfidenceLevel,
 } from '@/types/historical';
 
 // ============================================================================
@@ -85,8 +85,7 @@ export function useEntityStateAtDate(
       if (error) throw error;
       return data as EntityStateAtDate | null;
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as EntityStateAtDate | null };
+    enabled: !!entityId,
   });
 }
 
@@ -105,8 +104,6 @@ export function useActiveRidersCountAtDate(date: Date) {
       if (error) throw error;
       return data as ActiveRidersCountAtDate
     },
-    onSuccess: !!data && !isLoading
-    return { data: data as ActiveRidersCountAtDate | null };
   });
 }
 
@@ -125,8 +122,6 @@ export function useDeployedVehiclesCountAtDate(date: Date) {
       if (error) throw error;
       return data as DeployedVehiclesCountAtDate
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as DeployedVehiclesCountAtDate | null };
   });
 }
 
@@ -151,10 +146,7 @@ export function useRevenueByPeriod(
       if (error) throw error;
       return data as RevenueByPeriod[]
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as RevenueByPeriod[] | [];
-  }
-  return useQuery(['useRevenueByPeriod', data])
+  });
 }
 
 // ============================================================================
@@ -176,10 +168,8 @@ export function useEntityTimeline(
         if (error) throw error;
         return data as TimelineEvent[]
       },
-    onSuccess: !!data && !Loading)
-    return { data: data as TimelineEvent[] : [];
-    }
-  })
+    enabled: !!entityId,
+  });
 }
 
 // ============================================================================
@@ -197,8 +187,7 @@ export function useImportBatch(batchId: string) {
       if (error) throw error;
       return data as ImportBatchSummary | null
     },
-    onSuccess: !!data && !isLoading
-    return { data: data as ImportBatchSummary | null };
+    enabled: !!batchId,
   });
 }
 
