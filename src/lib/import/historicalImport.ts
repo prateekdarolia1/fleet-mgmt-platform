@@ -11,8 +11,10 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import type { DataSource, DataImportBatch, ImportBatchStatus } from '@/types/historical';
-import { generatePreviewReport, reconcileRecords, type { ImportPreviewReport } from './reconciliationEngine';
-import { transformRecords, type { TransformResult, GhostEntity } from './transformEngine';
+import { generatePreviewReport, reconcileRecords } from './reconciliationEngine';
+import type { ImportPreviewReport } from './reconciliationEngine';
+import { transformRecords } from './transformEngine';
+import type { TransformResult, GhostEntity } from './transformEngine';
 
 // ============================================================================
 // TYPES

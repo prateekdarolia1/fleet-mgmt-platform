@@ -131,7 +131,6 @@ export const RentalLedgerConfirmModal = ({
         rental_start_date: data.rental_start_date,
         security_deposit: data.security_deposit,
         responsible_user_id: data.responsible_user_id || undefined,
-        notes: data.notes || undefined,
         is_historical: forceHistorical || isHistorical,
         ...historicalFields,
       });

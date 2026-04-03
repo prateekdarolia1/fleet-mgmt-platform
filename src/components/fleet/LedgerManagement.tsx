@@ -41,15 +41,21 @@ export const LedgerManagement = () => {
   // Reactivate dialog state
   const [isReactivateDialogOpen, setIsReactivateDialogOpen] = useState(false);
   const [reactivateLedgerId, setReactivateLedgerId] = useState<string | null>(null);
-  const [reactivateParams, setReactivateParams] = useState({
+  const [reactivateParams, setReactivateParams] = useState<{
+    start_date: string;
+    rental_amount: number;
+    rental_frequency: 'daily' | 'weekly' | 'monthly';
+    new_security_deposit: number;
+  }>({
     start_date: '',
     rental_amount: 0,
-    rental_frequency: 'weekly' as const,
+    rental_frequency: 'weekly',
     new_security_deposit: 0
   });
   const [reactivationEligibility, setReactivationEligibility] = useState<{
     eligible: boolean;
     reasons: string[];
+    ledger?: RiderLedger;
   } | null>(null);
   const [isReactivating, setIsReactivating] = useState(false);
 

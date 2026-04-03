@@ -8,8 +8,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type {
   DataImportBatch,
-  ImportBatchSummary
-  RetroactiveEvent
+  ImportBatchSummary,
+  RetroactiveEvent,
   ConfidenceLevel
 } from '@/types/historical';
 

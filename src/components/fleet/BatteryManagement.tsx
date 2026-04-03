@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBatteriesList } from '@/hooks/useBatteriesList';
+import type { BatteryListResult } from '@/lib/batteries/listBatteries';
 import { AddBatteryModal } from './AddBatteryModal';
 import { MapBatteryModal } from './MapBatteryModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,7 +46,7 @@ export const BatteryManagement = () => {
     search: searchTerm || undefined
   });
 
-  const batteries = batteriesData?.batteries || [];
+  const batteries = (batteriesData as BatteryListResult)?.batteries || [];
 
   const getStatusColor = (status: string) => {
     switch (status) {

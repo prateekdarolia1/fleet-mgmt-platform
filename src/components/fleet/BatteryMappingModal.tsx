@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { BatteryListResult } from '@/lib/batteries/listBatteries';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -77,8 +78,7 @@ export const BatteryMappingModal = ({
   // Map battery mutation
   const {
     mutate: mapBattery,
-    isPending: isMappingLoading,
-    errorMessage
+    isPending: isMappingLoading
   } = useMapBatteryWithErrorHandling({
     userId: user?.id || '',
     onSuccess: () => {
@@ -106,8 +106,8 @@ export const BatteryMappingModal = ({
   // Update selected battery when form value changes
   useEffect(() => {
     const batteryId = form.watch('batteryId');
-    if (batteryId && batteriesData?.batteries) {
-      const battery = batteriesData.batteries.find((b) => b.id === batteryId);
+    if (batteryId && (batteriesData as BatteryListResult)?.batteries) {
+      const battery = (batteriesData as BatteryListResult).batteries.find((b) => b.id === batteryId);
       setSelectedBattery(battery);
     }
   }, [form.watch('batteryId'), batteriesData]);
@@ -121,7 +121,7 @@ export const BatteryMappingModal = ({
       return;
     }
 
-    mapBattery({ batteryId, vehicleId, userId: user?.id || '' });
+    mapBattery({ batteryId, vehicleId, userId: user?.id || '', batterySmartId: selectedBattery?.battery_smart_id || '' });
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -178,7 +178,7 @@ export const BatteryMappingModal = ({
                           vehiclesWithoutBattery.map((vehicle) => (
                             <SelectItem key={vehicle.id} value={vehicle.id}>
                               {vehicle.vehicle_number} •{' '}
-                              {vehicle.model_name || 'N/A'}
+                              {vehicle.model || 'N/A'}
                             </SelectItem>
                           ))
                         ) : (
@@ -232,8 +232,8 @@ export const BatteryMappingModal = ({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {batteriesData?.batteries && batteriesData.batteries.length > 0 ? (
-                          batteriesData.batteries.map((battery) => (
+                        {(batteriesData as BatteryListResult)?.batteries && (batteriesData as BatteryListResult).batteries.length > 0 ? (
+                          (batteriesData as BatteryListResult).batteries.map((battery) => (
                             <SelectItem key={battery.id} value={battery.id}>
                               {battery.battery_id} • {battery.battery_identifier}
                             </SelectItem>
