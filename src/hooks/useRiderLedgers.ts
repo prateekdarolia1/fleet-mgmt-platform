@@ -28,36 +28,46 @@ export type SecurityDepositStatus = 'retained' | 'refunded' | 'partially_refunde
 async function getNextPaymentIds(count: number, maxRetries = 3): Promise<string[]> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      // Query the MAX payment_id more efficiently using ORDER BY + LIMIT
-      const { data, error } = await supabase
-        .from('payments')
-        .select('payment_id')
-        .like('payment_id', 'P%')
-        .order('payment_id', { ascending: false })
-        .limit(1)
-        .single();
+      // Query MAX payment_id from BOTH tables so we never collide with IDs
+      // that exist only in rental_payments (e.g. created via confirm_rental_start RPC)
+      const parseId = (id: string | null | undefined): number => {
+        if (!id) return 0;
+        const match = id.match(/^P(\d+)$/);
+        return match ? parseInt(match[1], 10) : 0;
+      };
 
-      let nextNumber = 1;
-      if (data && data.payment_id) {
-        // Parse the numeric part (e.g., "P001" -> 1)
-        const match = data.payment_id.match(/^P(\d+)$/);
-        if (match) {
-          nextNumber = parseInt(match[1], 10) + 1;
-        }
-      }
+      const [paymentsRes, rentalRes] = await Promise.all([
+        supabase
+          .from('payments')
+          .select('payment_id')
+          .like('payment_id', 'P%')
+          .order('payment_id', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('rental_payments')
+          .select('payment_id')
+          .like('payment_id', 'P%')
+          .order('payment_id', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
-      // Generate batch of IDs
+      const nextNumber = Math.max(
+        parseId(paymentsRes.data?.payment_id),
+        parseId(rentalRes.data?.payment_id)
+      ) + 1;
+
       const ids: string[] = [];
       for (let i = 0; i < count; i++) {
         ids.push(`P${(nextNumber + i).toString().padStart(3, '0')}`);
       }
       return ids;
     } catch (err) {
-      // If it's not a unique constraint error, throw immediately
       if (attempt === maxRetries - 1) {
         throw new Error(`Failed to generate payment IDs after ${maxRetries} attempts`);
       }
-      // Wait a bit before retry (exponential backoff)
+      // Exponential backoff
       await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt)));
     }
   }
@@ -88,24 +98,26 @@ async function insertPaymentsWithRetry(
   payments: Array<Record<string, unknown>>,
   maxRetries = 3
 ): Promise<void> {
+  // Use a mutable local ref so retries can swap in fresh payment IDs
+  let currentPayments = payments;
+
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       // Insert into payments table (triggers will sync to rental_payments)
       const { error } = await supabase
         .from('payments')
-        .insert(payments);
+        .insert(currentPayments);
 
       if (error) {
-        // Check if it's a unique constraint violation
+        // On unique constraint violation, regenerate IDs and retry
         if (error.message.includes('unique') || error.message.includes('duplicate')) {
           console.warn(`[insertPaymentsWithRetry] Unique constraint violation on attempt ${attempt + 1}, retrying...`);
-          // Regenerate IDs and retry
-          const paymentIds = await getNextPaymentIds(payments.length);
-          const updatedPayments = payments.map((p, i) => ({
+          const paymentIds = await getNextPaymentIds(currentPayments.length);
+          currentPayments = currentPayments.map((p, i) => ({
             ...p,
             payment_id: paymentIds[i]
           }));
-          continue; // Try again with new IDs
+          continue;
         }
         throw error;
       }
@@ -396,13 +408,67 @@ export const useRiderLedgers = () => {
   const fetchLedgers = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('rider_ledgers')
-        .select('*')
-        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setLedgers(data || []);
+      // Fetch from both tables concurrently — rider creation flow writes directly
+      // to rental_ledgers, so we must include it to show all ledgers.
+      const [riderRes, rentalRes] = await Promise.all([
+        supabase.from('rider_ledgers').select('*').order('created_at', { ascending: false }),
+        supabase.from('rental_ledgers').select('*').order('created_at', { ascending: false }),
+      ]);
+
+      if (riderRes.error) throw riderRes.error;
+
+      // Build set of IDs already covered by rider_ledgers (sync trigger uses same UUID)
+      const riderLedgerIds = new Set((riderRes.data || []).map((l: any) => l.id));
+      const combined: RiderLedger[] = [...(riderRes.data || [])];
+
+      // Add rental_ledgers-only entries (i.e. created via rider creation flow)
+      if (!rentalRes.error && rentalRes.data) {
+        for (const rl of rentalRes.data) {
+          if (riderLedgerIds.has(rl.id)) continue; // already present via rider_ledgers
+
+          // Map rental_ledgers status → rider_ledgers status enum
+          let status: LedgerStatus;
+          switch (rl.status) {
+            case 'suspended': status = 'paused'; break;
+            case 'closed':
+            case 'cancelled': status = 'closed'; break;
+            default: status = 'active'; // active + pending_start → show as active
+          }
+
+          // Map deposit status
+          let depositStatus: SecurityDepositStatus;
+          switch (rl.security_deposit_status) {
+            case 'refunded': depositStatus = 'refunded'; break;
+            default: depositStatus = 'retained'; // collected / pending / null → retained
+          }
+
+          combined.push({
+            id: rl.id,
+            rider_id: rl.rider_id,
+            rider_name: rl.rider_name,
+            rental_amount: rl.rental_amount,
+            rental_start_date: rl.rental_start_date || new Date().toISOString().split('T')[0],
+            rental_frequency: 'weekly', // rental_ledgers has no frequency column
+            security_deposit_amount: rl.security_deposit || 0,
+            security_deposit_status: depositStatus,
+            status,
+            paused_at: rl.paused_at || null,
+            paused_reason: rl.paused_reason || null,
+            reactivated_at: rl.reactivated_at || null,
+            deposit_refunded_at: rl.deposit_refunded_at || null,
+            deposit_refunded_amount: rl.deposit_refunded_amount || null,
+            swaps_allowed_per_month: null,
+            created_at: rl.created_at || new Date().toISOString(),
+            updated_at: rl.updated_at || new Date().toISOString(),
+          });
+        }
+      }
+
+      // Sort combined list by created_at descending
+      combined.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setLedgers(combined);
     } catch (err) {
       console.error('Error fetching ledgers:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -431,33 +497,9 @@ export const useRiderLedgers = () => {
 
       if (ledgerError) throw ledgerError;
 
-      // Task 3.1-3.6: Use getNextPaymentIds for ID generation
-      const paymentIds = await getNextPaymentIds(2); // 1 for deposit + at least 1 for rental
-      let paymentIdIndex = 0;
-
-      // Create security deposit payment
-      const { error: securityDepositError } = await supabase
-        .from('payments')
-        .insert({
-          payment_id: ledgerData.transaction_id || paymentIds[paymentIdIndex++],
-          rider_id: ledgerData.rider_id,
-          rider_name: ledgerData.rider_name,
-          amount: ledgerData.security_deposit_amount,
-          due_date: ledgerData.rental_start_date,
-          payment_date: ledgerData.payment_date,
-          status: 'paid' as const,
-          payment_type: 'security_deposit' as const,
-          rental_period: 'Security Deposit',
-          ledger_id: ledger.id,
-          notes: 'Security deposit payment'
-        });
-
-      if (securityDepositError) {
-        console.error('[createLedger] Security deposit error:', securityDepositError);
-        throw securityDepositError;
-      }
-
-      // Task 4.1-4.6: Generate retroactive payments if needed
+      // Generate rental payments first so we know the total count before
+      // reserving any payment IDs — this prevents the duplicate-ID bug that
+      // occurred when getNextPaymentIds was called twice in sequence.
       const startDate = new Date(ledgerData.rental_start_date);
       startDate.setHours(0, 0, 0, 0);
 
@@ -468,7 +510,6 @@ export const useRiderLedgers = () => {
       let rentalPayments: GeneratedPayment[] = [];
 
       if (isRetroactive) {
-        // Generate retroactive payments (past + current period)
         console.log(`[createLedger] Generating retroactive payments for ${ledgerData.rider_name}`);
         rentalPayments = generateRetroactivePayments({
           ledgerId: ledger.id,
@@ -480,27 +521,18 @@ export const useRiderLedgers = () => {
           today
         });
 
-        // Check retroactive limit warning (Task 6.4)
         const diffDays = Math.ceil((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-        const maxDays = 180; // ~6 months
-        if (diffDays > maxDays) {
-          toast.warning(`Start date is more than 6 months ago. Only generating payments up to ${maxDays} days.`);
-          console.warn(`[createLedger] Retroactive limit exceeded: ${diffDays} days > ${maxDays} days`);
+        if (diffDays > 180) {
+          toast.warning(`Start date is more than 6 months ago. Only generating payments up to 180 days.`);
         }
       } else {
         // Normal entry: generate 6 future payments
         for (let i = 0; i < 6; i++) {
           const dueDate = new Date(startDate);
           switch (ledgerData.rental_frequency) {
-            case 'daily':
-              dueDate.setDate(dueDate.getDate() + i);
-              break;
-            case 'weekly':
-              dueDate.setDate(dueDate.getDate() + (i * 7));
-              break;
-            case 'monthly':
-              dueDate.setMonth(dueDate.getMonth() + i);
-              break;
+            case 'daily':   dueDate.setDate(dueDate.getDate() + i); break;
+            case 'weekly':  dueDate.setDate(dueDate.getDate() + (i * 7)); break;
+            case 'monthly': dueDate.setMonth(dueDate.getMonth() + i); break;
           }
           dueDate.setHours(0, 0, 0, 0);
 
@@ -519,19 +551,43 @@ export const useRiderLedgers = () => {
         }
       }
 
-      // Generate remaining payment IDs if needed
-      const additionalIdsNeeded = rentalPayments.length - (paymentIds.length - paymentIdIndex);
-      if (additionalIdsNeeded > 0) {
-        const moreIds = await getNextPaymentIds(additionalIdsNeeded);
-        paymentIds.push(...moreIds);
-      }
+      // Reserve ALL payment IDs in ONE call now that we know the exact total.
+      // +1 for the security deposit (skipped if transaction_id is provided).
+      const needDepositId = !ledgerData.transaction_id;
+      const totalIdsNeeded = rentalPayments.length + (needDepositId ? 1 : 0);
+      const allPaymentIds = await getNextPaymentIds(totalIdsNeeded);
+      let idCursor = 0;
 
-      // Assign payment IDs
+      const depositPaymentId = ledgerData.transaction_id || allPaymentIds[idCursor++];
+
+      // Assign rental payment IDs from the same batch
       rentalPayments.forEach((p, i) => {
-        p.payment_id = paymentIds[paymentIdIndex + i];
+        p.payment_id = allPaymentIds[idCursor + i];
       });
 
-      console.log(`[createLedger] Inserting ${rentalPayments.length} rental payments:`, rentalPayments.map(p => ({ id: p.payment_id, due: p.due_date, status: p.status })));
+      // Insert security deposit payment
+      const { error: securityDepositError } = await supabase
+        .from('payments')
+        .insert({
+          payment_id: depositPaymentId,
+          rider_id: ledgerData.rider_id,
+          rider_name: ledgerData.rider_name,
+          amount: ledgerData.security_deposit_amount,
+          due_date: ledgerData.rental_start_date,
+          payment_date: ledgerData.payment_date,
+          status: 'paid' as const,
+          payment_type: 'security_deposit' as const,
+          rental_period: 'Security Deposit',
+          ledger_id: ledger.id,
+          notes: 'Security deposit payment'
+        });
+
+      if (securityDepositError) {
+        console.error('[createLedger] Security deposit error:', securityDepositError);
+        throw securityDepositError;
+      }
+
+      console.log(`[createLedger] Inserting ${rentalPayments.length} rental payments:`, rentalPayments.map(p => ({ id: p.payment_id, due: p.due_date, status: p.status })), `deposit: ${depositPaymentId}`);
 
       // Task 3.5, 6.2: Insert with retry logic and better error handling
       try {
@@ -547,6 +603,7 @@ export const useRiderLedgers = () => {
       console.log(`[createLedger] Successfully inserted ${rentalPayments.length} rental payments`);
 
       setLedgers(prev => [ledger, ...prev]);
+      window.dispatchEvent(new CustomEvent('ledger-created'));
       toast.success(`Ledger created successfully for ${ledgerData.rider_name}!`);
 
       return ledger;
@@ -1035,6 +1092,11 @@ export const useRiderLedgers = () => {
 
   useEffect(() => {
     fetchLedgers();
+    // Re-fetch whenever a ledger is created from anywhere in the app
+    // (e.g. from the rider creation flow while LedgerManagement is already mounted)
+    const handler = () => fetchLedgers();
+    window.addEventListener('ledger-created', handler);
+    return () => window.removeEventListener('ledger-created', handler);
   }, []);
 
   return {

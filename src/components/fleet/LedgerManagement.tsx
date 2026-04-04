@@ -23,7 +23,8 @@ export const LedgerManagement = () => {
     pauseLedger,
     canReactivate,
     reactivateLedger,
-    markDepositRefunded
+    markDepositRefunded,
+    refetch
   } = useRiderLedgers();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedRiderForHistory, setSelectedRiderForHistory] = useState<{
@@ -229,7 +230,7 @@ export const LedgerManagement = () => {
             <DialogHeader>
               <DialogTitle>Create New Rider Ledger</DialogTitle>
             </DialogHeader>
-            <CreateLedgerForm onSuccess={() => setIsCreateDialogOpen(false)} />
+            <CreateLedgerForm onSuccess={() => { setIsCreateDialogOpen(false); refetch(); }} />
           </DialogContent>
         </Dialog>
       </div>

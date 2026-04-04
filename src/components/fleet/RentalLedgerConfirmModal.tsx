@@ -28,6 +28,7 @@ import { Loader2, Calendar, User, IndianRupee, AlertCircle, CheckCircle2 } from 
 import { cn } from '@/lib/utils';
 import { useConfirmRentalStart } from '@/hooks/useRentalLedgers';
 import { useProfiles } from '@/hooks/useProfiles';
+import { supabase } from '@/integrations/supabase/client';
 import { PastDateConfirmationDialog } from '@/components/shared';
 import { getHistoricalTrackingFields } from '@/hooks/useRetroactiveEntry';
 
@@ -41,6 +42,9 @@ const rentalConfirmSchema = z.object({
       const d = new Date(date);
       return !isNaN(d.getTime());
     }, { message: 'Please enter a valid date' }),
+  rental_amount: z.number()
+    .min(1, 'Rental amount is required')
+    .max(100000, 'Rental amount seems too high'),
   security_deposit: z.number()
     .min(0, 'Security deposit cannot be negative')
     .max(50000, 'Security deposit seems too high (max ₹50,000)'),
@@ -96,6 +100,7 @@ export const RentalLedgerConfirmModal = ({
     mode: 'onChange',
     defaultValues: {
       rental_start_date: format(new Date(), 'yyyy-MM-dd'),
+      rental_amount: 0,
       security_deposit: 0,
       responsible_user_id: '',
       notes: ''
@@ -129,11 +134,39 @@ export const RentalLedgerConfirmModal = ({
       await confirmRentalStart.mutateAsync({
         ledger_id: ledgerId,
         rental_start_date: data.rental_start_date,
+        rental_amount: data.rental_amount,
         security_deposit: data.security_deposit,
         responsible_user_id: data.responsible_user_id || undefined,
         is_historical: forceHistorical || isHistorical,
         ...historicalFields,
       });
+
+      // Create security deposit payment in payments table so it appears in payment history
+      if (data.security_deposit > 0 && riderId) {
+        const parseId = (id: string | null | undefined) => {
+          const m = id?.match(/^P(\d+)$/);
+          return m ? parseInt(m[1], 10) : 0;
+        };
+        const [p1, p2] = await Promise.all([
+          supabase.from('payments').select('payment_id').like('payment_id', 'P%').order('payment_id', { ascending: false }).limit(1).maybeSingle(),
+          supabase.from('rental_payments').select('payment_id').like('payment_id', 'P%').order('payment_id', { ascending: false }).limit(1).maybeSingle(),
+        ]);
+        const nextNum = Math.max(parseId(p1.data?.payment_id), parseId(p2.data?.payment_id)) + 1;
+        const depositPaymentId = `P${nextNum.toString().padStart(3, '0')}`;
+
+        await supabase.from('payments').insert({
+          payment_id: depositPaymentId,
+          rider_id: riderId,
+          rider_name: riderName,
+          amount: data.security_deposit,
+          due_date: data.rental_start_date,
+          payment_date: data.rental_start_date,
+          status: 'paid',
+          payment_type: 'security_deposit',
+          rental_period: 'Security Deposit',
+          ledger_id: null, // payments.ledger_id FK points to rider_ledgers, not rental_ledgers
+        });
+      }
 
       // Reset form and close modal
       form.reset();
@@ -174,6 +207,7 @@ export const RentalLedgerConfirmModal = ({
 
   const watchDeposit = form.watch('security_deposit');
   const watchDate = form.watch('rental_start_date');
+  const watchRentalAmount = form.watch('rental_amount');
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -254,6 +288,46 @@ export const RentalLedgerConfirmModal = ({
                   </FormControl>
                   <FormDescription>
                     Select the rental start date. Past dates will be marked as historical entries.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Rental Amount */}
+            <FormField
+              control={form.control}
+              name="rental_amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2">
+                    <IndianRupee className="h-4 w-4" />
+                    Weekly Rental Amount
+                    <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
+                      Required
+                    </span>
+                  </FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">₹</span>
+                      <Input
+                        type="number"
+                        {...field}
+                        value={field.value || ''}
+                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : 0)}
+                        placeholder="e.g. 1500"
+                        min={1}
+                        disabled={isSubmitting}
+                        className={cn(
+                          'pl-8 text-base font-medium border-2 transition-colors',
+                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
+                          field.value > 0 && 'border-blue-200 bg-blue-50/30'
+                        )}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Amount charged per week for this rental
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -365,11 +439,14 @@ export const RentalLedgerConfirmModal = ({
                     <p className="text-sm font-semibold text-green-900">Ready to Confirm</p>
                     <div className="text-sm text-green-800 mt-1 space-y-1">
                       <p>Rental start: <span className="font-medium">{format(new Date(watchDate), 'dd MMM yyyy')}</span></p>
+                      {watchRentalAmount > 0 && (
+                        <p>Weekly rental: <span className="font-medium">₹{watchRentalAmount.toLocaleString()}/week</span></p>
+                      )}
                       {watchDeposit > 0 && (
                         <p>Security deposit: <span className="font-medium">₹{watchDeposit.toLocaleString()}</span></p>
                       )}
                       <p className="text-xs text-green-700 mt-2">
-                        2 payment entries will be created automatically
+                        Payment schedule will be created automatically
                       </p>
                     </div>
                   </div>

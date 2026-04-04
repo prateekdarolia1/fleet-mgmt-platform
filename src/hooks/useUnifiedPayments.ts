@@ -40,10 +40,10 @@ export function useUnifiedOverduePayments(limit = 50) {
   return useQuery({
     queryKey: ['unified-payments', 'overdue', limit],
     queryFn: async (): Promise<UnifiedOverduePayment[]> => {
-      // Calculate the date 4 days ago - payments with due_date before this are overdue
-      const fourDaysAgo = new Date();
-      fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
-      const overdueThreshold = fourDaysAgo.toISOString().split('T')[0];
+      // 3-day grace period — payments with due_date before this are overdue
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      const overdueThreshold = threeDaysAgo.toISOString().split('T')[0];
 
       // Fetch from rental_payments table - ONLY status='overdue' or past-due pending/partial
       const { data: rentalPayments, error: rentalError } = await supabase
@@ -134,16 +134,16 @@ export function useUnifiedOverduePayments(limit = 50) {
  * - Payments due within the next X days (future)
  * - Payments that are 1-4 days past due (still in pending grace period)
  *
- * A payment becomes OVERDUE only after MORE than 4 days past due date.
+ * A payment becomes OVERDUE only after MORE than 3 days past due date.
  */
 export function useUnifiedUpcomingPayments(days = 7) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // 4 days ago - payments newer than this are still "pending" (not overdue)
-  const fourDaysAgo = new Date(today);
-  fourDaysAgo.setDate(fourDaysAgo.getDate() - 4);
-  const pendingThreshold = fourDaysAgo.toISOString().split('T')[0];
+  // 3-day grace period — payments newer than this are still in upcoming
+  const threeDaysAgo = new Date(today);
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const pendingThreshold = threeDaysAgo.toISOString().split('T')[0];
 
   // Future date for "due this week"
   const futureDate = new Date(today);
@@ -154,7 +154,7 @@ export function useUnifiedUpcomingPayments(days = 7) {
     queryKey: ['unified-payments', 'upcoming', days],
     queryFn: async (): Promise<UnifiedUpcomingPayment[]> => {
       // Fetch from rental_payments table
-      // Include payments that are within the 4-day grace period OR due within next X days
+      // Include payments that are within the 3-day grace period OR due within next X days
       const { data: rentalPayments, error: rentalError } = await supabase
         .from('rental_payments')
         .select(`

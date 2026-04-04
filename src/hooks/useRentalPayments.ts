@@ -150,9 +150,61 @@ export function useMarkRentalPaymentPaid() {
 
       return data as ReturnType<ReturnType<typeof useMarkRentalPaymentPaid>['mutateAsync']>;
     },
-    onSuccess: (result) => {
+    onSuccess: async (result, variables) => {
+      // Invalidate all related caches so UI updates immediately
       queryClient.invalidateQueries({ queryKey: ['rental-payments'] });
       queryClient.invalidateQueries({ queryKey: ['rental-ledgers'] });
+      queryClient.invalidateQueries({ queryKey: ['unified-payments'] });
+
+      // Sync to payments table for rider-flow payments that only exist in rental_payments.
+      // For standalone ledger payments, a row already exists and we update it.
+      // For rider-flow payments (no payments row), we insert one.
+      try {
+        const { data: rp } = await supabase
+          .from('rental_payments')
+          .select('*, rental_ledgers(rider_id, rider_name)')
+          .eq('id', variables.payment_id)
+          .single();
+
+        if (rp) {
+          const today = new Date().toISOString().split('T')[0];
+          const { data: existing } = await supabase
+            .from('payments')
+            .select('id')
+            .eq('payment_id', rp.payment_id)
+            .maybeSingle();
+
+          if (existing) {
+            // Update existing row (standalone ledger flow)
+            await supabase.from('payments').update({
+              status: result.status as any,
+              payment_date: today,
+              payment_mode: (variables.payment_mode as any) || null,
+            }).eq('payment_id', rp.payment_id);
+          } else {
+            // Insert new row (rider creation flow — payment only existed in rental_payments)
+            const ledger = rp.rental_ledgers as any;
+            await supabase.from('payments').insert({
+              payment_id: rp.payment_id,
+              rider_id: ledger?.rider_id || '',
+              rider_name: ledger?.rider_name || '',
+              amount: rp.amount_due,
+              due_date: rp.due_date,
+              payment_date: today,
+              status: result.status as any,
+              payment_type: 'rental',
+              rental_period: `Weekly Rental - Week ${rp.week_number}`,
+              payment_mode: (variables.payment_mode as any) || null,
+              ledger_id: null, // payments.ledger_id FK → rider_ledgers; use null for rental-flow
+            });
+          }
+
+          queryClient.invalidateQueries({ queryKey: ['payments'] });
+        }
+      } catch (e) {
+        console.error('Failed to sync payment to payments table:', e);
+      }
+
       toast.success(result.message || 'Payment recorded successfully');
     },
     onError: (error: Error) => {

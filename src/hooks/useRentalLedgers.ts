@@ -151,6 +151,7 @@ export function useConfirmRentalStart() {
       ledger_id: string;
       rental_start_date: string;
       security_deposit?: number;
+      rental_amount?: number;
       responsible_user_id?: string;
       confirmed_by?: string;
       // Historical tracking parameters
@@ -168,6 +169,7 @@ export function useConfirmRentalStart() {
         p_ledger_id: params.ledger_id,
         p_rental_start_date: params.rental_start_date,
         p_security_deposit: params.security_deposit || 0,
+        p_rental_amount: params.rental_amount || 0,
         p_responsible_user_id: params.responsible_user_id || null,
         p_confirmed_by: params.confirmed_by || null,
         p_is_historical: params.is_historical || false,
