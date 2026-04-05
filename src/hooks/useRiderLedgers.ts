@@ -526,8 +526,9 @@ export const useRiderLedgers = () => {
           toast.warning(`Start date is more than 6 months ago. Only generating payments up to 180 days.`);
         }
       } else {
-        // Normal entry: generate 6 future payments
-        for (let i = 0; i < 6; i++) {
+        // Normal entry: generate 1 pending payment (next due date only)
+        // Cron (generate_weekly_payments) handles all subsequent weekly payments
+        for (let i = 0; i < 1; i++) {
           const dueDate = new Date(startDate);
           switch (ledgerData.rental_frequency) {
             case 'daily':   dueDate.setDate(dueDate.getDate() + i); break;
@@ -934,9 +935,9 @@ export const useRiderLedgers = () => {
         }
       }
 
-      // Task 5.8: Generate 6 future payments
+      // Generate 1 future pending payment — cron handles subsequent weeks
       const startingWeekNumber = existingWeekNumber + allPayments.length;
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 1; i++) {
         const dueDate = new Date(newStartDate);
         switch (effectiveFrequency) {
           case 'daily':
