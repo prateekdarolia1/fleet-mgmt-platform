@@ -382,6 +382,8 @@ export interface RiderLedger {
   security_deposit_status: SecurityDepositStatus;
   deposit_refunded_at: string | null;
   deposit_refunded_amount: number | null;
+  // Which DB table this ledger originated from
+  _source: 'rider_ledgers' | 'rental_ledgers';
 }
 
 export interface CreateLedgerData {
@@ -420,7 +422,7 @@ export const useRiderLedgers = () => {
 
       // Build set of IDs already covered by rider_ledgers (sync trigger uses same UUID)
       const riderLedgerIds = new Set((riderRes.data || []).map((l: any) => l.id));
-      const combined: RiderLedger[] = [...(riderRes.data || [])];
+      const combined: RiderLedger[] = (riderRes.data || []).map((l: any) => ({ ...l, _source: 'rider_ledgers' as const }));
 
       // Add rental_ledgers-only entries (i.e. created via rider creation flow)
       if (!rentalRes.error && rentalRes.data) {
@@ -461,6 +463,7 @@ export const useRiderLedgers = () => {
             swaps_allowed_per_month: null,
             created_at: rl.created_at || new Date().toISOString(),
             updated_at: rl.updated_at || new Date().toISOString(),
+            _source: 'rental_ledgers' as const,
           });
         }
       }
@@ -699,53 +702,49 @@ export const useRiderLedgers = () => {
   const pauseLedger = async (id: string, reason: string) => {
     try {
       const ledger = ledgers.find(l => l.id === id);
-      if (!ledger) {
-        throw new Error('Ledger not found');
-      }
+      if (!ledger) throw new Error('Ledger not found');
+      if (ledger.status !== 'active') throw new Error('Only active ledgers can be paused');
+      if (!reason.trim()) throw new Error('Pause reason is required');
 
-      if (ledger.status !== 'active') {
-        throw new Error('Only active ledgers can be paused');
-      }
+      const pausedAt = new Date().toISOString();
 
-      if (!reason.trim()) {
-        throw new Error('Pause reason is required');
-      }
+      // Route update to whichever table owns this ledger
+      // rental_ledgers uses 'suspended' (its CHECK constraint doesn't include 'paused')
+      const table = ledger._source === 'rental_ledgers' ? 'rental_ledgers' : 'rider_ledgers';
+      const pausedStatus = ledger._source === 'rental_ledgers' ? 'suspended' : 'paused';
+      const pauseData = {
+        status: pausedStatus,
+        paused_at: pausedAt,
+        paused_reason: reason.trim(),
+      };
+      const { error: updateError } = await supabase
+        .from(table)
+        .update(pauseData)
+        .eq('id', id);
 
-      console.log(`[AUDIT] Ledger pause initiated`, {
-        ledger_id: id,
-        rider_id: ledger.rider_id,
-        rider_name: ledger.rider_name,
-        reason: reason.trim(),
-        timestamp: new Date().toISOString()
-      });
+      if (updateError) throw updateError;
 
-      const { data, error } = await supabase
-        .from('rider_ledgers')
-        .update({
-          status: 'paused',
-          paused_at: new Date().toISOString(),
-          paused_reason: reason.trim()
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      // Delete all overdue + pending RENTAL payments from both tables.
+      // payments table: rider_ledgers-flow has ledger_id set; rental-flow has ledger_id=null so filter by rider_id+type.
+      // rental_payments table: always filter by ledger_id.
+      const paymentsDeleteQuery = ledger._source === 'rider_ledgers'
+        ? supabase.from('payments').delete().eq('ledger_id', id).in('status', ['overdue', 'pending'])
+        : supabase.from('payments').delete().eq('rider_id', ledger.rider_id).eq('payment_type', 'rental').in('status', ['overdue', 'pending']);
 
-      if (error) throw error;
+      const [paymentsRes, rentalRes] = await Promise.all([
+        paymentsDeleteQuery,
+        supabase.from('rental_payments').delete().eq('ledger_id', id).in('status', ['overdue', 'pending']),
+      ]);
 
-      console.log(`[AUDIT] Ledger paused successfully`, {
-        ledger_id: id,
-        rider_id: ledger.rider_id,
-        new_status: 'paused'
-      });
+      if (paymentsRes.error) console.error('[pauseLedger] payments delete error:', paymentsRes.error);
+      if (rentalRes.error) console.error('[pauseLedger] rental_payments delete error:', rentalRes.error);
 
       setLedgers(prev => prev.map(l =>
-        l.id === id ? { ...l, ...data } : l
+        l.id === id ? { ...l, status: 'paused', paused_at: pausedAt, paused_reason: reason.trim() } : l
       ));
 
-      toast.success('Ledger paused successfully!');
-      return data;
+      toast.success('Ledger paused and pending/overdue payments cleared.');
     } catch (err) {
-      console.error('[AUDIT] Ledger pause failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to pause ledger';
       toast.error(message);
       throw err;
@@ -756,55 +755,16 @@ export const useRiderLedgers = () => {
    * Check if a ledger can be reactivated
    * Returns eligibility status and any blocking reasons
    */
-  const canReactivate = async (riderId: string): Promise<{
+  const canReactivate = (riderId: string): {
     eligible: boolean;
     reasons: string[];
     ledger?: RiderLedger;
-  }> => {
-    try {
-      const reasons: string[] = [];
-
-      // Check rider exists and get duty_status
-      const { data: rider, error: riderError } = await supabase
-        .from('riders')
-        .select('rider_id, name, duty_status, status')
-        .eq('rider_id', riderId)
-        .single();
-
-      if (riderError || !rider) {
-        reasons.push('Rider not found');
-        return { eligible: false, reasons };
-      }
-
-      if (rider.duty_status !== 'IDLE') {
-        reasons.push(`Rider must be IDLE to reactivate (current: ${rider.duty_status || 'unknown'})`);
-      }
-
-      // Check for paused ledger
-      const { data: ledger, error: ledgerError } = await supabase
-        .from('rider_ledgers')
-        .select('*')
-        .eq('rider_id', riderId)
-        .eq('status', 'paused')
-        .single();
-
-      if (ledgerError || !ledger) {
-        reasons.push('No paused ledger found for this rider');
-        return { eligible: false, reasons };
-      }
-
-      return {
-        eligible: reasons.length === 0,
-        reasons,
-        ledger
-      };
-    } catch (err) {
-      console.error('Error checking reactivation eligibility:', err);
-      return {
-        eligible: false,
-        reasons: ['Error checking eligibility']
-      };
+  } => {
+    const ledger = ledgers.find(l => l.rider_id === riderId && l.status === 'paused');
+    if (!ledger) {
+      return { eligible: false, reasons: ['No paused ledger found for this rider'] };
     }
+    return { eligible: true, reasons: [], ledger };
   };
 
   /**
@@ -830,193 +790,149 @@ export const useRiderLedgers = () => {
         throw new Error('Only paused ledgers can be reactivated');
       }
 
-      // Task 5.6: Prevent reactivation if already reactivated before
-      if (ledger.reactivated_at) {
-        throw new Error('Ledger has already been reactivated. Cannot reactivate again.');
-      }
 
-      // Task 5.4: Validate start date is not before pause date
-      if (ledger.paused_at) {
-        const pauseDate = new Date(ledger.paused_at);
-        const startDate = new Date(params.start_date);
-        if (startDate < pauseDate) {
-          throw new Error('Start date cannot be before pause date');
-        }
-      }
+      const effectiveFrequency = params.rental_frequency || ledger.rental_frequency;
+      const effectiveAmount = params.rental_amount !== undefined ? params.rental_amount : ledger.rental_amount;
+      const reactivatedAt = new Date().toISOString();
 
-      // Check if deposit was refunded - require new deposit
-      if (ledger.security_deposit_status !== 'retained' && !params.new_security_deposit) {
-        throw new Error('Security deposit required (previous deposit was refunded)');
-      }
-
-      console.log(`[AUDIT] Ledger reactivation initiated`, {
-        ledger_id: id,
-        rider_id: ledger.rider_id,
-        rider_name: ledger.rider_name,
-        new_start_date: params.start_date,
-        new_rental_amount: params.rental_amount,
-        new_frequency: params.rental_frequency,
-        new_deposit: params.new_security_deposit,
-        timestamp: new Date().toISOString()
-      });
-
-      // Task 5.7: Delete existing pending payments (preserve paid/overdue)
-      const { error: deleteError } = await supabase
-        .from('payments')
-        .delete()
-        .eq('ledger_id', id)
-        .eq('status', 'pending');
-
-      if (deleteError) {
-        console.error('Error deleting pending payments:', deleteError);
-        throw deleteError;
-      }
-
-      // Update ledger
+      // Update the correct ledger table
+      const table = ledger._source === 'rental_ledgers' ? 'rental_ledgers' : 'rider_ledgers';
       const updateData: Record<string, unknown> = {
         status: 'active',
-        reactivated_at: new Date().toISOString(),
-        rental_start_date: params.start_date
+        reactivated_at: reactivatedAt,
+        rental_start_date: params.start_date,
+        rental_amount: effectiveAmount,
       };
-
-      if (params.rental_amount !== undefined) {
-        updateData.rental_amount = params.rental_amount;
-      }
-      if (params.rental_frequency !== undefined) {
-        updateData.rental_frequency = params.rental_frequency;
-      }
-      if (params.new_security_deposit !== undefined) {
-        updateData.security_deposit_amount = params.new_security_deposit;
-        updateData.security_deposit_status = 'retained';
+      // rental_ledgers has no rental_frequency column
+      if (ledger._source === 'rider_ledgers') {
+        updateData.rental_frequency = effectiveFrequency;
       }
 
-      const { data: updatedLedger, error: updateError } = await supabase
-        .from('rider_ledgers')
+      const { error: updateError } = await supabase
+        .from(table)
         .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', id);
 
       if (updateError) throw updateError;
 
-      const newStartDate = new Date(params.start_date);
-      const effectiveFrequency = params.rental_frequency || ledger.rental_frequency;
-      const effectiveAmount = params.rental_amount !== undefined ? params.rental_amount : ledger.rental_amount;
+      // Generate fresh payments from new start_date.
+      // All past due dates → overdue. First date on/after today → pending (1 only, cron handles the rest).
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const sixMonthsAgo = new Date(today);
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-      // Get existing week number to continue sequence
-      const { data: existingPayments } = await supabase
-        .from('payments')
-        .select('week_number')
-        .eq('ledger_id', id)
-        .order('week_number', { ascending: false })
-        .limit(1)
-        .single();
+      // Build payment date list (same logic for both sources)
+      const dueDates: { due_date: string; status: 'overdue' | 'pending' }[] = [];
+      let current = new Date(params.start_date);
+      current.setHours(0, 0, 0, 0);
+      let pendingAdded = false;
 
-      const existingWeekNumber = existingPayments?.week_number || 0;
+      while (!pendingAdded) {
+        if (current >= sixMonthsAgo) {
+          const isOverdue = current < today;
+          dueDates.push({
+            due_date: current.toISOString().split('T')[0],
+            status: isOverdue ? 'overdue' : 'pending',
+          });
+          if (!isOverdue) pendingAdded = true;
+        }
 
-      const allPayments: GeneratedPayment[] = [];
-
-      // Task 5.1-5.3, 5.5: Generate gap period payments if paused_at exists
-      if (ledger.paused_at) {
-        const gapPayments = generateGapPayments({
-          ledgerId: id,
-          riderId: ledger.rider_id,
-          riderName: ledger.rider_name,
-          rentalAmount: effectiveAmount,
-          rentalFrequency: effectiveFrequency,
-          pausedAt: new Date(ledger.paused_at),
-          newStartDate,
-          existingWeekNumber
-        });
-
-        if (gapPayments.length > 0) {
-          console.log(`[reactivateLedger] Generated ${gapPayments.length} gap payments`);
-          allPayments.push(...gapPayments);
+        if (!pendingAdded) {
+          const next = new Date(current);
+          switch (effectiveFrequency) {
+            case 'daily':   next.setDate(next.getDate() + 1); break;
+            case 'weekly':  next.setDate(next.getDate() + 7); break;
+            case 'monthly': next.setMonth(next.getMonth() + 1); break;
+          }
+          current = next;
         }
       }
 
-      // Generate 1 future pending payment — cron handles subsequent weeks
-      const startingWeekNumber = existingWeekNumber + allPayments.length;
-      for (let i = 0; i < 1; i++) {
-        const dueDate = new Date(newStartDate);
-        switch (effectiveFrequency) {
-          case 'daily':
-            dueDate.setDate(dueDate.getDate() + i);
-            break;
-          case 'weekly':
-            dueDate.setDate(dueDate.getDate() + (i * 7));
-            break;
-          case 'monthly':
-            dueDate.setMonth(dueDate.getMonth() + i);
-            break;
-        }
+      const paymentIds = await getNextPaymentIds(dueDates.length);
 
-        allPayments.push({
-          payment_id: '',
+      if (ledger._source === 'rental_ledgers') {
+        // For rental-flow ledgers: insert directly into rental_payments so
+        // RentalLedgerDetail (which reads rental_payments) can display them.
+        // week_number continues from the highest existing week.
+        const { data: existing } = await supabase
+          .from('rental_payments')
+          .select('week_number')
+          .eq('ledger_id', id)
+          .order('week_number', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        let weekNum = (existing?.week_number || 0) + 1;
+
+        const rentalRows = dueDates.map((d, i) => ({
+          ledger_id: id,
+          week_number: weekNum + i,
+          due_date: d.due_date,
+          amount_due: effectiveAmount,
+          status: d.status,
+          payment_id: paymentIds[i],
+        }));
+
+        const { error: rentalInsertError } = await supabase
+          .from('rental_payments')
+          .insert(rentalRows);
+
+        if (rentalInsertError) {
+          toast.error(`Payment creation failed: ${rentalInsertError.message}. Please try again.`);
+          throw rentalInsertError;
+        }
+      } else {
+        // For rider_ledgers: insert into payments table (ledger_id FK is valid here)
+        const allPayments: GeneratedPayment[] = dueDates.map((d, i) => ({
+          payment_id: paymentIds[i],
           rider_id: ledger.rider_id,
           rider_name: ledger.rider_name,
           amount: effectiveAmount,
-          due_date: dueDate.toISOString().split('T')[0],
+          due_date: d.due_date,
           payment_date: null,
-          status: 'pending',
+          status: d.status,
           payment_type: 'rental',
-          rental_period: `${effectiveFrequency.charAt(0).toUpperCase() + effectiveFrequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
+          rental_period: `${effectiveFrequency.charAt(0).toUpperCase() + effectiveFrequency.slice(1)} Rental - ${d.due_date}`,
           ledger_id: id,
+        }));
+
+        try {
+          await insertPaymentsWithRetry(allPayments);
+        } catch (insertError) {
+          const message = insertError instanceof Error ? insertError.message : 'Failed to create payments';
+          toast.error(`Payment creation failed: ${message}. Please try again.`);
+          throw insertError;
+        }
+      }
+
+      // Security deposit — always goes into payments table (shown in Ledger Management)
+      if (params.new_security_deposit && params.new_security_deposit > 0) {
+        const [depositId] = await getNextPaymentIds(1);
+        await supabase.from('payments').insert({
+          payment_id: depositId,
+          rider_id: ledger.rider_id,
+          rider_name: ledger.rider_name,
+          amount: params.new_security_deposit,
+          due_date: params.start_date,
+          payment_date: params.start_date,
+          status: 'paid' as const,
+          payment_type: 'security_deposit' as const,
+          rental_period: 'Security Deposit (Reactivation)',
+          ledger_id: ledger._source === 'rider_ledgers' ? id : null,
         });
       }
 
-      // Generate payment IDs for all payments
-      const paymentIds = await getNextPaymentIds(allPayments.length);
-      allPayments.forEach((p, i) => {
-        p.payment_id = paymentIds[i];
-      });
-
-      // Task 5.10: Dual-write to both payments tables (triggers handle normal sync, but bulk operations need explicit write)
-      try {
-        await insertPaymentsWithRetry(allPayments);
-      } catch (insertError) {
-        console.error('[reactivateLedger] Payment insertion failed:', insertError);
-        const message = insertError instanceof Error ? insertError.message : 'Failed to create payments';
-        toast.error(`Payment creation failed: ${message}. Please try again.`);
-        throw insertError;
-      }
-
-      // If new security deposit was provided, create a payment for it
-      if (params.new_security_deposit !== undefined) {
-        const depositId = await getNextPaymentIds(1);
-        await supabase
-          .from('payments')
-          .insert({
-            payment_id: depositId[0],
-            rider_id: ledger.rider_id,
-            rider_name: ledger.rider_name,
-            amount: params.new_security_deposit,
-            due_date: params.start_date,
-            status: 'pending' as const,
-            payment_type: 'security_deposit' as const,
-            rental_period: 'Security Deposit (Reactivation)',
-            ledger_id: id,
-            notes: 'Security deposit for reactivation'
-          });
-      }
-
-      console.log(`[AUDIT] Ledger reactivated successfully`, {
-        ledger_id: id,
-        rider_id: ledger.rider_id,
-        new_status: 'active',
-        gap_payments: allPayments.filter(p => p.status === 'overdue').length,
-        future_payments: allPayments.filter(p => p.status === 'pending').length,
-        total_payments: allPayments.length
-      });
-
       setLedgers(prev => prev.map(l =>
-        l.id === id ? { ...l, ...updatedLedger } : l
+        l.id === id
+          ? { ...l, status: 'active', reactivated_at: reactivatedAt, rental_start_date: params.start_date, rental_amount: effectiveAmount, rental_frequency: effectiveFrequency }
+          : l
       ));
 
-      toast.success(`Ledger reactivated successfully! Generated ${allPayments.length} payments.`);
-      return updatedLedger;
+      const overdueCount = dueDates.filter(d => d.status === 'overdue').length;
+      const pendingCount = dueDates.filter(d => d.status === 'pending').length;
+      toast.success(`Ledger reactivated! ${overdueCount} overdue + ${pendingCount} pending payment(s) created.`);
     } catch (err) {
-      console.error('[AUDIT] Ledger reactivation failed:', err);
       const message = err instanceof Error ? err.message : 'Failed to reactivate ledger. Please try again.';
       toast.error(message);
       throw err;

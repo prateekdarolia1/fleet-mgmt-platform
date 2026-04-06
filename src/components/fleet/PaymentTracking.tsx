@@ -567,11 +567,6 @@ export const PaymentTracking = () => {
                               <Badge className="bg-red-100 text-red-800 border-red-200">
                                 {payment.status}
                               </Badge>
-                              {payment.source === 'payments' && (
-                                <Badge variant="outline" className="text-xs">
-                                  Legacy
-                                </Badge>
-                              )}
                             </div>
                           </TableCell>
                           <TableCell className="text-right">

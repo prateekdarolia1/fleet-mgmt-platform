@@ -155,18 +155,18 @@ export const LedgerManagement = () => {
   };
 
   // Handle reactivate ledger
-  const handleCheckReactivation = async (ledgerId: string) => {
+  const handleCheckReactivation = (ledgerId: string) => {
     const ledger = ledgers.find(l => l.id === ledgerId);
     if (!ledger) return;
 
-    const eligibility = await canReactivate(ledger.rider_id);
+    const eligibility = canReactivate(ledger.rider_id);
     setReactivationEligibility(eligibility);
     setReactivateLedgerId(ledgerId);
     setReactivateParams({
       start_date: new Date().toISOString().split('T')[0],
       rental_amount: ledger.rental_amount,
       rental_frequency: ledger.rental_frequency,
-      new_security_deposit: ledger.security_deposit_status !== 'retained' ? ledger.security_deposit_amount : 0
+      new_security_deposit: 0
     });
     setIsReactivateDialogOpen(true);
   };
@@ -537,21 +537,15 @@ export const LedgerManagement = () => {
               Reactivate Ledger
             </DialogTitle>
             <DialogDescription>
-              Resume payment generation for this ledger. Gap period payments will be generated as overdue, and 6 future payments will be created.
+              Resume payments for this ledger. Past due dates generate overdue payments; the next upcoming date generates one pending payment.
             </DialogDescription>
           </DialogHeader>
 
-          {/* Eligibility Check */}
           {reactivationEligibility && !reactivationEligibility.eligible && (
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <div className="font-medium mb-1">Cannot reactivate:</div>
-                <ul className="list-disc list-inside text-sm">
-                  {reactivationEligibility.reasons.map((reason, i) => (
-                    <li key={i}>{reason}</li>
-                  ))}
-                </ul>
+                {reactivationEligibility.reasons[0]}
               </AlertDescription>
             </Alert>
           )}
@@ -561,37 +555,22 @@ export const LedgerManagement = () => {
               <div className="grid gap-4 py-4">
                 {/* Start Date */}
                 <div className="grid gap-2">
-                  <Label htmlFor="startDate">New Start Date *</Label>
+                  <Label htmlFor="startDate">Restart Date *</Label>
                   <Input
                     id="startDate"
                     type="date"
                     value={reactivateParams.start_date}
-                    min={reactivationEligibility.ledger?.paused_at ? new Date(reactivationEligibility.ledger.paused_at).toISOString().split('T')[0] : undefined}
                     onChange={(e) => setReactivateParams(prev => ({ ...prev, start_date: e.target.value }))}
                   />
-                  {reactivationEligibility.ledger?.paused_at && (
-                    <p className="text-xs text-muted-foreground">
-                      Must be on or after pause date: {new Date(reactivationEligibility.ledger.paused_at).toLocaleDateString()}
-                    </p>
-                  )}
-                  {reactivationEligibility.ledger?.paused_at && reactivateParams.start_date && new Date(reactivateParams.start_date) < new Date(reactivationEligibility.ledger.paused_at) && (
-                    <p className="text-xs text-red-600 font-medium">
-                      ⚠️ Start date cannot be before pause date
-                    </p>
-                  )}
-                  {!reactivationEligibility.ledger?.paused_at && (
-                    <p className="text-xs text-muted-foreground">
-                      First payment will be due on this date
-                    </p>
-                  )}
                 </div>
 
                 {/* Rental Amount */}
                 <div className="grid gap-2">
-                  <Label htmlFor="rentalAmount">Rental Amount (₹)</Label>
+                  <Label htmlFor="rentalAmount">Weekly Rental Amount (₹) *</Label>
                   <Input
                     id="rentalAmount"
                     type="number"
+                    min={1}
                     value={reactivateParams.rental_amount}
                     onChange={(e) => setReactivateParams(prev => ({ ...prev, rental_amount: Number(e.target.value) }))}
                   />
@@ -615,34 +594,23 @@ export const LedgerManagement = () => {
                   </Select>
                 </div>
 
-                {/* Security Deposit - required if refunded */}
-                {reactivationEligibility.ledger?.security_deposit_status !== 'retained' && (
-                  <div className="grid gap-2">
-                    <Label htmlFor="newDeposit">New Security Deposit (₹) *</Label>
-                    <Input
-                      id="newDeposit"
-                      type="number"
-                      value={reactivateParams.new_security_deposit}
-                      onChange={(e) => setReactivateParams(prev => ({ ...prev, new_security_deposit: Number(e.target.value) }))}
-                    />
-                    <p className="text-xs text-amber-600">
-                      Previous deposit was {reactivationEligibility.ledger?.security_deposit_status}. New deposit required.
-                    </p>
-                  </div>
-                )}
-
-                {/* Cycle Change Warning */}
-                {reactivationEligibility.ledger &&
-                  reactivateParams.rental_frequency !== reactivationEligibility.ledger.rental_frequency && (
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      Payment cycle changed from {reactivationEligibility.ledger.rental_frequency} to {reactivateParams.rental_frequency}.
-                      New payments will follow the new schedule.
-                    </AlertDescription>
-                  </Alert>
-                )}
+                {/* Security Deposit — always shown, optional */}
+                <div className="grid gap-2">
+                  <Label htmlFor="newDeposit">Security Deposit (₹) <span className="text-muted-foreground font-normal">— optional</span></Label>
+                  <Input
+                    id="newDeposit"
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={reactivateParams.new_security_deposit || ''}
+                    onChange={(e) => setReactivateParams(prev => ({ ...prev, new_security_deposit: Number(e.target.value) }))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Leave 0 if no deposit is being collected on reactivation.
+                  </p>
+                </div>
               </div>
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsReactivateDialogOpen(false)}>
                   Cancel
@@ -652,8 +620,7 @@ export const LedgerManagement = () => {
                   disabled={
                     isReactivating ||
                     !reactivateParams.start_date ||
-                    (reactivationEligibility?.ledger?.paused_at && new Date(reactivateParams.start_date) < new Date(reactivationEligibility.ledger.paused_at)) ||
-                    (reactivationEligibility?.ledger?.security_deposit_status !== 'retained' && reactivateParams.new_security_deposit <= 0)
+                    reactivateParams.rental_amount <= 0
                   }
                   className="bg-green-500 hover:bg-green-600"
                 >

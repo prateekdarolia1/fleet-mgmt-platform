@@ -33,6 +33,23 @@ export interface UnifiedUpcomingPayment {
 }
 
 /**
+ * For payments in the `payments` table with ledger_id=null (rental-flow reactivations),
+ * resolve the ledger_id by looking up rental_ledgers by rider_id.
+ * Returns a Map<rider_id, ledger_id>.
+ */
+async function resolveRentalLedgerIds(riderIds: string[]): Promise<Map<string, string>> {
+  if (riderIds.length === 0) return new Map();
+  const { data } = await supabase
+    .from('rental_ledgers')
+    .select('id, rider_id')
+    .in('rider_id', riderIds)
+    .in('status', ['active', 'suspended']);
+  const map = new Map<string, string>();
+  (data || []).forEach(rl => map.set(rl.rider_id, rl.id));
+  return map;
+}
+
+/**
  * Fetch overdue payments from BOTH tables (payments + rental_payments)
  * A payment is overdue if it's been pending for MORE than 4 calendar days from due date
  */
@@ -103,6 +120,12 @@ export function useUnifiedOverduePayments(limit = 50) {
         });
       });
 
+      // Resolve ledger_id for payments with no ledger_id (rental-flow reactivations)
+      const nullLedgerRiderIds = [...new Set(
+        (payments || []).filter(p => !p.ledger_id).map(p => p.rider_id)
+      )];
+      const riderLedgerMap = await resolveRentalLedgerIds(nullLedgerRiderIds);
+
       // Add payments table results
       (payments || []).forEach((p) => {
         unifiedResults.push({
@@ -115,7 +138,7 @@ export function useUnifiedOverduePayments(limit = 50) {
           balance: p.amount,
           due_date: p.due_date,
           status: p.status,
-          ledger_id: p.ledger_id,
+          ledger_id: p.ledger_id || riderLedgerMap.get(p.rider_id),
           payment_id: p.payment_id,
         });
       });
@@ -210,6 +233,12 @@ export function useUnifiedUpcomingPayments(days = 7) {
         });
       });
 
+      // Resolve ledger_id for payments with no ledger_id (rental-flow reactivations)
+      const nullLedgerRiderIds = [...new Set(
+        (payments || []).filter(p => !p.ledger_id).map(p => p.rider_id)
+      )];
+      const riderLedgerMap = await resolveRentalLedgerIds(nullLedgerRiderIds);
+
       // Add payments table results
       (payments || []).forEach((p) => {
         unifiedResults.push({
@@ -221,7 +250,7 @@ export function useUnifiedUpcomingPayments(days = 7) {
           amount_due: p.amount,
           due_date: p.due_date,
           status: p.status,
-          ledger_id: p.ledger_id,
+          ledger_id: p.ledger_id || riderLedgerMap.get(p.rider_id),
           payment_id: p.payment_id,
         });
       });
