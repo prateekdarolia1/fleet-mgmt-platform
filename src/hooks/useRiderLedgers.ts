@@ -5,6 +5,15 @@ import { toast } from 'sonner';
 export type LedgerStatus = 'active' | 'paused' | 'closed';
 export type SecurityDepositStatus = 'retained' | 'refunded' | 'partially_refunded';
 
+// Formats a Date as YYYY-MM-DD using LOCAL timezone.
+// toISOString() uses UTC which causes off-by-one errors for IST (UTC+5:30) users.
+const toLocalDateStr = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 // ============================================================================
 // HELPER FUNCTIONS (Tasks 3.1-3.6, 4.1-4.6, 5.1-5.11)
 // ============================================================================
@@ -242,7 +251,7 @@ function generateRetroactivePayments(params: RetroactivePaymentParams): Generate
       rider_id: riderId,
       rider_name: riderName,
       amount: rentalAmount,
-      due_date: dueDate.toISOString().split('T')[0],
+      due_date: toLocalDateStr(dueDate),
       payment_date: null,
       status,
       payment_type: 'rental',
@@ -351,7 +360,7 @@ function generateGapPayments(params: GapPaymentParams): GeneratedPayment[] {
       rider_id: riderId,
       rider_name: riderName,
       amount: rentalAmount,
-      due_date: dueDate.toISOString().split('T')[0],
+      due_date: toLocalDateStr(dueDate),
       payment_date: null,
       status: 'overdue', // Gap payments are always overdue
       payment_type: 'rental',
@@ -545,7 +554,7 @@ export const useRiderLedgers = () => {
             rider_id: ledgerData.rider_id,
             rider_name: ledgerData.rider_name,
             amount: ledgerData.rental_amount,
-            due_date: dueDate.toISOString().split('T')[0],
+            due_date: toLocalDateStr(dueDate),
             payment_date: null,
             status: 'pending',
             payment_type: 'rental',
@@ -832,7 +841,7 @@ export const useRiderLedgers = () => {
         if (current >= sixMonthsAgo) {
           const isOverdue = current < today;
           dueDates.push({
-            due_date: current.toISOString().split('T')[0],
+            due_date: toLocalDateStr(current),
             status: isOverdue ? 'overdue' : 'pending',
           });
           if (!isOverdue) pendingAdded = true;
