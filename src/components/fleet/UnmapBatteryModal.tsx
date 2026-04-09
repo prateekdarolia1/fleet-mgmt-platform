@@ -76,7 +76,7 @@ export const UnmapBatteryModal = ({
   const {
     mutate: unmapBattery,
     isPending: isUnmappingLoading,
-    errorMessage
+    error: unmapError
   } = useUnmapBatteryWithErrorHandling({
     userId: user?.id || '',
     onSuccess: () => {
