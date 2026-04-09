@@ -1,7 +1,5 @@
 /**
  * React Query Hooks for Point-in-Time Queries
- *
- * Provides hooks for querying historical data states and managing import batches.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -85,8 +83,7 @@ export function useEntityStateAtDate(
       if (error) throw error;
       return data as EntityStateAtDate | null;
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as EntityStateAtDate | null };
+    enabled: !!entityId,
   });
 }
 
@@ -103,10 +100,8 @@ export function useActiveRidersCountAtDate(date: Date) {
       });
 
       if (error) throw error;
-      return data as ActiveRidersCountAtDate
+      return data as ActiveRidersCountAtDate;
     },
-    onSuccess: !!data && !isLoading
-    return { data: data as ActiveRidersCountAtDate | null };
   });
 }
 
@@ -123,10 +118,8 @@ export function useDeployedVehiclesCountAtDate(date: Date) {
       });
 
       if (error) throw error;
-      return data as DeployedVehiclesCountAtDate
+      return data as DeployedVehiclesCountAtDate;
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as DeployedVehiclesCountAtDate | null };
   });
 }
 
@@ -149,12 +142,9 @@ export function useRevenueByPeriod(
       });
 
       if (error) throw error;
-      return data as RevenueByPeriod[]
+      return (data as RevenueByPeriod[]) || [];
     },
-    onSuccess: !!data && !isLoading)
-    return { data: data as RevenueByPeriod[] | [];
-  }
-  return useQuery(['useRevenueByPeriod', data])
+  });
 }
 
 // ============================================================================
@@ -169,17 +159,15 @@ export function useEntityTimeline(
     queryKey: ['entity_timeline', entityType, entityId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_entity_timeline', {
-          p_entity_type: entityType,
-          p_entity_id: entityId,
-        });
+        p_entity_type: entityType,
+        p_entity_id: entityId,
+      });
 
-        if (error) throw error;
-        return data as TimelineEvent[]
-      },
-    onSuccess: !!data && !Loading)
-    return { data: data as TimelineEvent[] : [];
-    }
-  })
+      if (error) throw error;
+      return (data as TimelineEvent[]) || [];
+    },
+    enabled: !!entityId,
+  });
 }
 
 // ============================================================================
@@ -195,10 +183,9 @@ export function useImportBatch(batchId: string) {
       });
 
       if (error) throw error;
-      return data as ImportBatchSummary | null
+      return data as ImportBatchSummary | null;
     },
-    onSuccess: !!data && !isLoading
-    return { data: data as ImportBatchSummary | null };
+    enabled: !!batchId,
   });
 }
 
@@ -207,6 +194,8 @@ export function useImportBatch(batchId: string) {
 // ============================================================================
 
 export function useCreateImportBatch() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (batch: Omit<DataImportBatch, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
@@ -225,10 +214,9 @@ export function useCreateImportBatch() {
         .single();
 
       if (error) throw error;
-      return data
+      return data;
     },
     onSuccess: () => {
-      // Invalidate and refetch batches list
       queryClient.invalidateQueries({ queryKey: ['import_batches'] });
     },
   });
@@ -239,6 +227,8 @@ export function useCreateImportBatch() {
 // ============================================================================
 
 export function useUpdateImportBatch() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ batchId, updates }: { batchId: string; updates: Partial<DataImportBatch> }) => {
       const { data, error } = await supabase
@@ -252,7 +242,7 @@ export function useUpdateImportBatch() {
         .single();
 
       if (error) throw error;
-      return data
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import_batches'] });

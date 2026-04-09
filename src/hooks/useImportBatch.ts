@@ -26,7 +26,7 @@ export function useImportBatches(status?: ImportBatchStatus) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as DataImportBatch[]
+      return data as DataImportBatch[];
     },
   });
 }
@@ -40,37 +40,15 @@ export function useImportBatchById(batchId: string) {
     queryKey: ['import_batch', batchId],
     queryFn: async () => {
       const { data, error } = await supabase
-          .from('data_import_batches')
-          .select('*')
-          .eq('id', batchId)
-          .single();
+        .from('data_import_batches')
+        .select('*')
+        .eq('id', batchId)
+        .single();
 
-        if (error) throw error;
-        return data as DataImportBatch | null;
+      if (error) throw error;
+      return data as DataImportBatch | null;
     },
-    enabled: !!batchId
-  });
-}
-
-// ============================================================================
-// HOOK: BATCH RETROACTIVE EVENTS
-// ============================================================================
-
-export function useBatchRetroactiveEvents(batchId: string) {
-  return useQuery({
-    queryKey: ['batch_retroactive_events', batchId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-          .from('retroactive_events')
-          .select('*')
-          .eq('import_batch_id', batchId)
-          .order('effective_date', { ascending: true });
-
-        if (error) throw error;
-        return data as RetroactiveEvent[]
-      },
-    onSuccess: !!data && !isLoading)
-    return { data: data as RetroactiveEvent[] : [];
+    enabled: !!batchId,
   });
 }
 
@@ -79,6 +57,8 @@ export function useBatchRetroactiveEvents(batchId: string) {
 // ============================================================================
 
 export function useCreateBatch() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (batch: Omit<DataImportBatch, 'id' | 'created_at' | 'updated_at'>) => {
       const { data, error } = await supabase
@@ -91,7 +71,7 @@ export function useCreateBatch() {
         .single();
 
       if (error) throw error;
-      return data
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import_batches'] });
@@ -104,6 +84,8 @@ export function useCreateBatch() {
 // ============================================================================
 
 export function useUpdateBatch() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<DataImportBatch> }) => {
       const { data, error } = await supabase
@@ -117,7 +99,7 @@ export function useUpdateBatch() {
         .single();
 
       if (error) throw error;
-      return data
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import_batches'] });
@@ -130,6 +112,8 @@ export function useUpdateBatch() {
 // ============================================================================
 
 export function useDeleteBatch() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: async (batchId: string) => {
       // First delete retroactive events
@@ -145,7 +129,7 @@ export function useDeleteBatch() {
         .eq('id', batchId);
 
       if (error) throw error;
-      return true
+      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['import_batches'] });
@@ -161,7 +145,6 @@ export function useBatchStatistics(batchId: string) {
   return useQuery({
     queryKey: ['batch_statistics', batchId],
     queryFn: async () => {
-      // Get counts from all related tables
       const [
         { count: ridersCount, error: ridersError },
         { count: vehiclesCount, error: vehiclesError },
@@ -189,5 +172,6 @@ export function useBatchStatistics(batchId: string) {
         total: (ridersCount || 0) + (vehiclesCount || 0) + (batteriesCount || 0) + (paymentsCount || 0),
       };
     },
+    enabled: !!batchId,
   });
 }
