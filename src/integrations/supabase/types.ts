@@ -831,6 +831,7 @@ export type Database = {
               p_data_source?: string
               p_is_historical?: boolean
               p_ledger_id: string
+              p_rental_amount?: number
               p_rental_start_date: string
               p_responsible_user_id?: string
               p_security_deposit?: number
@@ -857,6 +858,7 @@ export type Database = {
         Returns: string
       }
       generate_weekly_payments: { Args: never; Returns: number }
+      get_next_payment_number: { Args: never; Returns: number }
       get_overdue_payments_for_reminder: {
         Args: never
         Returns: {
@@ -880,31 +882,18 @@ export type Database = {
       }
       manual_sync_rider_ledger: { Args: { p_ledger_id: string }; Returns: Json }
       mark_overdue_payments: { Args: never; Returns: number }
-      mark_rental_payment_paid:
-        | {
-            Args: {
-              p_external_ref?: string
-              p_notes?: string
-              p_paid_amount: number
-              p_payment_id: string
-              p_payment_mode?: string
-              p_received_by?: string
-              p_upi_last4?: string
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_external_ref?: string
-              p_notes?: string
-              p_paid_amount: number
-              p_payment_id: string
-              p_payment_mode?: string
-              p_received_by?: string
-              p_upi_last4?: string
-            }
-            Returns: Json
-          }
+      mark_rental_payment_paid: {
+        Args: {
+          p_external_ref?: string
+          p_notes?: string
+          p_paid_amount: number
+          p_payment_id: string
+          p_payment_mode?: string
+          p_received_by?: string
+          p_upi_last4?: string
+        }
+        Returns: Json
+      }
       sync_health_check: { Args: never; Returns: Json }
       sync_repair: { Args: { p_mode?: string }; Returns: Json }
       validate_battery_smart_id: {
