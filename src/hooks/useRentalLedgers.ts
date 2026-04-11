@@ -70,8 +70,7 @@ export function useRentalLedgerById(ledgerId: string | null) {
         .from('rental_ledgers')
         .select(`
           *,
-          rental_payments (*),
-          profiles:responsible_user_id (id, first_name, last_name, email)
+          rental_payments (*)
         `)
         .eq('id', ledgerId)
         .single();
@@ -82,7 +81,18 @@ export function useRentalLedgerById(ledgerId: string | null) {
         throw error;
       }
 
-      return data;
+      // Fetch profile separately to avoid ambiguous relationship
+      let profiles = null;
+      if (data?.responsible_user_id) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, email')
+          .eq('id', data.responsible_user_id)
+          .single();
+        profiles = profileData;
+      }
+
+      return { ...data, profiles } as unknown as RentalLedgerWithPayments;
     },
     enabled: !!ledgerId,
   });

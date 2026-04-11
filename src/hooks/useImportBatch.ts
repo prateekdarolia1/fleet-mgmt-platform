@@ -154,10 +154,10 @@ export function useBatchStatistics(batchId: string) {
         paymentsRes,
         eventsRes,
       ] = await Promise.all([
-        supabase.from('riders').select('id', { count: 'exact', head: true }).eq('import_batch_id' as any, batchId),
-        supabase.from('vehicles').select('id', { count: 'exact', head: true }).eq('import_batch_id' as any, batchId),
-        supabase.from('batteries').select('id', { count: 'exact', head: true }).eq('import_batch_id' as any, batchId),
-        supabase.from('payments').select('id', { count: 'exact', head: true }).eq('import_batch_id' as any, batchId),
+        (supabase as any).from('riders').select('id', { count: 'exact', head: true }).eq('import_batch_id', batchId),
+        (supabase as any).from('vehicles').select('id', { count: 'exact', head: true }).eq('import_batch_id', batchId),
+        (supabase as any).from('batteries').select('id', { count: 'exact', head: true }).eq('import_batch_id', batchId),
+        (supabase as any).from('payments').select('id', { count: 'exact', head: true }).eq('import_batch_id', batchId),
         (supabase as any).from('retroactive_events').select('id', { count: 'exact', head: true }).eq('import_batch_id', batchId),
       ]);
 

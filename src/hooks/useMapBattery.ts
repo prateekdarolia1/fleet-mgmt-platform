@@ -226,6 +226,7 @@ export function useMapBatteryBulk(options: {
         const result = await mapBatteryWithRetry({
           batteryId: mapping.batteryId,
           vehicleId: mapping.vehicleId,
+          batterySmartId: '',
           userId: options.userId
         });
 
