@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock, Lock, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock, Lock, AlertTriangle, Loader2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { usePayments, type Payment, type PaymentStatus } from "@/hooks/usePayments";
 import { useRiders } from "@/hooks/useRiders";
@@ -18,6 +18,29 @@ import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
 import { LedgerManagement } from "./LedgerManagement";
 import { RentalLedgerDetail } from "./RentalLedgerDetail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+const downloadTableAsExcel = (data: Array<Record<string, any>>, filename: string) => {
+  if (!data || data.length === 0) return;
+  const headers = Object.keys(data[0]);
+  const csvRows = [
+    headers.join(','),
+    ...data.map(row =>
+      headers.map(h => {
+        const val = String(row[h] ?? '');
+        return val.includes(',') || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
+      }).join(',')
+    )
+  ];
+  const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast.success(`Downloaded ${filename}.csv`);
+};
 
 export const PaymentTracking = () => {
   const { payments, loading, getTotalStats, updatePayment, markPaymentAsPaid, deletePayment } = usePayments();
@@ -507,7 +530,31 @@ export const PaymentTracking = () => {
                   <p>No overdue payments! All riders are up to date.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                  <div className="flex justify-end mb-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => downloadTableAsExcel(
+                        overduePayments.map(p => ({
+                          Week: p.source === 'rental_payments' ? `Week ${p.week_number}` : p.payment_id || '-',
+                          Rider: p.rider_name || 'Unknown',
+                          Vehicle: getVehicleForRider(p.rider_id),
+                          'Due Date': p.due_date ? format(new Date(p.due_date), 'dd MMM yyyy') : '-',
+                          'Amount Due': p.amount_due || 0,
+                          Balance: p.balance || p.amount_due || 0,
+                          Status: p.status,
+                        })),
+                        'overdue_payments'
+                      )}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-[400px]">
+                    <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -589,8 +636,10 @@ export const PaymentTracking = () => {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </div>
+                    </Table>
+                  </div>
+                </ScrollArea>
+                </>
               )}
             </CardContent>
           </Card>
@@ -613,75 +662,100 @@ export const PaymentTracking = () => {
                   <p>No payments due this week.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Week</TableHead>
-                        <TableHead>Rider</TableHead>
-                        <TableHead>Vehicle</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead className="text-right">Amount Due</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {upcomingPayments.map((payment) => (
-                        <TableRow
-                          key={`${payment.source}-${payment.id}`}
-                          className="cursor-pointer hover:bg-amber-50"
-                          onClick={() => {
-                            if (payment.ledger_id) {
-                              setSelectedLedgerId(payment.ledger_id);
-                              setIsLedgerDetailOpen(true);
-                            }
-                          }}
-                        >
-                          <TableCell className="font-medium">
-                            {payment.source === 'rental_payments' ? `Week ${payment.week_number}` : payment.payment_id || '-'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              {payment.rider_name || 'Unknown'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Truck className="h-4 w-4 text-muted-foreground" />
-                              {getVehicleForRider(payment.rider_id)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {payment.due_date
-                              ? format(new Date(payment.due_date), 'dd MMM yyyy')
-                              : '-'}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ₹{(payment.amount_due || 0).toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {payment.ledger_id ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedLedgerId(payment.ledger_id!);
+                <>
+                  <div className="flex justify-end mb-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => downloadTableAsExcel(
+                        upcomingPayments.map(p => ({
+                          Week: p.source === 'rental_payments' ? `Week ${p.week_number}` : p.payment_id || '-',
+                          Rider: p.rider_name || 'Unknown',
+                          Vehicle: getVehicleForRider(p.rider_id),
+                          'Due Date': p.due_date ? format(new Date(p.due_date), 'dd MMM yyyy') : '-',
+                          'Amount Due': p.amount_due || 0,
+                          Status: p.status,
+                        })),
+                        'upcoming_payments'
+                      )}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-[400px]">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Week</TableHead>
+                            <TableHead>Rider</TableHead>
+                            <TableHead>Vehicle</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead className="text-right">Amount Due</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {upcomingPayments.map((payment) => (
+                            <TableRow
+                              key={`${payment.source}-${payment.id}`}
+                              className="cursor-pointer hover:bg-amber-50"
+                              onClick={() => {
+                                if (payment.ledger_id) {
+                                  setSelectedLedgerId(payment.ledger_id);
                                   setIsLedgerDetailOpen(true);
-                                }}
-                              >
-                                View Ledger
-                              </Button>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                                }
+                              }}
+                            >
+                              <TableCell className="font-medium">
+                                {payment.source === 'rental_payments' ? `Week ${payment.week_number}` : payment.payment_id || '-'}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-muted-foreground" />
+                                  {payment.rider_name || 'Unknown'}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Truck className="h-4 w-4 text-muted-foreground" />
+                                  {getVehicleForRider(payment.rider_id)}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {payment.due_date
+                                  ? format(new Date(payment.due_date), 'dd MMM yyyy')
+                                  : '-'}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                ₹{(payment.amount_due || 0).toLocaleString()}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {payment.ledger_id ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedLedgerId(payment.ledger_id!);
+                                      setIsLedgerDetailOpen(true);
+                                    }}
+                                  >
+                                    View Ledger
+                                  </Button>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">-</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </ScrollArea>
+                </>
               )}
             </CardContent>
           </Card>
