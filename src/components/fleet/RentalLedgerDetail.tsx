@@ -24,7 +24,7 @@ import {
   History
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRentalLedgerById, useRentalLedgerStatus } from '@/hooks/useRentalLedgers';
+import { useRentalLedgerById, useRentalLedgerStats } from '@/hooks/useRentalLedgers';
 import { useRentalPaymentsByLedger, useMarkRentalPaymentPaid } from '@/hooks/useRentalPayments';
 import { RentalPaymentForm } from './RentalPaymentForm';
 
@@ -196,9 +196,9 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
                 Started: {format(new Date(ledger.rental_start_date), 'dd MMM yyyy')}
               </p>
             )}
-            {ledger.rental_end_date && (
+            {(ledger as any).rental_end_date && (
               <p className="text-sm text-muted-foreground">
-                Ended: {format(new Date(ledger.rental_end_date), 'dd MMM yyyy')}
+                Ended: {format(new Date((ledger as any).rental_end_date), 'dd MMM yyyy')}
               </p>
             )}
           </CardContent>

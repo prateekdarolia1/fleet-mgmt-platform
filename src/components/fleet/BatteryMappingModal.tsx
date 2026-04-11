@@ -235,7 +235,7 @@ export const BatteryMappingModal = ({
                         {(batteriesData as BatteryListResult)?.batteries && (batteriesData as BatteryListResult).batteries.length > 0 ? (
                           (batteriesData as BatteryListResult).batteries.map((battery) => (
                             <SelectItem key={battery.id} value={battery.id}>
-                              {battery.battery_id} • {battery.battery_identifier}
+                              {battery.battery_id} • {battery.battery_smart_id || battery.battery_id}
                             </SelectItem>
                           ))
                         ) : (
@@ -354,9 +354,9 @@ export const BatteryMappingModal = ({
             )}
 
             {/* Error Message */}
-            {errorMessage && (
+            {mapError && (
               <div className="rounded-md bg-red-50 p-3 text-sm text-red-700 border border-red-200">
-                {errorMessage}
+                {mapError instanceof Error ? mapError.message : 'An error occurred'}
               </div>
             )}
 

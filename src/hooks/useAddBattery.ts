@@ -25,7 +25,7 @@ export const useAddBattery = (options?: {
     mutationFn: async (input: AddBatteryInput) => {
       const result = await addBattery(input);
       if (!result.success) {
-        throw new Error(result.error);
+        throw new Error((result as any).error || 'Failed to add battery');
       }
       return result;
     },

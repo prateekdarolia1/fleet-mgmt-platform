@@ -179,8 +179,7 @@ export const RiderManagement = () => {
         status: pendingStatusUpdate.riderStatus,
         duty_status: pendingStatusUpdate.dutyStatus,
         vehicle_assigned: selectedVehicle.vehicle_number,
-        battery_smart_id: batterySmartId
-      });
+      } as Partial<Rider>);
 
       // Update vehicle status to Deployed and assign rider
       await updateVehicle(vehicleId, {
@@ -271,8 +270,7 @@ export const RiderManagement = () => {
   };
 
   const handleVehicleSelectionCancel = () => {
-    setIsVehicleSelectionOpen(false);
-    setSelectedVehicleId("");
+    // Reset state
     setPendingStatusUpdate(null);
     // Status stays as original, no changes made
   };

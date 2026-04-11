@@ -220,7 +220,7 @@ export const RentalLedgerConfirmModal = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit((data) => handleSubmit(data))} className="space-y-6">
             {/* Info Alert */}
             <div className="rounded-lg bg-amber-50 p-4 border border-amber-200 flex gap-3">
               <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />

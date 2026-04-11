@@ -86,7 +86,9 @@ export function ImportPreview({ csvContent, dataSource, onConfirm, onCancel }: I
 
   if (!report) return null;
 
-  const { summary, warnings, needsAttention } = report;
+  const summary = { total: report.totalRecords, matches: report.exactMatches, conflicts: report.conflicts, newRecords: report.newRecords };
+  const warnings = report.lowConfidenceRecords > 0 || report.ghostRecordsNeeded > 0;
+  const needsAttention = report.conflicts > 0;
 
   return (
     <div className="space-y-4">

@@ -3,7 +3,18 @@ import type { Database } from '@/integrations/supabase/types';
 
 type BatteryInsert = Database['public']['Tables']['batteries']['Insert'];
 type Battery = Database['public']['Tables']['batteries']['Row'];
-type BatteryEvent = Database['public']['Tables']['battery_events']['Row'];
+// battery_events table is not in generated types yet - define locally
+type BatteryEvent = {
+  id: string;
+  battery_id: string;
+  event_type: string;
+  vehicle_id: string | null;
+  previous_vehicle_id: string | null;
+  reason: string | null;
+  performed_by: string | null;
+  changes: Record<string, any> | null;
+  created_at: string;
+};
 
 interface AddBatteryInput {
   battery_id: string;
@@ -120,6 +131,8 @@ function normalizeInput(input: AddBatteryInput): AddBatteryInput {
  * }
  * ```
  */
+export { type AddBatteryInput, type AddBatteryResult, type AddBatteryResponse, type AddBatteryError };
+
 export async function addBattery(input: AddBatteryInput): Promise<AddBatteryResult> {
   try {
     // Step 1: Validate input
