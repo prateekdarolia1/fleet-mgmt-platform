@@ -62,11 +62,20 @@ export const useBatteryDetail = (batteryId: string) => {
       }
 
       // Fetch battery events (append-only history)
-      const { data: events, error: eventsError } = await supabase
-        .from('battery_events')
-        .select('*')
-        .eq('battery_id', batteryId)
-        .order('created_at', { ascending: false });
+      let events: any[] = [];
+      try {
+        const { data: eventsData, error: eventsError } = await supabase
+          .from('battery_events' as any)
+          .select('*')
+          .eq('battery_id', batteryId)
+          .order('created_at', { ascending: false });
+
+        if (!eventsError && eventsData) {
+          events = eventsData;
+        }
+      } catch (e) {
+        console.warn('battery_events table may not exist:', e);
+      }
 
       if (eventsError) {
         console.error('Error fetching battery events:', eventsError);
@@ -122,7 +131,7 @@ export const useBatteryDetail = (batteryId: string) => {
         events: events || [],
         vehicleInfo,
         riderInfo: vehicleInfo?.rider || null
-      } as BatteryWithEvents;
+      } as unknown as BatteryWithEvents;
     },
     enabled: !!batteryId,
     staleTime: 1000 * 60 * 5 // 5 minutes

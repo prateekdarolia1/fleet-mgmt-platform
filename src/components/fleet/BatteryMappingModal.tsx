@@ -78,7 +78,8 @@ export const BatteryMappingModal = ({
   // Map battery mutation
   const {
     mutate: mapBattery,
-    isPending: isMappingLoading
+    isPending: isMappingLoading,
+    error: mapError
   } = useMapBatteryWithErrorHandling({
     userId: user?.id || '',
     onSuccess: () => {

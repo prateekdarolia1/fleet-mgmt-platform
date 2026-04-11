@@ -86,8 +86,10 @@ export function ImportPreview({ csvContent, dataSource, onConfirm, onCancel }: I
 
   if (!report) return null;
 
-  const summary = { total: report.totalRecords, matches: report.exactMatches, conflicts: report.conflicts, newRecords: report.newRecords };
-  const warnings = report.lowConfidenceRecords > 0 || report.ghostRecordsNeeded > 0;
+  const summaryText = `${report.totalRecords} records found: ${report.exactMatches} matches, ${report.conflicts} conflicts, ${report.newRecords} new`;
+  const warningsList: string[] = [];
+  if (report.lowConfidenceRecords > 0) warningsList.push(`${report.lowConfidenceRecords} records have low confidence scores`);
+  if (report.ghostRecordsNeeded > 0) warningsList.push(`${report.ghostRecordsNeeded} ghost records will be created`);
   const needsAttention = report.conflicts > 0;
 
   return (
@@ -105,7 +107,7 @@ export function ImportPreview({ csvContent, dataSource, onConfirm, onCancel }: I
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">{summary}</p>
+          <p className="text-sm text-muted-foreground mb-4">{summaryText}</p>
 
           {/* Statistics Table */}
           <Table>
@@ -155,12 +157,12 @@ export function ImportPreview({ csvContent, dataSource, onConfirm, onCancel }: I
       </Card>
 
       {/* Warnings */}
-      {warnings.length > 0 && (
+      {warningsList.length > 0 && (
         <Card className="border-yellow-200 bg-yellow-50">
           <CardContent className="pt-4">
             <h4 className="font-medium text-yellow-800 mb-2">Warnings</h4>
             <ul className="text-sm text-yellow-700 space-y-1">
-              {warnings.map((warning, index) => (
+              {warningsList.map((warning, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   {warning}

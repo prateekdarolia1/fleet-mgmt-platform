@@ -178,17 +178,17 @@ export function useBatteriesTable(filters: BatteryFilters = {}) {
 
   return {
     // Batteries data
-    batteries: batteriesQuery.data?.batteries || [],
+    batteries: (batteriesQuery.data as BatteryListResult)?.batteries || [],
     isLoading: batteriesQuery.isLoading,
     error: batteriesQuery.error,
 
     // Pagination
     pagination: {
-      page: batteriesQuery.data?.page || 1,
-      limit: batteriesQuery.data?.limit || 10,
-      total: batteriesQuery.data?.total || 0,
-      totalPages: batteriesQuery.data?.totalPages || 0,
-      hasMore: batteriesQuery.data?.hasMore || false
+      page: (batteriesQuery.data as BatteryListResult)?.page || 1,
+      limit: (batteriesQuery.data as BatteryListResult)?.limit || 10,
+      total: (batteriesQuery.data as BatteryListResult)?.total || 0,
+      totalPages: (batteriesQuery.data as BatteryListResult)?.totalPages || 0,
+      hasMore: (batteriesQuery.data as BatteryListResult)?.hasMore || false
     },
 
     // Statistics
