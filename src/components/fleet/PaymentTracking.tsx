@@ -662,75 +662,100 @@ export const PaymentTracking = () => {
                   <p>No payments due this week.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Week</TableHead>
-                        <TableHead>Rider</TableHead>
-                        <TableHead>Vehicle</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead className="text-right">Amount Due</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {upcomingPayments.map((payment) => (
-                        <TableRow
-                          key={`${payment.source}-${payment.id}`}
-                          className="cursor-pointer hover:bg-amber-50"
-                          onClick={() => {
-                            if (payment.ledger_id) {
-                              setSelectedLedgerId(payment.ledger_id);
-                              setIsLedgerDetailOpen(true);
-                            }
-                          }}
-                        >
-                          <TableCell className="font-medium">
-                            {payment.source === 'rental_payments' ? `Week ${payment.week_number}` : payment.payment_id || '-'}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <User className="h-4 w-4 text-muted-foreground" />
-                              {payment.rider_name || 'Unknown'}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Truck className="h-4 w-4 text-muted-foreground" />
-                              {getVehicleForRider(payment.rider_id)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {payment.due_date
-                              ? format(new Date(payment.due_date), 'dd MMM yyyy')
-                              : '-'}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ₹{(payment.amount_due || 0).toLocaleString()}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {payment.ledger_id ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedLedgerId(payment.ledger_id!);
+                <>
+                  <div className="flex justify-end mb-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => downloadTableAsExcel(
+                        upcomingPayments.map(p => ({
+                          Week: p.source === 'rental_payments' ? `Week ${p.week_number}` : p.payment_id || '-',
+                          Rider: p.rider_name || 'Unknown',
+                          Vehicle: getVehicleForRider(p.rider_id),
+                          'Due Date': p.due_date ? format(new Date(p.due_date), 'dd MMM yyyy') : '-',
+                          'Amount Due': p.amount_due || 0,
+                          Status: p.status,
+                        })),
+                        'upcoming_payments'
+                      )}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-[400px]">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Week</TableHead>
+                            <TableHead>Rider</TableHead>
+                            <TableHead>Vehicle</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead className="text-right">Amount Due</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {upcomingPayments.map((payment) => (
+                            <TableRow
+                              key={`${payment.source}-${payment.id}`}
+                              className="cursor-pointer hover:bg-amber-50"
+                              onClick={() => {
+                                if (payment.ledger_id) {
+                                  setSelectedLedgerId(payment.ledger_id);
                                   setIsLedgerDetailOpen(true);
-                                }}
-                              >
-                                View Ledger
-                              </Button>
-                            ) : (
-                              <span className="text-muted-foreground text-sm">-</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                                }
+                              }}
+                            >
+                              <TableCell className="font-medium">
+                                {payment.source === 'rental_payments' ? `Week ${payment.week_number}` : payment.payment_id || '-'}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <User className="h-4 w-4 text-muted-foreground" />
+                                  {payment.rider_name || 'Unknown'}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Truck className="h-4 w-4 text-muted-foreground" />
+                                  {getVehicleForRider(payment.rider_id)}
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {payment.due_date
+                                  ? format(new Date(payment.due_date), 'dd MMM yyyy')
+                                  : '-'}
+                              </TableCell>
+                              <TableCell className="text-right font-medium">
+                                ₹{(payment.amount_due || 0).toLocaleString()}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {payment.ledger_id ? (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedLedgerId(payment.ledger_id!);
+                                      setIsLedgerDetailOpen(true);
+                                    }}
+                                  >
+                                    View Ledger
+                                  </Button>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">-</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </ScrollArea>
+                </>
               )}
             </CardContent>
           </Card>
