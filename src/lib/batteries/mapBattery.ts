@@ -123,7 +123,7 @@ export async function mapBattery(
       };
     }
 
-    return data as MapBatteryResponse;
+    return data as unknown as MapBatteryResponse;
 
   } catch (error) {
     console.error('Unexpected error in mapBattery:', error);
