@@ -225,6 +225,7 @@ export async function mapMultipleBatteries(
     const result = await mapBattery({
       batteryId: mapping.batteryId,
       vehicleId: mapping.vehicleId,
+      batterySmartId: '',
       userId
     });
     results.push(result);
