@@ -93,7 +93,7 @@ export async function unmapBattery(
     }
 
     // Call the RPC function
-    const { data, error } = await supabase.rpc('unmap_battery', {
+    const { data, error } = await (supabase as any).rpc('unmap_battery', {
       p_battery_id: input.batteryId,
       p_reason: input.reason,
       p_user_id: input.userId
@@ -116,7 +116,7 @@ export async function unmapBattery(
       };
     }
 
-    return data as UnmapBatteryResponse;
+    return data as unknown as UnmapBatteryResponse;
 
   } catch (error) {
     console.error('Unexpected error in unmapBattery:', error);
