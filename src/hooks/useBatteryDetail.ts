@@ -77,9 +77,6 @@ export const useBatteryDetail = (batteryId: string) => {
         console.warn('battery_events table may not exist:', e);
       }
 
-      if (eventsError) {
-        console.error('Error fetching battery events:', eventsError);
-      }
 
       // Fetch vehicle info if battery is currently mapped
       let vehicleInfo = null;

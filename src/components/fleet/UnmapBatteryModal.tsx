@@ -96,8 +96,8 @@ export const UnmapBatteryModal = ({
   // Update selected battery when form value changes
   useEffect(() => {
     const batteryId = form.watch('batteryId');
-    if (batteryId && batteriesData?.batteries) {
-      const battery = batteriesData.batteries.find((b) => b.id === batteryId);
+    if (batteryId && (batteriesData as any)?.batteries) {
+      const battery = (batteriesData as any).batteries.find((b: any) => b.id === batteryId);
       setSelectedBattery(battery);
       // Extract vehicle info from battery if available
       if (battery) {
@@ -199,10 +199,10 @@ export const UnmapBatteryModal = ({
                         <option value="">
                           {batteriesLoading ? 'Loading batteries...' : 'Select a mapped battery to unmap...'}
                         </option>
-                        {batteriesData?.batteries &&
-                          batteriesData.batteries.map((battery) => (
+                        {(batteriesData as any)?.batteries &&
+                          (batteriesData as any).batteries.map((battery: any) => (
                             <option key={battery.id} value={battery.id}>
-                              {battery.battery_id} • {battery.battery_identifier}
+                              {battery.battery_id} • {battery.battery_smart_id || battery.battery_id}
                             </option>
                           ))}
                       </select>
