@@ -8,7 +8,7 @@ export type Notification = Tables<'notifications'>;
 export type NotificationType = 'payment_overdue' | 'payment_reminder' | 'rental_started' | 'rental_closed' | 'system';
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent';
 
-export interface NotificationWithPayload extends Notification {
+export interface NotificationWithPayload extends Omit<Notification, 'payload'> {
   payload: {
     payment_id?: string;
     ledger_id?: string;

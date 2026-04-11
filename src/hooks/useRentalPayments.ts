@@ -148,7 +148,7 @@ export function useMarkRentalPaymentPaid() {
         throw error;
       }
 
-      return data as ReturnType<ReturnType<typeof useMarkRentalPaymentPaid>['mutateAsync']>;
+      return data as unknown as { success: boolean; payment_id: string; amount_due: number; paid_amount: number; balance: number; status: string; message: string; };
     },
     onSuccess: async (result, variables) => {
       // Invalidate all related caches so UI updates immediately

@@ -2,7 +2,7 @@
  * ConflictResolutionDialog - Dialog for resolving import conflicts
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -54,7 +54,7 @@ export function ConflictResolutionDialog({
           {conflicts.map((conflict, index) => (
             <div key={index} className="border rounded-lg p-4">
               <h4 className="font-medium mb-2">
-                Record: {conflict.csvRecord.rider_id || conflict.csvRecord.id || `Row ${index + 1}`}
+                Record: {(conflict.csvRecord as any)?.rider_id || (conflict.csvRecord as any)?.id || `Row ${index + 1}`}
               </h4>
 
               {conflict.conflicts && conflict.conflicts.length > 0 && (

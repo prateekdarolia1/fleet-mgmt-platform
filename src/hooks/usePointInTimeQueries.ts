@@ -74,14 +74,14 @@ export function useEntityStateAtDate(
   return useQuery({
     queryKey: ['entity_state_at_date', entityType, entityId, date],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_entity_state_at_date', {
+      const { data, error } = await (supabase as any).rpc('get_entity_state_at_date', {
         p_entity_type: entityType,
         p_entity_id: entityId,
         p_date: date.toISOString().split('T')[0],
       });
 
       if (error) throw error;
-      return data as EntityStateAtDate | null;
+      return data as unknown as EntityStateAtDate | null;
     },
     enabled: !!entityId,
   });
@@ -95,12 +95,12 @@ export function useActiveRidersCountAtDate(date: Date) {
   return useQuery({
     queryKey: ['active_riders_count_at_date', date],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_active_riders_count_at_date', {
+      const { data, error } = await (supabase as any).rpc('get_active_riders_count_at_date', {
         p_date: date.toISOString().split('T')[0],
       });
 
       if (error) throw error;
-      return data as ActiveRidersCountAtDate;
+      return data as unknown as ActiveRidersCountAtDate;
     },
   });
 }
@@ -113,12 +113,12 @@ export function useDeployedVehiclesCountAtDate(date: Date) {
   return useQuery({
     queryKey: ['deployed_vehicles_count_at_date', date],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_deployed_vehicles_count_at_date', {
+      const { data, error } = await (supabase as any).rpc('get_deployed_vehicles_count_at_date', {
         p_date: date.toISOString().split('T')[0],
       });
 
       if (error) throw error;
-      return data as DeployedVehiclesCountAtDate;
+      return data as unknown as DeployedVehiclesCountAtDate;
     },
   });
 }
@@ -135,14 +135,14 @@ export function useRevenueByPeriod(
   return useQuery({
     queryKey: ['revenue_by_period', startDate, endDate, period],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_revenue_by_period', {
+      const { data, error } = await (supabase as any).rpc('get_revenue_by_period', {
         p_start_date: startDate.toISOString().split('T')[0],
         p_end_date: endDate.toISOString().split('T')[0],
         p_period: period,
       });
 
       if (error) throw error;
-      return (data as RevenueByPeriod[]) || [];
+      return (data as unknown as RevenueByPeriod[]) || [];
     },
   });
 }
@@ -158,13 +158,13 @@ export function useEntityTimeline(
   return useQuery({
     queryKey: ['entity_timeline', entityType, entityId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_entity_timeline', {
+      const { data, error } = await (supabase as any).rpc('get_entity_timeline', {
         p_entity_type: entityType,
         p_entity_id: entityId,
       });
 
       if (error) throw error;
-      return (data as TimelineEvent[]) || [];
+      return (data as unknown as TimelineEvent[]) || [];
     },
     enabled: !!entityId,
   });
@@ -178,12 +178,12 @@ export function useImportBatch(batchId: string) {
   return useQuery({
     queryKey: ['import_batch', batchId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_import_batch_summary', {
+      const { data, error } = await (supabase as any).rpc('get_import_batch_summary', {
         p_batch_id: batchId,
       });
 
       if (error) throw error;
-      return data as ImportBatchSummary | null;
+      return data as unknown as ImportBatchSummary | null;
     },
     enabled: !!batchId,
   });
@@ -198,13 +198,13 @@ export function useCreateImportBatch() {
 
   return useMutation({
     mutationFn: async (batch: Omit<DataImportBatch, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('data_import_batches')
         .insert({
           batch_name: batch.batch_name,
           source_file: batch.source_file,
           status: 'pending',
-          data_source: batch.data_source,
+          data_source: (batch as any).data_source,
           data_period_start: batch.data_period_start,
           data_period_end: batch.data_period_end,
           imported_by: batch.imported_by,
@@ -231,7 +231,7 @@ export function useUpdateImportBatch() {
 
   return useMutation({
     mutationFn: async ({ batchId, updates }: { batchId: string; updates: Partial<DataImportBatch> }) => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('data_import_batches')
         .update({
           ...updates,

@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAddBattery } from '@/hooks/useAddBattery';
-import type { AddBatteryInput } from '@/lib/batteries/addBattery';
+import type { AddBatteryInput } from '@/hooks/useAddBattery';
 import { Loader2, Battery } from 'lucide-react';
 
 // DRY Principle: Reusable validation patterns

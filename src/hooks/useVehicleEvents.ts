@@ -37,7 +37,7 @@ export const useVehicleEvents = (vehicleId: string | undefined) => {
         return [];
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('vehicle_events')
         .select('*')
         .eq('vehicle_id', vehicleId)
@@ -47,7 +47,7 @@ export const useVehicleEvents = (vehicleId: string | undefined) => {
         throw new Error(`Failed to fetch vehicle events: ${error.message}`);
       }
 
-      return data as VehicleEvent[];
+      return (data || []) as VehicleEvent[];
     },
     enabled: !!vehicleId,
     staleTime: 30000, // Cache for 30 seconds

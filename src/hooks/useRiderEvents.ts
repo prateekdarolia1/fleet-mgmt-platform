@@ -38,7 +38,7 @@ export const useRiderEvents = (riderId: string | undefined) => {
         return [];
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('rider_events')
         .select('*')
         .eq('rider_id', riderId)
@@ -48,7 +48,7 @@ export const useRiderEvents = (riderId: string | undefined) => {
         throw new Error(`Failed to fetch rider events: ${error.message}`);
       }
 
-      return data as RiderEvent[];
+      return (data || []) as RiderEvent[];
     },
     enabled: !!riderId,
     staleTime: 30000, // Cache for 30 seconds

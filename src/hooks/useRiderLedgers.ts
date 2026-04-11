@@ -115,7 +115,7 @@ async function insertPaymentsWithRetry(
       // Insert into payments table (triggers will sync to rental_payments)
       const { error } = await supabase
         .from('payments')
-        .insert(currentPayments);
+        .insert(currentPayments as any);
 
       if (error) {
         // On unique constraint violation, regenerate IDs and retry
@@ -604,7 +604,7 @@ export const useRiderLedgers = () => {
 
       // Task 3.5, 6.2: Insert with retry logic and better error handling
       try {
-        await insertPaymentsWithRetry(rentalPayments);
+        await insertPaymentsWithRetry(rentalPayments as any);
       } catch (insertError) {
         console.error('[createLedger] Payment insertion failed:', insertError);
         // Task 6.1, 6.3, 6.5: Show actual error to user
@@ -615,7 +615,7 @@ export const useRiderLedgers = () => {
 
       console.log(`[createLedger] Successfully inserted ${rentalPayments.length} rental payments`);
 
-      setLedgers(prev => [ledger, ...prev]);
+      setLedgers(prev => [ledger as any, ...prev]);
       window.dispatchEvent(new CustomEvent('ledger-created'));
       toast.success(`Ledger created successfully for ${ledgerData.rider_name}!`);
 
@@ -907,7 +907,7 @@ export const useRiderLedgers = () => {
         }));
 
         try {
-          await insertPaymentsWithRetry(allPayments);
+          await insertPaymentsWithRetry(allPayments as any);
         } catch (insertError) {
           const message = insertError instanceof Error ? insertError.message : 'Failed to create payments';
           toast.error(`Payment creation failed: ${message}. Please try again.`);

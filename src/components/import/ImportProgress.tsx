@@ -6,7 +6,7 @@ import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Circle, Loader2 } from 'lucide-react';
-import type { ImportPhase } from '@/lib/import/historicalImport';
+import type { ImportPhase } from '@/types/historical';
 
 interface PhaseInfo {
   name: string;

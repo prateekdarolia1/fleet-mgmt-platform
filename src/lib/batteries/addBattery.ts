@@ -3,7 +3,18 @@ import type { Database } from '@/integrations/supabase/types';
 
 type BatteryInsert = Database['public']['Tables']['batteries']['Insert'];
 type Battery = Database['public']['Tables']['batteries']['Row'];
-type BatteryEvent = Database['public']['Tables']['battery_events']['Row'];
+// battery_events table is not in generated types yet - define locally
+type BatteryEvent = {
+  id: string;
+  battery_id: string;
+  event_type: string;
+  vehicle_id: string | null;
+  previous_vehicle_id: string | null;
+  reason: string | null;
+  performed_by: string | null;
+  changes: Record<string, any> | null;
+  created_at: string;
+};
 
 interface AddBatteryInput {
   battery_id: string;
@@ -120,6 +131,8 @@ function normalizeInput(input: AddBatteryInput): AddBatteryInput {
  * }
  * ```
  */
+export { type AddBatteryInput, type AddBatteryResult, type AddBatteryResponse, type AddBatteryError };
+
 export async function addBattery(input: AddBatteryInput): Promise<AddBatteryResult> {
   try {
     // Step 1: Validate input
@@ -195,7 +208,7 @@ export async function addBattery(input: AddBatteryInput): Promise<AddBatteryResu
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Step 6: Fetch the created event (created by trigger)
-    const { data: eventResult, error: eventError } = await supabase
+    const { data: eventResult } = await (supabase as any)
       .from('battery_events')
       .select('*')
       .eq('battery_id', normalizedInput.battery_id)
@@ -204,16 +217,14 @@ export async function addBattery(input: AddBatteryInput): Promise<AddBatteryResu
       .limit(1)
       .single();
 
-    if (eventError) {
-      // Log warning but don't fail - battery was created successfully
-      console.warn('Warning: Battery created but event logging may have failed:', eventError);
+    if (!eventResult) {
+      console.warn('Warning: Battery created but event logging may have failed');
     }
 
-    // Return success with both battery and event
     return {
       success: true,
       battery: batteryResult,
-      event: eventResult || ({} as BatteryEvent)
+      event: (eventResult || {}) as BatteryEvent
     };
 
   } catch (error) {
