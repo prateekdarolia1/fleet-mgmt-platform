@@ -204,7 +204,7 @@ export function useCreateImportBatch() {
           batch_name: batch.batch_name,
           source_file: batch.source_file,
           status: 'pending',
-          data_source: batch.data_source,
+          data_source: (batch as any).data_source,
           data_period_start: batch.data_period_start,
           data_period_end: batch.data_period_end,
           imported_by: batch.imported_by,

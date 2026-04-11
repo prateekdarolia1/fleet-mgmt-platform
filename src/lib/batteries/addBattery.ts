@@ -208,7 +208,7 @@ export async function addBattery(input: AddBatteryInput): Promise<AddBatteryResu
     await new Promise(resolve => setTimeout(resolve, 100));
 
     // Step 6: Fetch the created event (created by trigger)
-    const { data: eventResult, error: eventError } = await supabase
+    const { data: eventResult } = await (supabase as any)
       .from('battery_events')
       .select('*')
       .eq('battery_id', normalizedInput.battery_id)
@@ -217,16 +217,14 @@ export async function addBattery(input: AddBatteryInput): Promise<AddBatteryResu
       .limit(1)
       .single();
 
-    if (eventError) {
-      // Log warning but don't fail - battery was created successfully
-      console.warn('Warning: Battery created but event logging may have failed:', eventError);
+    if (!eventResult) {
+      console.warn('Warning: Battery created but event logging may have failed');
     }
 
-    // Return success with both battery and event
     return {
       success: true,
       battery: batteryResult,
-      event: eventResult || ({} as BatteryEvent)
+      event: (eventResult || {}) as BatteryEvent
     };
 
   } catch (error) {

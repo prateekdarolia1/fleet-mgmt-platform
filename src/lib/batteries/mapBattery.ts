@@ -99,7 +99,7 @@ export async function mapBattery(
     // Call the RPC function (Domain Service invocation)
     // SOLID: Dependency Inversion - Depend on Supabase abstraction
     // Note: swaps_allowed_per_month is now managed via rider_ledgers, not passed here
-    const { data, error } = await supabase.rpc('map_battery', {
+    const { data, error } = await (supabase as any).rpc('map_battery', {
       p_battery_id: input.batteryId,
       p_vehicle_id: input.vehicleId,
       p_battery_smart_id: input.batterySmartId,
