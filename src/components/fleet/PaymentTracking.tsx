@@ -636,8 +636,10 @@ export const PaymentTracking = () => {
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
-                </div>
+                    </Table>
+                  </div>
+                </ScrollArea>
+                </>
               )}
             </CardContent>
           </Card>
