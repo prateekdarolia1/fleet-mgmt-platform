@@ -530,7 +530,31 @@ export const PaymentTracking = () => {
                   <p>No overdue payments! All riders are up to date.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <>
+                  <div className="flex justify-end mb-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => downloadTableAsExcel(
+                        overduePayments.map(p => ({
+                          Week: p.source === 'rental_payments' ? `Week ${p.week_number}` : p.payment_id || '-',
+                          Rider: p.rider_name || 'Unknown',
+                          Vehicle: getVehicleForRider(p.rider_id),
+                          'Due Date': p.due_date ? format(new Date(p.due_date), 'dd MMM yyyy') : '-',
+                          'Amount Due': p.amount_due || 0,
+                          Balance: p.balance || p.amount_due || 0,
+                          Status: p.status,
+                        })),
+                        'overdue_payments'
+                      )}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                  <ScrollArea className="h-[400px]">
+                    <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
