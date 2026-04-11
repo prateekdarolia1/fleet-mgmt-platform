@@ -88,7 +88,7 @@ export async function processBatchImport(
 
     try {
       // Attempt batch insert first (fast path)
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from(entityType)
         .insert(dataToInsert)
         .select('id');
@@ -164,7 +164,7 @@ async function processIndividualRows(
 ): Promise<void> {
   for (const row of batch) {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from(entityType)
         .insert([row.transformedData])
         .select('id')
@@ -262,7 +262,7 @@ export async function processBatchUpdate(
     try {
       const uniqueValue = row.transformedData[uniqueField];
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from(entityType)
         .update(row.transformedData)
         .eq(uniqueField, uniqueValue)

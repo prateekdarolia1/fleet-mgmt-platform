@@ -127,7 +127,7 @@ export async function detectDatabaseDuplicates(
     if (valuesToCheck.size === 0) continue;
 
     // Query database for existing records
-    const { data: existingRecords, error } = await supabase
+    const { data: existingRecords, error } = await (supabase as any)
       .from(entityType)
       .select('*')
       .in(dbColumn, Array.from(valuesToCheck));
