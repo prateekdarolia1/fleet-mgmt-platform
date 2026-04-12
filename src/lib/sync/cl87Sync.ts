@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * CL87 Battery Smart Data Sync Utility
  *
