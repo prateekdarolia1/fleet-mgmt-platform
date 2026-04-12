@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { formatDate } from "@/lib/dateUtils";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,26 +24,140 @@ import { RentalLedgerDetail } from "./RentalLedgerDetail";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-const downloadTableAsExcel = (data: Array<Record<string, any>>, filename: string) => {
-  if (!data || data.length === 0) return;
-  const headers = Object.keys(data[0]);
-  const csvRows = [
-    headers.join(','),
-    ...data.map(row =>
-      headers.map(h => {
-        const val = String(row[h] ?? '');
-        return val.includes(',') || val.includes('"') ? `"${val.replace(/"/g, '""')}"` : val;
-      }).join(',')
-    )
-  ];
-  const blob = new Blob(['\uFEFF' + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${filename}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast.success(`Downloaded ${filename}.csv`);
+const downloadOverdueAsPDF = (
+  payments: Array<{
+    week_number?: number | null;
+    payment_id?: string | null;
+    rider_name?: string | null;
+    rider_id: string;
+    due_date?: string | null;
+    amount_due?: number | null;
+    balance?: number | null;
+    status: string;
+    source: string;
+  }>,
+  getMobile: (id: string) => string,
+  getVehicle: (id: string) => string,
+  getBattery: (id: string) => string,
+) => {
+  if (!payments || payments.length === 0) return;
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const today = formatDate(new Date());
+  const totalBalance = payments.reduce((sum, p) => sum + (p.balance ?? p.amount_due ?? 0), 0);
+
+  // Header
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('LilyPad Fleet — Overdue Payments Report', 14, 18);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100);
+  doc.text(`Generated: ${today}`, 14, 25);
+  doc.text(`Total overdue: ${payments.length} payments`, 14, 31);
+  doc.text(
+    `Total balance outstanding: Rs ${totalBalance.toLocaleString('en-IN')}`,
+    14, 37,
+  );
+  doc.setTextColor(0);
+
+  // Table
+  autoTable(doc, {
+    startY: 44,
+    head: [['#', 'Week / ID', 'Rider', 'Mobile', 'Vehicle', 'Battery ID', 'Due Date', 'Amount Due', 'Balance', 'Status']],
+    body: payments.map((p, i) => [
+      i + 1,
+      p.source === 'rental_payments' ? `Week ${p.week_number}` : (p.payment_id || '—'),
+      p.rider_name || 'Unknown',
+      getMobile(p.rider_id),
+      getVehicle(p.rider_id),
+      getBattery(p.rider_id),
+      p.due_date ? formatDate(p.due_date) : '—',
+      `Rs ${(p.amount_due ?? 0).toLocaleString('en-IN')}`,
+      `Rs ${(p.balance ?? p.amount_due ?? 0).toLocaleString('en-IN')}`,
+      p.status.toUpperCase(),
+    ]),
+    styles: { fontSize: 8.5, cellPadding: 3 },
+    headStyles: { fillColor: [220, 38, 38], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [255, 245, 245] },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 12 },
+      7: { halign: 'right' },
+      8: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] },
+      9: { halign: 'center' },
+    },
+    showFoot: 'lastPage',
+    foot: [['', '', '', '', '', '', 'TOTAL', `Rs ${payments.reduce((s, p) => s + (p.amount_due ?? 0), 0).toLocaleString('en-IN')}`, `Rs ${totalBalance.toLocaleString('en-IN')}`, '']],
+    footStyles: { fillColor: [245, 245, 245], fontStyle: 'bold', textColor: [0, 0, 0] },
+  });
+
+  doc.save(`overdue_payments_${today.replace(/\//g, '-')}.pdf`);
+  toast.success('PDF downloaded');
+};
+
+const downloadUpcomingAsPDF = (
+  payments: Array<{
+    week_number?: number | null;
+    payment_id?: string | null;
+    rider_name?: string | null;
+    rider_id: string;
+    due_date?: string | null;
+    amount_due?: number | null;
+    status: string;
+    source: string;
+  }>,
+  getMobile: (id: string) => string,
+  getVehicle: (id: string) => string,
+  getBattery: (id: string) => string,
+) => {
+  if (!payments || payments.length === 0) return;
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const today = formatDate(new Date());
+  const totalDue = payments.reduce((sum, p) => sum + (p.amount_due ?? 0), 0);
+
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('LilyPad Fleet — Upcoming Payments Report', 14, 18);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100);
+  doc.text(`Generated: ${today}`, 14, 25);
+  doc.text(`Payments due this week: ${payments.length}`, 14, 31);
+  doc.text(`Total amount due: Rs ${totalDue.toLocaleString('en-IN')}`, 14, 37);
+  doc.setTextColor(0);
+
+  autoTable(doc, {
+    startY: 44,
+    head: [['#', 'Week / ID', 'Rider', 'Mobile', 'Vehicle', 'Battery ID', 'Due Date', 'Amount Due', 'Status']],
+    body: payments.map((p, i) => [
+      i + 1,
+      p.source === 'rental_payments' ? `Week ${p.week_number}` : (p.payment_id || '—'),
+      p.rider_name || 'Unknown',
+      getMobile(p.rider_id),
+      getVehicle(p.rider_id),
+      getBattery(p.rider_id),
+      p.due_date ? formatDate(p.due_date) : '—',
+      `Rs ${(p.amount_due ?? 0).toLocaleString('en-IN')}`,
+      p.status.toUpperCase(),
+    ]),
+    styles: { fontSize: 8.5, cellPadding: 3 },
+    headStyles: { fillColor: [217, 119, 6], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [255, 251, 235] },
+    columnStyles: {
+      0: { halign: 'center', cellWidth: 12 },
+      7: { halign: 'right', fontStyle: 'bold' },
+      8: { halign: 'center' },
+    },
+    showFoot: 'lastPage',
+    foot: [['', '', '', '', '', '', 'TOTAL', `Rs ${totalDue.toLocaleString('en-IN')}`, '']],
+    footStyles: { fillColor: [245, 245, 245], fontStyle: 'bold', textColor: [0, 0, 0] },
+  });
+
+  doc.save(`upcoming_payments_${today.replace(/\//g, '-')}.pdf`);
+  toast.success('PDF downloaded');
 };
 
 export const PaymentTracking = () => {
@@ -551,17 +667,11 @@ export const PaymentTracking = () => {
                       variant="outline"
                       size="sm"
                       className="gap-2"
-                      onClick={() => downloadTableAsExcel(
-                        overduePayments.map(p => ({
-                          Week: p.source === 'rental_payments' ? `Week ${p.week_number}` : p.payment_id || '-',
-                          Rider: p.rider_name || 'Unknown',
-                          Vehicle: getVehicleForRider(p.rider_id),
-                          'Due Date': p.due_date ? formatDate(p.due_date) : '-',
-                          'Amount Due': p.amount_due || 0,
-                          Balance: p.balance || p.amount_due || 0,
-                          Status: p.status,
-                        })),
-                        'overdue_payments'
+                      onClick={() => downloadOverdueAsPDF(
+                        overduePayments,
+                        getMobileForRider,
+                        getVehicleForRider,
+                        getBatteryForRider,
                       )}
                     >
                       <Download className="h-4 w-4" />
@@ -687,16 +797,11 @@ export const PaymentTracking = () => {
                       variant="outline"
                       size="sm"
                       className="gap-2"
-                      onClick={() => downloadTableAsExcel(
-                        upcomingPayments.map(p => ({
-                          Week: p.source === 'rental_payments' ? `Week ${p.week_number}` : p.payment_id || '-',
-                          Rider: p.rider_name || 'Unknown',
-                          Vehicle: getVehicleForRider(p.rider_id),
-                          'Due Date': p.due_date ? formatDate(p.due_date) : '-',
-                          'Amount Due': p.amount_due || 0,
-                          Status: p.status,
-                        })),
-                        'upcoming_payments'
+                      onClick={() => downloadUpcomingAsPDF(
+                        upcomingPayments,
+                        getMobileForRider,
+                        getVehicleForRider,
+                        getBatteryForRider,
                       )}
                     >
                       <Download className="h-4 w-4" />
