@@ -169,9 +169,9 @@ export const PaymentTracking = () => {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="payments" className="w-full">
+      <Tabs defaultValue="ledgers" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="payments">Payment Tracking</TabsTrigger>
+          <TabsTrigger value="ledgers">Ledger Management</TabsTrigger>
           <TabsTrigger value="rental-payments">
             Rental Payments
             {overduePayments && overduePayments.length > 0 && (
@@ -180,7 +180,7 @@ export const PaymentTracking = () => {
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="ledgers">Ledger Management</TabsTrigger>
+          <TabsTrigger value="payments">Payment Tracking</TabsTrigger>
         </TabsList>
         
         <TabsContent value="payments" className="space-y-6">

@@ -46,7 +46,7 @@ export default function RiderDetail() {
         .single();
 
       if (error) throw new Error(`Failed to fetch rider: ${error.message}`);
-      return data as Rider;
+      return data as unknown as Rider;
     },
     enabled: !!riderId,
   });
