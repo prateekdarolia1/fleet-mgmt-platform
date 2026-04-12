@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { formatDate } from '@/lib/dateUtils';
 
 export type LedgerStatus = 'active' | 'paused' | 'closed';
 export type SecurityDepositStatus = 'retained' | 'refunded' | 'partially_refunded';
@@ -255,7 +256,7 @@ function generateRetroactivePayments(params: RetroactivePaymentParams): Generate
       payment_date: null,
       status,
       payment_type: 'rental',
-      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
+      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${formatDate(dueDate)}`,
       ledger_id: ledgerId,
     });
   }
@@ -364,7 +365,7 @@ function generateGapPayments(params: GapPaymentParams): GeneratedPayment[] {
       payment_date: null,
       status: 'overdue', // Gap payments are always overdue
       payment_type: 'rental',
-      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
+      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${formatDate(dueDate)}`,
       ledger_id: ledgerId,
     });
   }
@@ -558,7 +559,7 @@ export const useRiderLedgers = () => {
             payment_date: null,
             status: 'pending',
             payment_type: 'rental',
-            rental_period: `${ledgerData.rental_frequency.charAt(0).toUpperCase() + ledgerData.rental_frequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
+            rental_period: `${ledgerData.rental_frequency.charAt(0).toUpperCase() + ledgerData.rental_frequency.slice(1)} Rental - ${formatDate(dueDate)}`,
             ledger_id: ledger.id,
           });
         }

@@ -11,8 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Search, Calendar, User, Eye, Pause, Play, AlertTriangle, Shield, Loader2 } from "lucide-react";
 import { useRiderLedgers, type RiderLedger } from "@/hooks/useRiderLedgers";
+import { formatDate } from "@/lib/dateUtils";
+import { useVehicles } from "@/hooks/useVehicles";
+import { useRiders } from "@/hooks/useRiders";
 import { CreateLedgerForm } from "./CreateLedgerForm";
-import { PaymentHistoryDialog } from "./PaymentHistoryDialog";
+import { RentalLedgerDetail } from "./RentalLedgerDetail";
 import { useFuzzySearch } from "@/hooks/useFuzzySearch";
 import { toast } from "sonner";
 
@@ -26,12 +29,28 @@ export const LedgerManagement = () => {
     markDepositRefunded,
     refetch
   } = useRiderLedgers();
+  const { vehicles } = useVehicles();
+  const { riders } = useRiders();
+
+  // Map rider_id → vehicle for quick lookup
+  const riderVehicleMap = new Map(
+    vehicles.filter(v => v.rider_id).map(v => [v.rider_id!, v])
+  );
+
+  // Map rider_id → rider for mobile number lookup
+  const riderMap = new Map(riders.map(r => [r.rider_id, r]));
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [selectedRiderForHistory, setSelectedRiderForHistory] = useState<{
-    riderId: string;
-    riderName: string;
-    ledgerId?: string;
-  } | null>(null);
+  const [selectedLedgerIdForDetail, setSelectedLedgerIdForDetail] = useState<string | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Resolve the rental_ledger ID for a given ledger entry.
+  // rental_ledgers entries use their own ID directly.
+  // rider_ledgers entries look up the matching rental_ledger by rider_id.
+  const resolveRentalLedgerId = (ledger: RiderLedger): string | null => {
+    if (ledger._source === 'rental_ledgers') return ledger.id;
+    const match = ledgers.find(l => l._source === 'rental_ledgers' && l.rider_id === ledger.rider_id);
+    return match?.id ?? ledger.id;
+  };
 
   // Pause dialog state
   const [isPauseDialogOpen, setIsPauseDialogOpen] = useState(false);
@@ -332,6 +351,9 @@ export const LedgerManagement = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Rider Details</TableHead>
+                  <TableHead>Mobile No.</TableHead>
+                  <TableHead>Vehicle</TableHead>
+                  <TableHead>Battery Smart ID</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Security Deposit</TableHead>
                   <TableHead>Rental Details</TableHead>
@@ -342,7 +364,7 @@ export const LedgerManagement = () => {
               <TableBody>
                 {filteredLedgers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {searchTerm ? "No ledgers found matching your search." : "No ledgers created yet. Create your first ledger to get started."}
                     </TableCell>
                   </TableRow>
@@ -356,11 +378,32 @@ export const LedgerManagement = () => {
                         </div>
                       </TableCell>
                       <TableCell>
+                        <span className="text-sm">
+                          {riderMap.get(ledger.rider_id)?.mobile_number || riderMap.get(ledger.rider_id)?.phone || '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const vehicle = riderVehicleMap.get(ledger.rider_id);
+                          return vehicle
+                            ? <span className="font-medium text-sm">{vehicle.vehicle_number}</span>
+                            : <span className="text-sm text-muted-foreground">—</span>;
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const vehicle = riderVehicleMap.get(ledger.rider_id);
+                          return vehicle?.battery_smart_id
+                            ? <span className="text-sm">{vehicle.battery_smart_id}</span>
+                            : <span className="text-sm text-muted-foreground">—</span>;
+                        })()}
+                      </TableCell>
+                      <TableCell>
                         <div className="space-y-1">
                           {getStatusBadge(ledger.status)}
                           {ledger.status === 'paused' && ledger.paused_at && (
                             <div className="text-xs text-muted-foreground">
-                              Paused: {new Date(ledger.paused_at).toLocaleDateString()}
+                              Paused: {formatDate(ledger.paused_at)}
                             </div>
                           )}
                           {ledger.status === 'paused' && ledger.paused_reason && (
@@ -370,7 +413,7 @@ export const LedgerManagement = () => {
                           )}
                           {ledger.status === 'active' && ledger.reactivated_at && (
                             <div className="text-xs text-green-600">
-                              Reactivated: {new Date(ledger.reactivated_at).toLocaleDateString()}
+                              Reactivated: {formatDate(ledger.reactivated_at)}
                             </div>
                           )}
                         </div>
@@ -391,24 +434,24 @@ export const LedgerManagement = () => {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          {new Date(ledger.rental_start_date).toLocaleDateString()}
+                          {formatDate(ledger.rental_start_date)}
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-2">
-                          {/* View Payment History */}
+                          {/* View Ledger */}
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => setSelectedRiderForHistory({
-                              riderId: ledger.rider_id,
-                              riderName: ledger.rider_name,
-                              ledgerId: ledger.id
-                            })}
+                            onClick={() => {
+                              const id = resolveRentalLedgerId(ledger);
+                              setSelectedLedgerIdForDetail(id);
+                              setIsDetailOpen(true);
+                            }}
                             className="flex items-center gap-1"
                           >
                             <Eye className="h-3 w-3" />
-                            View
+                            View Ledger
                           </Button>
 
                           {/* Pause button - only for active ledgers */}
@@ -468,16 +511,20 @@ export const LedgerManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Payment History Dialog */}
-      {selectedRiderForHistory && (
-        <PaymentHistoryDialog
-          open={!!selectedRiderForHistory}
-          onOpenChange={(open) => !open && setSelectedRiderForHistory(null)}
-          riderId={selectedRiderForHistory.riderId}
-          riderName={selectedRiderForHistory.riderName}
-          ledgerId={selectedRiderForHistory.ledgerId}
-        />
-      )}
+      {/* Rental Ledger Detail Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Rental Ledger</DialogTitle>
+          </DialogHeader>
+          {selectedLedgerIdForDetail && (
+            <RentalLedgerDetail
+              ledgerId={selectedLedgerIdForDetail}
+              onBack={() => setIsDetailOpen(false)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Pause Ledger Dialog */}
       <Dialog open={isPauseDialogOpen} onOpenChange={setIsPauseDialogOpen}>

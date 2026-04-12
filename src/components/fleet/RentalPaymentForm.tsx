@@ -33,7 +33,7 @@ const paymentFormSchema = z.object({
     .optional()
     .or(z.literal('')),
   received_by: z.string().optional(),
-  external_ref: z.string().max(100).optional(),
+  payment_date: z.string().min(1, 'Payment date is required'),
   notes: z.string().max(500).optional()
 }).refine(
   (data) => {
@@ -84,7 +84,7 @@ export const RentalPaymentForm = ({
       payment_mode: 'cash',
       upi_last4: '',
       received_by: '',
-      external_ref: '',
+      payment_date: new Date().toISOString().split('T')[0],
       notes: ''
     }
   });
@@ -98,7 +98,7 @@ export const RentalPaymentForm = ({
         payment_mode: 'cash',
         upi_last4: '',
         received_by: '',
-        external_ref: '',
+        payment_date: new Date().toISOString().split('T')[0],
         notes: ''
       });
     }
@@ -121,7 +121,7 @@ export const RentalPaymentForm = ({
         payment_mode: data.payment_mode,
         upi_last4: data.payment_mode === 'upi' ? data.upi_last4 : undefined,
         received_by: data.received_by || undefined,
-        external_ref: data.external_ref || undefined,
+        payment_date: data.payment_date,
         notes: data.notes || undefined
       });
 
@@ -277,23 +277,24 @@ export const RentalPaymentForm = ({
           />
         )}
 
-        {/* External Reference */}
+        {/* Payment Date */}
         <FormField
           control={form.control}
-          name="external_ref"
+          name="payment_date"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>External Reference (Optional)</FormLabel>
+              <FormLabel>Payment Date</FormLabel>
               <FormControl>
                 <Input
+                  type="date"
                   {...field}
-                  placeholder="Transaction ID, receipt number, etc."
+                  max={new Date().toISOString().split('T')[0]}
                   disabled={isSubmitting}
                   className="border-2"
                 />
               </FormControl>
               <FormDescription>
-                For tracking external payment references
+                Date the payment was actually received
               </FormDescription>
               <FormMessage />
             </FormItem>

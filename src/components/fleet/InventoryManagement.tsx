@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
+import { formatDate } from "@/lib/dateUtils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1018,7 +1019,7 @@ export const InventoryManagement = () => {
                       <div className="font-medium text-sm">{vehicle.rider_name}</div>
                       <div className="text-xs text-muted-foreground">{vehicle.rider_id}</div>
                       {vehicle.rental_start_date && <div className="text-xs text-muted-foreground">
-                          Since: {new Date(vehicle.rental_start_date).toLocaleDateString()}
+                          Since: {formatDate(vehicle.rental_start_date)}
                         </div>}
                     </div> : <span className="text-muted-foreground">Not assigned</span>}
                 </TableCell>

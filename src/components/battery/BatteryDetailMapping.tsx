@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDate } from '@/lib/dateUtils';
 import { Badge } from '@/components/ui/badge';
 import { Truck, User, Clock, AlertCircle } from 'lucide-react';
 import type { BatteryWithEvents } from '@/hooks/useBatteryDetail';
@@ -56,9 +57,7 @@ export const BatteryDetailMapping = ({ battery }: BatteryDetailMappingProps) => 
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-gray-400" />
                   <p className="font-mono text-sm">
-                    {new Date(battery.vehicleInfo.created_at).toLocaleDateString(
-                      'en-IN'
-                    )}
+                    {formatDate(battery.vehicleInfo.created_at)}
                   </p>
                 </div>
               </div>
@@ -107,7 +106,7 @@ export const BatteryDetailMapping = ({ battery }: BatteryDetailMappingProps) => 
                 <p className="text-xs text-yellow-700 mt-2">
                   Last activity:{' '}
                   <span className="font-medium">
-                    {new Date(battery.events[0].created_at).toLocaleDateString('en-IN')}
+                    {formatDate(battery.events[0].created_at)}
                   </span>
                 </p>
               )}

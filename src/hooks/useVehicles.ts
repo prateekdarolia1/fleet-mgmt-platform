@@ -22,6 +22,7 @@ export interface Vehicle {
   battery_type: 'Fixed' | 'Swappable';
   status: 'Ready for Deployment' | 'Deployed' | 'Under Maintenance';
   battery_id?: string | null; // Battery mapped to this vehicle (CBU requirement)
+  battery_smart_id?: string | null;
   rider_id?: string;
   rider_name?: string;
   rental_start_date?: string;
@@ -61,24 +62,32 @@ export const useVehicles = () => {
       // Fetch batteries with vehicle mappings (vehicle_id is the FK in batteries table)
       const { data: batteriesData, error: batteriesError } = await supabase
         .from('batteries')
-        .select('id, vehicle_id')
+        .select('id, vehicle_id, battery_smart_id, battery_id')
         .not('vehicle_id', 'is', null);
 
       if (batteriesError) throw batteriesError;
 
-      // Create a map of vehicle_id -> battery_id
-      const vehicleBatteryMap = new Map<string, string>();
-      (batteriesData || []).forEach(battery => {
+      // Create a map of vehicle_id -> battery info
+      const vehicleBatteryMap = new Map<string, { uuid: string; battery_smart_id: string | null; battery_id: string | null }>();
+      (batteriesData || []).forEach((battery: any) => {
         if (battery.vehicle_id) {
-          vehicleBatteryMap.set(battery.vehicle_id, battery.id);
+          vehicleBatteryMap.set(battery.vehicle_id, {
+            uuid: battery.id,
+            battery_smart_id: battery.battery_smart_id ?? null,
+            battery_id: battery.battery_id ?? null,
+          });
         }
       });
 
-      // Merge battery_id into vehicles
-      const vehiclesWithBattery = (vehiclesData || []).map(vehicle => ({
-        ...vehicle,
-        battery_id: vehicleBatteryMap.get(vehicle.id) || null
-      }));
+      // Merge battery info into vehicles
+      const vehiclesWithBattery = (vehiclesData || []).map(vehicle => {
+        const batteryInfo = vehicleBatteryMap.get(vehicle.id);
+        return {
+          ...vehicle,
+          battery_id: batteryInfo?.uuid || null,
+          battery_smart_id: batteryInfo?.battery_smart_id || batteryInfo?.battery_id || null,
+        };
+      });
 
       setVehicles(vehiclesWithBattery);
       console.log('Successfully loaded vehicles from database:', vehiclesWithBattery?.length || 0);

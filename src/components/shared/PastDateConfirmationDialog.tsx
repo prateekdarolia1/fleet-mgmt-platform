@@ -18,6 +18,7 @@
  */
 
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/dateUtils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,7 +69,7 @@ export function PastDateConfirmationDialog({
   date,
   entityType,
 }: PastDateConfirmationDialogProps) {
-  const formattedDate = date ? format(date, 'MMMM d, yyyy') : 'the selected date';
+  const formattedDate = date ? formatDate(date) : 'the selected date';
   const entityLabel = ENTITY_LABELS[entityType];
 
   const handleConfirm = () => {

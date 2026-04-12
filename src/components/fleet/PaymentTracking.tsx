@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
+import { formatDate } from "@/lib/dateUtils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, 
 import { toast } from "sonner";
 import { usePayments, type Payment, type PaymentStatus } from "@/hooks/usePayments";
 import { useRiders } from "@/hooks/useRiders";
+import { useVehicles } from "@/hooks/useVehicles";
 import { useUnifiedOverduePayments, useUnifiedUpcomingPayments, type UnifiedOverduePayment, type UnifiedUpcomingPayment } from "@/hooks/useUnifiedPayments";
 import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
 import { LedgerManagement } from "./LedgerManagement";
@@ -45,14 +47,27 @@ const downloadTableAsExcel = (data: Array<Record<string, any>>, filename: string
 export const PaymentTracking = () => {
   const { payments, loading, getTotalStats, updatePayment, markPaymentAsPaid, deletePayment } = usePayments();
   const { riders } = useRiders();
+  const { vehicles } = useVehicles();
 
-  // Create a lookup map for rider vehicles
+  // rider_id → vehicle (from vehicles table — source of truth for assignment)
   const riderVehicleMap = new Map(
-    riders?.map(r => [r.rider_id, r.vehicle_assigned]) || []
+    vehicles.filter(v => v.rider_id).map(v => [v.rider_id!, v])
   );
 
+  // rider_id → rider (for mobile number)
+  const riderMap = new Map(riders.map(r => [r.rider_id, r]));
+
   const getVehicleForRider = (riderId: string): string => {
-    return riderVehicleMap.get(riderId) || 'N/A';
+    return riderVehicleMap.get(riderId)?.vehicle_number || '—';
+  };
+
+  const getBatteryForRider = (riderId: string): string => {
+    return riderVehicleMap.get(riderId)?.battery_smart_id || '—';
+  };
+
+  const getMobileForRider = (riderId: string): string => {
+    const rider = riderMap.get(riderId);
+    return rider?.mobile_number || rider?.phone || '—';
   };
 
   // Edit payment state
@@ -382,12 +397,12 @@ export const PaymentTracking = () => {
                        <TableCell>
                          <div className="flex items-center gap-1">
                            <Calendar className="h-3 w-3" />
-                           <span className="text-sm">{new Date(payment.due_date).toLocaleDateString()}</span>
+                           <span className="text-sm">{formatDate(payment.due_date)}</span>
                          </div>
                        </TableCell>
                        <TableCell>
                          {payment.payment_date ? (
-                           <span className="text-sm">{new Date(payment.payment_date).toLocaleDateString()}</span>
+                           <span className="text-sm">{formatDate(payment.payment_date)}</span>
                          ) : (
                            <span className="text-muted-foreground">-</span>
                          )}
@@ -541,7 +556,7 @@ export const PaymentTracking = () => {
                           Week: p.source === 'rental_payments' ? `Week ${p.week_number}` : p.payment_id || '-',
                           Rider: p.rider_name || 'Unknown',
                           Vehicle: getVehicleForRider(p.rider_id),
-                          'Due Date': p.due_date ? format(new Date(p.due_date), 'dd MMM yyyy') : '-',
+                          'Due Date': p.due_date ? formatDate(p.due_date) : '-',
                           'Amount Due': p.amount_due || 0,
                           Balance: p.balance || p.amount_due || 0,
                           Status: p.status,
@@ -560,7 +575,9 @@ export const PaymentTracking = () => {
                       <TableRow>
                         <TableHead>Week</TableHead>
                         <TableHead>Rider</TableHead>
+                        <TableHead>Mobile No.</TableHead>
                         <TableHead>Vehicle</TableHead>
+                        <TableHead>Battery Smart ID</TableHead>
                         <TableHead>Due Date</TableHead>
                         <TableHead className="text-right">Amount Due</TableHead>
                         <TableHead className="text-right">Balance</TableHead>
@@ -592,15 +609,17 @@ export const PaymentTracking = () => {
                               </div>
                             </div>
                           </TableCell>
+                          <TableCell className="text-sm">{getMobileForRider(payment.rider_id)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <Truck className="h-4 w-4 text-muted-foreground" />
                               {getVehicleForRider(payment.rider_id)}
                             </div>
                           </TableCell>
+                          <TableCell className="text-sm">{getBatteryForRider(payment.rider_id)}</TableCell>
                           <TableCell>
                             {payment.due_date
-                              ? format(new Date(payment.due_date), 'dd MMM yyyy')
+                              ? formatDate(payment.due_date)
                               : '-'}
                           </TableCell>
                           <TableCell className="text-right">
@@ -673,7 +692,7 @@ export const PaymentTracking = () => {
                           Week: p.source === 'rental_payments' ? `Week ${p.week_number}` : p.payment_id || '-',
                           Rider: p.rider_name || 'Unknown',
                           Vehicle: getVehicleForRider(p.rider_id),
-                          'Due Date': p.due_date ? format(new Date(p.due_date), 'dd MMM yyyy') : '-',
+                          'Due Date': p.due_date ? formatDate(p.due_date) : '-',
                           'Amount Due': p.amount_due || 0,
                           Status: p.status,
                         })),
@@ -691,7 +710,9 @@ export const PaymentTracking = () => {
                           <TableRow>
                             <TableHead>Week</TableHead>
                             <TableHead>Rider</TableHead>
+                            <TableHead>Mobile No.</TableHead>
                             <TableHead>Vehicle</TableHead>
+                            <TableHead>Battery Smart ID</TableHead>
                             <TableHead>Due Date</TableHead>
                             <TableHead className="text-right">Amount Due</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
@@ -718,15 +739,17 @@ export const PaymentTracking = () => {
                                   {payment.rider_name || 'Unknown'}
                                 </div>
                               </TableCell>
+                              <TableCell className="text-sm">{getMobileForRider(payment.rider_id)}</TableCell>
                               <TableCell>
                                 <div className="flex items-center gap-2">
                                   <Truck className="h-4 w-4 text-muted-foreground" />
                                   {getVehicleForRider(payment.rider_id)}
                                 </div>
                               </TableCell>
+                              <TableCell className="text-sm">{getBatteryForRider(payment.rider_id)}</TableCell>
                               <TableCell>
                                 {payment.due_date
-                                  ? format(new Date(payment.due_date), 'dd MMM yyyy')
+                                  ? formatDate(payment.due_date)
                                   : '-'}
                               </TableCell>
                               <TableCell className="text-right font-medium">

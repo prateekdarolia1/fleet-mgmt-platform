@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { formatDate } from '@/lib/dateUtils';
 import { useBatteriesList } from '@/hooks/useBatteriesList';
 import type { BatteryListResult } from '@/lib/batteries/listBatteries';
 import { AddBatteryModal } from './AddBatteryModal';
@@ -185,7 +186,7 @@ export const BatteryManagement = () => {
                     </TableCell>
                     <TableCell>
                       <span className="text-sm text-gray-500">
-                        {new Date(battery.created_at).toLocaleDateString('en-IN')}
+                        {formatDate(battery.created_at)}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">

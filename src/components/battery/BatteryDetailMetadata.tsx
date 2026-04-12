@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDate } from '@/lib/dateUtils';
 import { Info } from 'lucide-react';
 import type { BatteryDetail } from '@/hooks/useBatteryDetail';
 
@@ -77,7 +78,7 @@ export const BatteryDetailMetadata = ({ battery }: BatteryDetailMetadataProps) =
           label="Retrofitment Date"
           value={
             battery.retrofit_date
-              ? new Date(battery.retrofit_date).toLocaleDateString('en-IN')
+              ? formatDate(battery.retrofit_date)
               : null
           }
           tooltip="Date battery was retrofitted"

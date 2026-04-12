@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { formatDate } from '@/lib/dateUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -316,7 +317,7 @@ export const NotificationsPanel = ({ showAll = false, limit = 10 }: Notification
                 <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                   <span className="text-sm text-muted-foreground">Due Date</span>
                   <span className="font-medium">
-                    {format(new Date(selectedNotification.payload.due_date as string), 'dd MMM yyyy')}
+                    {formatDate(selectedNotification.payload.due_date as string)}
                   </span>
                 </div>
               )}

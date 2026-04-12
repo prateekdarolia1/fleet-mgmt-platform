@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { VehicleEventHistory } from '@/components/fleet/VehicleEventHistory';
 import { useVehicleEvents } from '@/hooks/useVehicleEvents';
 import { Loader2, AlertCircle, ArrowLeft, Truck, Battery as BatteryIcon } from 'lucide-react';
+import { formatDate } from '@/lib/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -256,7 +257,7 @@ export default function VehicleDetail() {
               <div>
                 <p className="text-sm text-gray-500">Delivery Date</p>
                 <p className="font-semibold">
-                  {new Date(vehicle.delivery_date).toLocaleDateString('en-IN')}
+                  {formatDate(vehicle.delivery_date)}
                 </p>
               </div>
             </CardContent>

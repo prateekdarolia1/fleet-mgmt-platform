@@ -3,6 +3,7 @@
  */
 
 import React from 'react';
+import { formatDateWithWeekday } from '@/lib/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -26,12 +27,7 @@ interface HistoricalMetricsCardProps {
 }
 
 export function HistoricalMetricsCard({ date, metrics, loading }: HistoricalMetricsCardProps) {
-  const formattedDate = date.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const formattedDate = formatDateWithWeekday(date);
 
   if (loading) {
     return (

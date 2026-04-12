@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { formatDate } from '@/lib/dateUtils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -193,12 +194,12 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
           <CardContent>
             {ledger.rental_start_date && (
               <p className="text-sm">
-                Started: {format(new Date(ledger.rental_start_date), 'dd MMM yyyy')}
+                Started: {formatDate(ledger.rental_start_date)}
               </p>
             )}
             {(ledger as any).rental_end_date && (
               <p className="text-sm text-muted-foreground">
-                Ended: {format(new Date((ledger as any).rental_end_date), 'dd MMM yyyy')}
+                Ended: {formatDate((ledger as any).rental_end_date)}
               </p>
             )}
           </CardContent>
@@ -335,7 +336,7 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
                     </TableCell>
                     <TableCell>
                       {payment.due_date
-                        ? format(new Date(payment.due_date), 'dd MMM yyyy')
+                        ? formatDate(payment.due_date)
                         : '-'}
                     </TableCell>
                     <TableCell className="text-right">

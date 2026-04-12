@@ -243,13 +243,13 @@ export const AddRiderForm = ({
                 message: "Max 20 characters"
               },
               pattern: {
-                value: /^[A-Za-z\s]+$/,
+                value: /^[A-Za-z\s]*$/,
                 message: "Alphabets only"
               }
             }} render={({
               field
             }) => <FormItem>
-                    <FormLabel>Last Name</FormLabel>
+                    <FormLabel>Last Name <span className="text-muted-foreground font-normal">(Optional)</span></FormLabel>
                     <FormControl>
                       <Input {...field} maxLength={20} />
                     </FormControl>

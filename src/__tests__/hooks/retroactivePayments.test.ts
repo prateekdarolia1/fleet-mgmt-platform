@@ -10,6 +10,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { formatDate } from '@/lib/dateUtils';
 
 // Import the functions to test
 // Note: These are internal functions in useRiderLedgers.ts
@@ -99,7 +100,7 @@ function generateRetroactivePayments(params: RetroactivePaymentParams): Generate
       payment_date: null,
       status,
       payment_type: 'rental',
-      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
+      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${formatDate(dueDate)}`,
       ledger_id: ledgerId,
     });
   }
@@ -178,7 +179,7 @@ function generateGapPayments(params: GapPaymentParams): GeneratedPayment[] {
       payment_date: null,
       status: 'overdue',
       payment_type: 'rental',
-      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${dueDate.toLocaleDateString()}`,
+      rental_period: `${rentalFrequency.charAt(0).toUpperCase() + rentalFrequency.slice(1)} Rental - ${formatDate(dueDate)}`,
       ledger_id: ledgerId,
     });
   }

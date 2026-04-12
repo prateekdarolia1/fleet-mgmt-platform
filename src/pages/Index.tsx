@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { formatDateWithWeekday } from "@/lib/dateUtils";
 import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -181,7 +182,7 @@ const Index = () => {
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <h1 className="text-2xl font-bold text-foreground">
-                  {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  {formatDateWithWeekday(new Date())}
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1">EV Rental Business Dashboard</p>
               </div>

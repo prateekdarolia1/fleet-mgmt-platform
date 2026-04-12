@@ -74,6 +74,7 @@ export function useUnifiedOverduePayments(limit = 50) {
           due_date,
           status,
           rental_ledgers (
+            rider_id,
             rider_name,
             vehicle_number
           )
@@ -188,6 +189,7 @@ export function useUnifiedUpcomingPayments(days = 7) {
           due_date,
           status,
           rental_ledgers (
+            rider_id,
             rider_name,
             vehicle_number
           )

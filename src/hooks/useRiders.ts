@@ -95,7 +95,7 @@ export const useRiders = () => {
   const addRider = async (riderData: {
     // Section 1: Personal Information
     first_name: string;
-    last_name: string;
+    last_name?: string;
     mobile_number: string;
     dob: string;
     aadhaar_number: string;
@@ -147,7 +147,7 @@ export const useRiders = () => {
       const riderId = `LPR${nextNumber.toString().padStart(4, '0')}`;
 
       // Create full name and legacy fields for compatibility
-      const fullName = `${riderData.first_name} ${riderData.last_name}`;
+      const fullName = [riderData.first_name, riderData.last_name].filter(Boolean).join(' ');
       const fullAddress = `${riderData.address_line1}, ${riderData.address_line2}, ${riderData.city}, ${riderData.state} - ${riderData.pincode}`;
 
       const { data, error } = await supabase
@@ -157,7 +157,7 @@ export const useRiders = () => {
           rider_id: riderId,
           name: fullName, // For compatibility
           phone: riderData.mobile_number, // For compatibility
-          email: `${riderData.first_name.toLowerCase()}.${riderData.last_name.toLowerCase()}@temp.com`, // Temp email
+          email: `${riderData.first_name.toLowerCase()}${riderData.last_name ? '.' + riderData.last_name.toLowerCase() : ''}@temp.com`, // Temp email
           address: fullAddress, // For compatibility
           rental_plan: 'daily' as const, // Default
           join_date: new Date().toISOString().split('T')[0], // Today's date

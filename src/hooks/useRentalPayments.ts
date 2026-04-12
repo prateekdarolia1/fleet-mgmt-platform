@@ -14,7 +14,7 @@ export interface MarkPaymentPaidParams {
   payment_mode?: RentalPaymentMode;
   upi_last4?: string;
   received_by?: string;
-  external_ref?: string;
+  payment_date?: string; // YYYY-MM-DD — defaults to today if not provided
   notes?: string;
 }
 
@@ -139,9 +139,16 @@ export function useMarkRentalPaymentPaid() {
         p_payment_mode: params.payment_mode || null,
         p_upi_last4: params.upi_last4 || null,
         p_received_by: params.received_by || null,
-        p_external_ref: params.external_ref || null,
         p_notes: params.notes || null,
       });
+
+      if (!error && params.payment_date) {
+        // RPC uses NOW() for payment_date — override with user-specified date
+        await supabase
+          .from('rental_payments')
+          .update({ payment_date: params.payment_date })
+          .eq('id', params.payment_id);
+      }
 
       if (error) {
         console.error('Error marking payment paid:', error);
@@ -167,7 +174,7 @@ export function useMarkRentalPaymentPaid() {
           .single();
 
         if (rp) {
-          const today = new Date().toISOString().split('T')[0];
+          const paymentDate = variables.payment_date || new Date().toISOString().split('T')[0];
           const { data: existing } = await supabase
             .from('payments')
             .select('id')
@@ -178,7 +185,7 @@ export function useMarkRentalPaymentPaid() {
             // Update existing row (standalone ledger flow)
             await supabase.from('payments').update({
               status: result.status as any,
-              payment_date: today,
+              payment_date: paymentDate,
               payment_mode: (variables.payment_mode as any) || null,
             }).eq('payment_id', rp.payment_id);
           } else {
@@ -190,12 +197,12 @@ export function useMarkRentalPaymentPaid() {
               rider_name: ledger?.rider_name || '',
               amount: rp.amount_due,
               due_date: rp.due_date,
-              payment_date: today,
+              payment_date: paymentDate,
               status: result.status as any,
               payment_type: 'rental',
               rental_period: `Weekly Rental - Week ${rp.week_number}`,
               payment_mode: (variables.payment_mode as any) || null,
-              ledger_id: null, // payments.ledger_id FK → rider_ledgers; use null for rental-flow
+              ledger_id: null,
             });
           }
 

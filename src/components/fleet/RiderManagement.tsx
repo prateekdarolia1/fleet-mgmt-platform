@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { formatDate } from "@/lib/dateUtils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -451,7 +452,7 @@ export const RiderManagement = () => {
                 <TableCell>
                   <div className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    <span className="text-sm">{rider.joined_since ? format(new Date(rider.joined_since), 'dd MMM yyyy') : 'N/A'}</span>
+                    <span className="text-sm">{rider.joined_since ? formatDate(rider.joined_since) : 'N/A'}</span>
                   </div>
                 </TableCell>
                 <TableCell>{getStatusBadge(rider.status)}</TableCell>
@@ -528,7 +529,7 @@ export const RiderManagement = () => {
                     <div><strong>Phone:</strong> {selectedRider.phone}</div>
                     <div><strong>Mobile:</strong> {selectedRider.mobile_number || 'N/A'}</div>
                     <div><strong>Email:</strong> {selectedRider.email}</div>
-                    <div><strong>Date of Birth:</strong> {selectedRider.dob ? new Date(selectedRider.dob).toLocaleDateString() : 'N/A'}</div>
+                    <div><strong>Date of Birth:</strong> {selectedRider.dob ? formatDate(selectedRider.dob) : 'N/A'}</div>
                     <div><strong>Aadhaar Number:</strong> {selectedRider.aadhaar_number || 'N/A'}</div>
                     <div><strong>PAN Number:</strong> {selectedRider.pan_number || 'N/A'}</div>
                     <div><strong>Marital Status:</strong> {selectedRider.marital_status || 'N/A'}</div>
@@ -577,7 +578,7 @@ export const RiderManagement = () => {
                     <div><strong>Aggregator:</strong> {selectedRider.aggregator || 'N/A'}</div>
                     <div><strong>Aggregator Other:</strong> {selectedRider.aggregator_other || 'N/A'}</div>
                     <div><strong>Aggregator ID:</strong> {selectedRider.aggregator_id || 'N/A'}</div>
-                    <div><strong>Joined Since:</strong> {selectedRider.joined_since ? new Date(selectedRider.joined_since).toLocaleDateString() : 'N/A'}</div>
+                    <div><strong>Joined Since:</strong> {selectedRider.joined_since ? formatDate(selectedRider.joined_since) : 'N/A'}</div>
                     <div><strong>Avg Earnings (15 days):</strong> {selectedRider.avg_earnings_15_days ? `₹${selectedRider.avg_earnings_15_days}` : 'N/A'}</div>
                   </CardContent>
                 </Card>
@@ -591,8 +592,8 @@ export const RiderManagement = () => {
                     <div><strong>Status:</strong> {getStatusBadge(selectedRider.status)}</div>
                     <div><strong>Duty Status:</strong> <Badge variant={selectedRider.duty_status === 'LIVE' ? undefined : undefined} className={selectedRider.duty_status === 'LIVE' ? 'bg-green-500 hover:bg-green-600 text-white' : 'bg-orange-500 hover:bg-orange-600 text-white'}>{selectedRider.duty_status || 'IDLE'}</Badge></div>
                     <div><strong>Rental Plan:</strong> {getPlanBadge(selectedRider.rental_plan)}</div>
-                    <div><strong>Join Date:</strong> {new Date(selectedRider.join_date).toLocaleDateString()}</div>
-                    <div><strong>Last Payment Date:</strong> {selectedRider.last_payment_date ? new Date(selectedRider.last_payment_date).toLocaleDateString() : 'N/A'}</div>
+                    <div><strong>Join Date:</strong> {formatDate(selectedRider.join_date)}</div>
+                    <div><strong>Last Payment Date:</strong> {selectedRider.last_payment_date ? formatDate(selectedRider.last_payment_date) : 'N/A'}</div>
                     <div><strong>Vehicle Assigned:</strong> {selectedRider.vehicle_assigned || 'N/A'}</div>
                   </CardContent>
                 </Card>

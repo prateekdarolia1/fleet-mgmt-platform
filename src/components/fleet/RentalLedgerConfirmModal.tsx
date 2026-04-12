@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, addDays } from 'date-fns';
+import { formatDate } from '@/lib/dateUtils';
 import {
   Dialog,
   DialogContent,
@@ -438,7 +439,7 @@ export const RentalLedgerConfirmModal = ({
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-green-900">Ready to Confirm</p>
                     <div className="text-sm text-green-800 mt-1 space-y-1">
-                      <p>Rental start: <span className="font-medium">{format(new Date(watchDate), 'dd MMM yyyy')}</span></p>
+                      <p>Rental start: <span className="font-medium">{formatDate(watchDate)}</span></p>
                       {watchRentalAmount > 0 && (
                         <p>Weekly rental: <span className="font-medium">₹{watchRentalAmount.toLocaleString()}/week</span></p>
                       )}

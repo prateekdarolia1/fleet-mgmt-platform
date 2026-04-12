@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { RiderEventHistory } from '@/components/fleet/RiderEventHistory';
 import { useRiderEvents } from '@/hooks/useRiderEvents';
 import { Loader2, AlertCircle, ArrowLeft, User } from 'lucide-react';
+import { formatDate } from '@/lib/dateUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -213,7 +214,7 @@ export default function RiderDetail() {
               <div>
                 <p className="text-sm text-gray-500">Registered On</p>
                 <p className="font-semibold">
-                  {new Date(rider.created_at).toLocaleDateString('en-IN')}
+                  {formatDate(rider.created_at)}
                 </p>
               </div>
             </CardContent>

@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { formatDate } from "@/lib/dateUtils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -159,11 +160,11 @@ export const PaymentHistoryDialog = ({
                         {getStatusBadge(payment.status)}
                       </TableCell>
                       <TableCell>
-                        {new Date(payment.due_date).toLocaleDateString()}
+                        {formatDate(payment.due_date)}
                       </TableCell>
                       <TableCell>
                         {payment.payment_date 
-                          ? new Date(payment.payment_date).toLocaleDateString()
+                          ? formatDate(payment.payment_date)
                           : '-'
                         }
                       </TableCell>
