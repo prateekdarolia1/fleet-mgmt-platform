@@ -142,11 +142,17 @@ export function useMarkRentalPaymentPaid() {
         p_notes: params.notes || null,
       });
 
-      if (!error && params.payment_date) {
+      if (!error) {
         // RPC uses NOW() for payment_date — override with user-specified date
+        // Also tag this as collected by admin (RPC doesn't set these fields)
+        const followUpUpdate: Record<string, any> = {
+          collected_by: 'admin',
+          collected_at: new Date().toISOString(),
+        };
+        if (params.payment_date) followUpUpdate.payment_date = params.payment_date;
         await supabase
           .from('rental_payments')
-          .update({ payment_date: params.payment_date })
+          .update(followUpUpdate)
           .eq('id', params.payment_id);
       }
 
@@ -181,13 +187,16 @@ export function useMarkRentalPaymentPaid() {
             .eq('payment_id', rp.payment_id)
             .maybeSingle();
 
+          const nowIso = new Date().toISOString();
           if (existing) {
             // Update existing row (standalone ledger flow)
             await supabase.from('payments').update({
               status: result.status as any,
               payment_date: paymentDate,
               payment_mode: (variables.payment_mode as any) || null,
-            }).eq('payment_id', rp.payment_id);
+              collected_by: 'admin',
+              collected_at: nowIso,
+            } as any).eq('payment_id', rp.payment_id);
           } else {
             // Insert new row (rider creation flow — payment only existed in rental_payments)
             const ledger = rp.rental_ledgers as any;
@@ -203,7 +212,9 @@ export function useMarkRentalPaymentPaid() {
               rental_period: `Weekly Rental - Week ${rp.week_number}`,
               payment_mode: (variables.payment_mode as any) || null,
               ledger_id: null,
-            });
+              collected_by: 'admin',
+              collected_at: nowIso,
+            } as any);
           }
 
           queryClient.invalidateQueries({ queryKey: ['payments'] });

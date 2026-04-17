@@ -132,8 +132,10 @@ export const usePayments = () => {
       await updatePayment(id, {
         status: 'paid',
         payment_mode: paymentMode,
-        payment_date: new Date().toISOString().split('T')[0]
-      });
+        payment_date: new Date().toISOString().split('T')[0],
+        collected_by: 'admin',
+        collected_at: new Date().toISOString(),
+      } as any);
       toast.success('Payment marked as paid!');
     } catch (err) {
       console.error('Error marking payment as paid:', err);

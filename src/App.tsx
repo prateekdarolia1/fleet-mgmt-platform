@@ -7,6 +7,7 @@ import Index from "./pages/Index";
 import BatteryDetail from "./pages/BatteryDetail";
 import VehicleDetail from "./pages/VehicleDetail";
 import RiderDetail from "./pages/RiderDetail";
+import TLCollection from "./pages/TLCollection";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/batteries/:batteryId" element={<BatteryDetail />} />
           <Route path="/vehicles/:vehicleId" element={<VehicleDetail />} />
           <Route path="/riders/:riderId" element={<RiderDetail />} />
+          <Route path="/tl/:tlId" element={<TLCollection />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
