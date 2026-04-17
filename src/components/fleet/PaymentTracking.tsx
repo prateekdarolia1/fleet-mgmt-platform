@@ -39,6 +39,7 @@ const downloadOverdueAsPDF = (
   getMobile: (id: string) => string,
   getVehicle: (id: string) => string,
   getBattery: (id: string) => string,
+  getOnboardedBy: (id: string) => string,
 ) => {
   if (!payments || payments.length === 0) return;
 
@@ -65,11 +66,12 @@ const downloadOverdueAsPDF = (
   // Table
   autoTable(doc, {
     startY: 44,
-    head: [['#', 'Week / ID', 'Rider', 'Mobile', 'Vehicle', 'Battery ID', 'Due Date', 'Amount Due', 'Balance', 'Status']],
+    head: [['#', 'Week / ID', 'Rider', 'TL', 'Mobile', 'Vehicle', 'Battery ID', 'Due Date', 'Amount Due', 'Balance', 'Status']],
     body: payments.map((p, i) => [
       i + 1,
       p.source === 'rental_payments' ? `Week ${p.week_number}` : (p.payment_id || '—'),
       p.rider_name || 'Unknown',
+      getOnboardedBy(p.rider_id),
       getMobile(p.rider_id),
       getVehicle(p.rider_id),
       getBattery(p.rider_id),
@@ -83,12 +85,13 @@ const downloadOverdueAsPDF = (
     alternateRowStyles: { fillColor: [255, 245, 245] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 12 },
-      7: { halign: 'right' },
-      8: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] },
-      9: { halign: 'center' },
+      3: { halign: 'center' },
+      8: { halign: 'right' },
+      9: { halign: 'right', fontStyle: 'bold', textColor: [220, 38, 38] },
+      10: { halign: 'center' },
     },
     showFoot: 'lastPage',
-    foot: [['', '', '', '', '', '', 'TOTAL', `Rs ${payments.reduce((s, p) => s + (p.amount_due ?? 0), 0).toLocaleString('en-IN')}`, `Rs ${totalBalance.toLocaleString('en-IN')}`, '']],
+    foot: [['', '', '', '', '', '', '', 'TOTAL', `Rs ${payments.reduce((s, p) => s + (p.amount_due ?? 0), 0).toLocaleString('en-IN')}`, `Rs ${totalBalance.toLocaleString('en-IN')}`, '']],
     footStyles: { fillColor: [245, 245, 245], fontStyle: 'bold', textColor: [0, 0, 0] },
   });
 
@@ -110,6 +113,7 @@ const downloadUpcomingAsPDF = (
   getMobile: (id: string) => string,
   getVehicle: (id: string) => string,
   getBattery: (id: string) => string,
+  getOnboardedBy: (id: string) => string,
 ) => {
   if (!payments || payments.length === 0) return;
 
@@ -131,11 +135,12 @@ const downloadUpcomingAsPDF = (
 
   autoTable(doc, {
     startY: 44,
-    head: [['#', 'Week / ID', 'Rider', 'Mobile', 'Vehicle', 'Battery ID', 'Due Date', 'Amount Due', 'Status']],
+    head: [['#', 'Week / ID', 'Rider', 'TL', 'Mobile', 'Vehicle', 'Battery ID', 'Due Date', 'Amount Due', 'Status']],
     body: payments.map((p, i) => [
       i + 1,
       p.source === 'rental_payments' ? `Week ${p.week_number}` : (p.payment_id || '—'),
       p.rider_name || 'Unknown',
+      getOnboardedBy(p.rider_id),
       getMobile(p.rider_id),
       getVehicle(p.rider_id),
       getBattery(p.rider_id),
@@ -148,11 +153,12 @@ const downloadUpcomingAsPDF = (
     alternateRowStyles: { fillColor: [255, 251, 235] },
     columnStyles: {
       0: { halign: 'center', cellWidth: 12 },
-      7: { halign: 'right', fontStyle: 'bold' },
-      8: { halign: 'center' },
+      3: { halign: 'center' },
+      8: { halign: 'right', fontStyle: 'bold' },
+      9: { halign: 'center' },
     },
     showFoot: 'lastPage',
-    foot: [['', '', '', '', '', '', 'TOTAL', `Rs ${totalDue.toLocaleString('en-IN')}`, '']],
+    foot: [['', '', '', '', '', '', '', 'TOTAL', `Rs ${totalDue.toLocaleString('en-IN')}`, '']],
     footStyles: { fillColor: [245, 245, 245], fontStyle: 'bold', textColor: [0, 0, 0] },
   });
 
@@ -184,6 +190,10 @@ export const PaymentTracking = () => {
   const getMobileForRider = (riderId: string): string => {
     const rider = riderMap.get(riderId);
     return rider?.mobile_number || rider?.phone || '—';
+  };
+
+  const getOnboardedByForRider = (riderId: string): string => {
+    return riderMap.get(riderId)?.onboarded_by || '—';
   };
 
   // Edit payment state
@@ -221,6 +231,22 @@ export const PaymentTracking = () => {
   const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
   const [selectedLedgerId, setSelectedLedgerId] = useState<string | null>(null);
   const [isLedgerDetailOpen, setIsLedgerDetailOpen] = useState(false);
+  const [overdueTlFilter, setOverdueTlFilter] = useState<'all' | 'TL1' | 'TL2' | 'none'>('all');
+  const [upcomingTlFilter, setUpcomingTlFilter] = useState<'all' | 'TL1' | 'TL2' | 'none'>('all');
+
+  const matchesTlFilter = (riderId: string, filter: 'all' | 'TL1' | 'TL2' | 'none'): boolean => {
+    if (filter === 'all') return true;
+    const tl = riderMap.get(riderId)?.onboarded_by;
+    if (filter === 'none') return !tl;
+    return tl === filter;
+  };
+
+  const filteredOverduePayments = (overduePayments || []).filter(p =>
+    matchesTlFilter(p.rider_id, overdueTlFilter)
+  );
+  const filteredUpcomingPayments = (upcomingPayments || []).filter(p =>
+    matchesTlFilter(p.rider_id, upcomingTlFilter)
+  );
 
   // Fuzzy search with status filter - results auto-sorted by relevance
   const { results: filteredPayments } = useFuzzySearchWithFilter(
@@ -662,20 +688,34 @@ export const PaymentTracking = () => {
                 </div>
               ) : (
                 <>
-                  <div className="flex justify-end mb-3">
+                  <div className="flex justify-between items-center mb-3 gap-2">
+                    <Select value={overdueTlFilter} onValueChange={(v) => setOverdueTlFilter(v as typeof overdueTlFilter)}>
+                      <SelectTrigger className="w-[180px]">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All TLs</SelectItem>
+                        <SelectItem value="TL1">TL1</SelectItem>
+                        <SelectItem value="TL2">TL2</SelectItem>
+                        <SelectItem value="none">No TL assigned</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Button
                       variant="outline"
                       size="sm"
                       className="gap-2"
+                      disabled={filteredOverduePayments.length === 0}
                       onClick={() => downloadOverdueAsPDF(
-                        overduePayments,
+                        filteredOverduePayments,
                         getMobileForRider,
                         getVehicleForRider,
                         getBatteryForRider,
+                        getOnboardedByForRider,
                       )}
                     >
                       <Download className="h-4 w-4" />
-                      Download
+                      Download ({filteredOverduePayments.length})
                     </Button>
                   </div>
                   <ScrollArea className="h-[400px]">
@@ -685,6 +725,7 @@ export const PaymentTracking = () => {
                       <TableRow>
                         <TableHead>Week</TableHead>
                         <TableHead>Rider</TableHead>
+                        <TableHead>TL</TableHead>
                         <TableHead>Mobile No.</TableHead>
                         <TableHead>Vehicle</TableHead>
                         <TableHead>Battery Smart ID</TableHead>
@@ -696,7 +737,7 @@ export const PaymentTracking = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {overduePayments.map((payment) => (
+                      {filteredOverduePayments.map((payment) => (
                         <TableRow
                           key={`${payment.source}-${payment.id}`}
                           className="cursor-pointer hover:bg-red-50"
@@ -718,6 +759,15 @@ export const PaymentTracking = () => {
                                 <p className="text-xs text-muted-foreground">{payment.rider_id}</p>
                               </div>
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            {riderMap.get(payment.rider_id)?.onboarded_by ? (
+                              <Badge variant="outline" className="font-medium">
+                                {riderMap.get(payment.rider_id)?.onboarded_by}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-sm">{getMobileForRider(payment.rider_id)}</TableCell>
                           <TableCell>
@@ -792,20 +842,34 @@ export const PaymentTracking = () => {
                 </div>
               ) : (
                 <>
-                  <div className="flex justify-end mb-3">
+                  <div className="flex justify-between items-center mb-3 gap-2">
+                    <Select value={upcomingTlFilter} onValueChange={(v) => setUpcomingTlFilter(v as typeof upcomingTlFilter)}>
+                      <SelectTrigger className="w-[180px]">
+                        <Filter className="h-4 w-4 mr-2" />
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All TLs</SelectItem>
+                        <SelectItem value="TL1">TL1</SelectItem>
+                        <SelectItem value="TL2">TL2</SelectItem>
+                        <SelectItem value="none">No TL assigned</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Button
                       variant="outline"
                       size="sm"
                       className="gap-2"
+                      disabled={filteredUpcomingPayments.length === 0}
                       onClick={() => downloadUpcomingAsPDF(
-                        upcomingPayments,
+                        filteredUpcomingPayments,
                         getMobileForRider,
                         getVehicleForRider,
                         getBatteryForRider,
+                        getOnboardedByForRider,
                       )}
                     >
                       <Download className="h-4 w-4" />
-                      Download
+                      Download ({filteredUpcomingPayments.length})
                     </Button>
                   </div>
                   <ScrollArea className="h-[400px]">
@@ -815,6 +879,7 @@ export const PaymentTracking = () => {
                           <TableRow>
                             <TableHead>Week</TableHead>
                             <TableHead>Rider</TableHead>
+                            <TableHead>TL</TableHead>
                             <TableHead>Mobile No.</TableHead>
                             <TableHead>Vehicle</TableHead>
                             <TableHead>Battery Smart ID</TableHead>
@@ -824,7 +889,7 @@ export const PaymentTracking = () => {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {upcomingPayments.map((payment) => (
+                          {filteredUpcomingPayments.map((payment) => (
                             <TableRow
                               key={`${payment.source}-${payment.id}`}
                               className="cursor-pointer hover:bg-amber-50"
@@ -843,6 +908,15 @@ export const PaymentTracking = () => {
                                   <User className="h-4 w-4 text-muted-foreground" />
                                   {payment.rider_name || 'Unknown'}
                                 </div>
+                              </TableCell>
+                              <TableCell>
+                                {riderMap.get(payment.rider_id)?.onboarded_by ? (
+                                  <Badge variant="outline" className="font-medium">
+                                    {riderMap.get(payment.rider_id)?.onboarded_by}
+                                  </Badge>
+                                ) : (
+                                  <span className="text-muted-foreground text-sm">—</span>
+                                )}
                               </TableCell>
                               <TableCell className="text-sm">{getMobileForRider(payment.rider_id)}</TableCell>
                               <TableCell>

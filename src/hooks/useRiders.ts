@@ -125,7 +125,7 @@ export const useRiders = () => {
     avg_earnings_15_days: number;
     
     // Section 4: Office Use
-    onboarded_by: 'SHUBHAM' | 'VAIBHAV';
+    onboarded_by?: 'TL1' | 'TL2' | null;
     aggregator_credentials_checked: boolean;
     id_credentials_checked: boolean;
     retained_document_details: string;

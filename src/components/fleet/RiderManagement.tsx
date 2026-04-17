@@ -56,13 +56,20 @@ interface RiderFormData {
   avg_earnings_15_days: number;
   
   // Section 4: Office Use
-  onboarded_by: 'SHUBHAM' | 'VAIBHAV';
+  onboarded_by?: 'TL1' | 'TL2' | null;
   aggregator_credentials_checked: boolean;
   id_credentials_checked: boolean;
   retained_document_details: string;
 }
 
-export const RiderManagement = () => {
+type TlFilterValue = 'all' | 'TL1' | 'TL2' | 'none';
+
+interface RiderManagementProps {
+  tlFilter: TlFilterValue;
+  onTlFilterChange: (value: TlFilterValue) => void;
+}
+
+export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementProps) => {
   const navigate = useNavigate();
   const { riders, loading, addRider, updateRider } = useRiders();
   const { vehicles, updateVehicle, refetch: refetchVehicles } = useVehicles();
@@ -286,7 +293,17 @@ export const RiderManagement = () => {
     }
   };
 
-  // Use fuzzy search with status filter
+  // Combined filter: status + TL
+  const riderMatchesFilters = (rider: Rider): boolean => {
+    if (statusFilter !== "all" && rider.status !== statusFilter) return false;
+    if (tlFilter === "all") return true;
+    if (tlFilter === "none") return !rider.onboarded_by;
+    return rider.onboarded_by === tlFilter;
+  };
+
+  const hasActiveFilter = statusFilter !== "all" || tlFilter !== "all";
+
+  // Use fuzzy search with combined filters
   const {
     results: filteredRiders,
     searchTerm: fuzzySearchTerm,
@@ -294,7 +311,7 @@ export const RiderManagement = () => {
   } = useFuzzySearchWithFilter(
     riders,
     ['name', 'phone', 'rider_id'],
-    statusFilter === "all" ? undefined : (rider: Rider) => rider.status === statusFilter,
+    hasActiveFilter ? riderMatchesFilters : undefined,
     { threshold: 0.3 }
   );
 
@@ -392,6 +409,18 @@ export const RiderManagement = () => {
               <SelectItem value="suspended">Suspended</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={tlFilter} onValueChange={(v) => onTlFilterChange(v as TlFilterValue)}>
+            <SelectTrigger className="w-[180px]">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Filter by TL" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All TLs</SelectItem>
+              <SelectItem value="TL1">TL1</SelectItem>
+              <SelectItem value="TL2">TL2</SelectItem>
+              <SelectItem value="none">No TL assigned</SelectItem>
+            </SelectContent>
+          </Select>
           <Dialog open={isAddRiderOpen} onOpenChange={setIsAddRiderOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -421,6 +450,7 @@ export const RiderManagement = () => {
             <TableRow>
               <TableHead>Rider ID</TableHead>
               <TableHead>Rider details</TableHead>
+              <TableHead>TL</TableHead>
               <TableHead>Join Date</TableHead>
               <TableHead>Rider Status</TableHead>
               <TableHead>Duty Status</TableHead>
@@ -448,6 +478,13 @@ export const RiderManagement = () => {
                       {(rider.phone || rider.mobile_number)?.slice(-10)}
                     </div>
                   </div>
+                </TableCell>
+                <TableCell>
+                  {rider.onboarded_by ? (
+                    <Badge variant="outline" className="font-medium">{rider.onboarded_by}</Badge>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
@@ -628,7 +665,7 @@ export const RiderManagement = () => {
                     <CardTitle className="text-lg">Office Use</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div><strong>Onboarded By:</strong> {selectedRider.onboarded_by || 'N/A'}</div>
+                    <div><strong>Onboarded By (TL):</strong> {selectedRider.onboarded_by || 'No TL assigned'}</div>
                     <div><strong>Aggregator Credentials Checked:</strong> <Badge variant={selectedRider.aggregator_credentials_checked ? 'default' : 'destructive'}>{selectedRider.aggregator_credentials_checked ? 'Yes' : 'No'}</Badge></div>
                     <div><strong>ID Credentials Checked:</strong> <Badge variant={selectedRider.id_credentials_checked ? 'default' : 'destructive'}>{selectedRider.id_credentials_checked ? 'Yes' : 'No'}</Badge></div>
                     <div><strong>Retained Document Details:</strong> {selectedRider.retained_document_details || 'N/A'}</div>

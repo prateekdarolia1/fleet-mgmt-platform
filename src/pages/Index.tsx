@@ -52,12 +52,21 @@ const Index = () => {
     setSearchParams({ tab });
   };
 
-  // Calculate rider statistics
+  // TL filter (shared between stats + Rider Management table)
+  const [riderTlFilter, setRiderTlFilter] = useState<'all' | 'TL1' | 'TL2' | 'none'>('all');
+
+  const tlFilteredRiders = riders.filter(rider => {
+    if (riderTlFilter === 'all') return true;
+    if (riderTlFilter === 'none') return !rider.onboarded_by;
+    return rider.onboarded_by === riderTlFilter;
+  });
+
+  // Calculate rider statistics (respects TL filter)
   const riderStats = {
-    total: riders.length,
-    active: riders.filter(rider => rider.status === 'active').length,
-    live: riders.filter(rider => rider.duty_status === 'LIVE').length,
-    idle: riders.filter(rider => rider.duty_status === 'IDLE' || !rider.duty_status).length
+    total: tlFilteredRiders.length,
+    active: tlFilteredRiders.filter(rider => rider.status === 'active').length,
+    live: tlFilteredRiders.filter(rider => rider.duty_status === 'LIVE').length,
+    idle: tlFilteredRiders.filter(rider => rider.duty_status === 'IDLE' || !rider.duty_status).length
   };
 
   return (
@@ -431,7 +440,10 @@ const Index = () => {
               
               {activeTab === "riders" && (
                 <div className="space-y-4">
-                  <RiderManagement />
+                  <RiderManagement
+                    tlFilter={riderTlFilter}
+                    onTlFilterChange={setRiderTlFilter}
+                  />
                 </div>
               )}
 

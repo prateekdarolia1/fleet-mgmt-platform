@@ -44,11 +44,14 @@ interface RiderFormData {
   avg_earnings_15_days?: number;
 
   // Section 4: Office Use
-  onboarded_by?: 'SHUBHAM' | 'VAIBHAV';
+  onboarded_by?: 'TL1' | 'TL2' | null;
   aggregator_credentials_checked?: boolean;
   id_credentials_checked?: boolean;
   retained_document_details?: string;
 }
+
+const TL_NONE = '__NONE__';
+
 interface AddRiderFormProps {
   onSubmit: (data: RiderFormData) => void;
   onCancel: () => void;
@@ -101,7 +104,7 @@ export const AddRiderForm = ({
     aggregator_id?: string;
     joined_since?: Date;
     avg_earnings_15_days?: number;
-    onboarded_by?: 'SHUBHAM' | 'VAIBHAV';
+    onboarded_by?: 'TL1' | 'TL2' | typeof TL_NONE;
     aggregator_credentials_checked?: boolean;
     id_credentials_checked?: boolean;
     retained_document_details?: string;
@@ -132,7 +135,7 @@ export const AddRiderForm = ({
       aggregator_id: initialData.aggregator_id || '',
       joined_since: initialData.joined_since ? new Date(initialData.joined_since) : new Date(),
       avg_earnings_15_days: initialData.avg_earnings_15_days || 0,
-      onboarded_by: initialData.onboarded_by || 'SHUBHAM',
+      onboarded_by: initialData.onboarded_by || TL_NONE,
       aggregator_credentials_checked: initialData.aggregator_credentials_checked || false,
       id_credentials_checked: initialData.id_credentials_checked || false,
       retained_document_details: initialData.retained_document_details || ''
@@ -174,7 +177,8 @@ export const AddRiderForm = ({
       bank_name: data.bank_name === 'OTHER' && data.bank_other ? data.bank_other.toUpperCase() : data.bank_name,
       aggregator_other: data.aggregator_other?.toUpperCase(),
       dependent_name: data.dependent_name?.toUpperCase(),
-      retained_document_details: data.retained_document_details?.toUpperCase()
+      retained_document_details: data.retained_document_details?.toUpperCase(),
+      onboarded_by: data.onboarded_by === TL_NONE ? null : data.onboarded_by
     };
     setFormData(transformedData);
     setShowConfirmation(true);
@@ -198,7 +202,7 @@ export const AddRiderForm = ({
               <div><strong>Aadhaar:</strong> {formData.aadhaar_number}</div>
               <div><strong>PAN:</strong> {formData.pan_number}</div>
               <div><strong>Aggregator:</strong> {formData.aggregator}</div>
-              <div><strong>Onboarded By:</strong> {formData.onboarded_by}</div>
+              <div><strong>Onboarded By:</strong> {formData.onboarded_by || 'No TL assigned'}</div>
             </div>
             <div className="flex gap-4">
               <Button onClick={confirmSubmit}>Confirm & Create Rider ID</Button>
@@ -747,15 +751,16 @@ export const AddRiderForm = ({
               field
             }) => <FormItem>
                     <FormLabel>Onboarded By</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || TL_NONE}>
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Select person" />
+                          <SelectValue placeholder="Select team lead" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="SHUBHAM">SHUBHAM</SelectItem>
-                        <SelectItem value="VAIBHAV">VAIBHAV</SelectItem>
+                        <SelectItem value={TL_NONE}>No TL assigned</SelectItem>
+                        <SelectItem value="TL1">TL1</SelectItem>
+                        <SelectItem value="TL2">TL2</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
