@@ -31,8 +31,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Battery, Truck, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useQueryClient } from '@tanstack/react-query';
 import { useUnmappedVehicles } from '@/hooks/useUnmappedVehicles';
 import { mapBattery, type MapBatteryInput } from '@/lib/batteries/mapBattery';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
 
 // ============================================================================
@@ -97,6 +99,9 @@ export const MapBatteryModal = ({
     }
   });
 
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
   // Fetch unmapped vehicles (Repository Pattern)
   const { data: vehicles, isLoading: vehiclesLoading } = useUnmappedVehicles();
 
@@ -111,7 +116,7 @@ export const MapBatteryModal = ({
         batteryId,
         vehicleId: data.vehicleId,
         batterySmartId: data.batterySmartId,
-        userId: 'current-user-id' // TODO: Get from auth context
+        userId: user?.id || '00000000-0000-0000-0000-000000000000'
       };
 
       // Invoke domain service
@@ -119,6 +124,9 @@ export const MapBatteryModal = ({
 
       if (result.success) {
         toast.success('Battery mapped successfully!');
+        queryClient.invalidateQueries({ queryKey: ['batteries'] });
+        queryClient.invalidateQueries({ queryKey: ['vehicles'] });
+        queryClient.invalidateQueries({ queryKey: ['vehicles-with-batteries'] });
         form.reset();
         onOpenChange(false);
         onSuccess?.();

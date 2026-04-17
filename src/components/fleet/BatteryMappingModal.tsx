@@ -122,7 +122,7 @@ export const BatteryMappingModal = ({
       return;
     }
 
-    mapBattery({ batteryId, vehicleId, userId: user?.id || '', batterySmartId: selectedBattery?.battery_smart_id || '' });
+    mapBattery({ batteryId, vehicleId, userId: user?.id || '00000000-0000-0000-0000-000000000000', batterySmartId: selectedBattery?.battery_smart_id || '' });
   };
 
   const handleOpenChange = (newOpen: boolean) => {
