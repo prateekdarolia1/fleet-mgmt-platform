@@ -18,7 +18,7 @@ type BatteryEvent = {
 
 interface AddBatteryInput {
   battery_id: string;
-  service_provider: 'BATTERY_SMART' | 'OTHER';
+  service_provider: 'BATTERY_SMART' | 'MOOVING' | 'SUN_MOBILITY' | 'OTHER';
   zone_id?: string | null;
   retrofit_date?: string | null;
   location?: 'NOIDA' | 'OTHER' | null;
@@ -51,14 +51,12 @@ function validateInput(input: AddBatteryInput): string[] {
 
   if (!input.battery_id) {
     errors.push('battery_id is required');
-  } else if (!/^[A-Z0-9]{7,8}$/.test(input.battery_id)) {
-    errors.push('battery_id must be 7-8 uppercase alphanumeric characters (e.g., BAT0001, BAT00001)');
   }
 
   if (!input.service_provider) {
     errors.push('service_provider is required');
-  } else if (!['BATTERY_SMART', 'OTHER'].includes(input.service_provider)) {
-    errors.push('service_provider must be BATTERY_SMART or OTHER');
+  } else if (!['BATTERY_SMART', 'MOOVING', 'SUN_MOBILITY', 'OTHER'].includes(input.service_provider)) {
+    errors.push('service_provider must be BATTERY_SMART, MOOVING, SUN_MOBILITY, or OTHER');
   }
 
 

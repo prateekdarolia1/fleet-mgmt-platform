@@ -11,7 +11,7 @@ export interface BatteryFilters {
   status?: 'ACTIVE' | 'MAPPED' | 'UNMAPPED' | null;
 
   // Service provider filter
-  service_provider?: 'BATTERY_SMART' | 'OTHER' | null;
+  service_provider?: 'BATTERY_SMART' | 'MOOVING' | 'SUN_MOBILITY' | 'OTHER' | null;
 
   // Zone filter
   zone_id?: string | null;
@@ -320,7 +320,7 @@ export async function getAvailableZones(): Promise<string[]> {
  *
  * @returns List of available service providers
  */
-export async function getAvailableServiceProviders(): Promise<('BATTERY_SMART' | 'OTHER')[]> {
+export async function getAvailableServiceProviders(): Promise<('BATTERY_SMART' | 'MOOVING' | 'SUN_MOBILITY' | 'OTHER')[]> {
   try {
     const { data, error } = await supabase
       .from('batteries')
@@ -329,19 +329,18 @@ export async function getAvailableServiceProviders(): Promise<('BATTERY_SMART' |
 
     if (error) {
       console.warn('Error fetching service providers:', error);
-      return ['BATTERY_SMART', 'OTHER'];
+      return ['BATTERY_SMART', 'MOOVING', 'SUN_MOBILITY', 'OTHER'];
     }
 
-    // Get unique service_providers
-    const providers = new Set<'BATTERY_SMART' | 'OTHER'>();
+    const providers = new Set<'BATTERY_SMART' | 'MOOVING' | 'SUN_MOBILITY' | 'OTHER'>();
     data?.forEach(row => {
-      providers.add(row.service_provider);
+      providers.add(row.service_provider as any);
     });
 
     return Array.from(providers).sort();
   } catch (error) {
     console.warn('Unexpected error fetching service providers:', error);
-    return ['BATTERY_SMART', 'OTHER'];
+    return ['BATTERY_SMART', 'MOOVING', 'SUN_MOBILITY', 'OTHER'];
   }
 }
 
@@ -490,7 +489,7 @@ export const FilterBuilder = {
   /**
    * Create filter for specific service provider
    */
-  byServiceProvider: (provider: 'BATTERY_SMART' | 'OTHER'): BatteryFilters => ({
+  byServiceProvider: (provider: 'BATTERY_SMART' | 'MOOVING' | 'SUN_MOBILITY' | 'OTHER'): BatteryFilters => ({
     service_provider: provider
   }),
 

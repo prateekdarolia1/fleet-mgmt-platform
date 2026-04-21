@@ -30,7 +30,7 @@ export const BATTERY_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     displayName: 'Service Provider',
     required: true,
     dataType: 'enum',
-    enumValues: ['BATTERY_SMART', 'OTHER'],
+    enumValues: ['BATTERY_SMART', 'MOOVING', 'SUN_MOBILITY', 'OTHER'],
     example: 'BATTERY_SMART',
     description: 'Battery service provider',
     transformer: transformServiceProvider,
@@ -111,18 +111,27 @@ export const BATTERY_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
  */
 function transformServiceProvider(value: any): string {
   const str = String(value || '').trim();
+  const upper = str.toUpperCase();
 
-  // Normalize variations
   if (str.toLowerCase().includes('battery smart') ||
       str.toLowerCase().includes('batterysmart')) {
     return 'BATTERY_SMART';
   }
 
-  if (str.toUpperCase() === 'OTHER') {
+  if (str.toLowerCase().includes('mooving')) {
+    return 'MOOVING';
+  }
+
+  if (str.toLowerCase().includes('sun mobility') ||
+      str.toLowerCase().includes('sun_mobility')) {
+    return 'SUN_MOBILITY';
+  }
+
+  if (upper === 'OTHER') {
     return 'OTHER';
   }
 
-  return str.toUpperCase();
+  return upper;
 }
 
 /**

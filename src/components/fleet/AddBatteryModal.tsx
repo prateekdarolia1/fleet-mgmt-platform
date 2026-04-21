@@ -26,21 +26,12 @@ import { useAddBattery } from '@/hooks/useAddBattery';
 import type { AddBatteryInput } from '@/hooks/useAddBattery';
 import { Loader2, Battery } from 'lucide-react';
 
-// DRY Principle: Reusable validation patterns
-const ALPHANUMERIC_7_TO_8_CHARS_REGEX = /^[A-Z0-9]{7,8}$/;
-const ALPHANUMERIC_7_TO_8_CHARS_MESSAGE = 'Must be 7-8 uppercase alphanumeric characters';
-
-// SOLID Principle: Single Responsibility - Validation Schema
-// DDD Principle: Battery Aggregate validation rules
 const addBatterySchema = z.object({
   battery_id: z
     .string()
-    .min(1, 'Battery ID is required')
-    .min(7, 'Battery ID must be at least 7 characters')
-    .max(8, 'Battery ID must be 7-8 characters')
-    .regex(ALPHANUMERIC_7_TO_8_CHARS_REGEX, `Battery ID ${ALPHANUMERIC_7_TO_8_CHARS_MESSAGE} (e.g., BAT0001, BAT00001)`),
+    .min(1, 'Battery ID is required'),
 
-  service_provider: z.enum(['BATTERY_SMART', 'OTHER'], {
+  service_provider: z.enum(['BATTERY_SMART', 'MOOVING', 'SUN_MOBILITY', 'OTHER'], {
     errorMap: () => ({ message: 'Please select a service provider' })
   }),
 
@@ -145,7 +136,7 @@ export const AddBatteryModal = ({
                     />
                   </FormControl>
                   <FormDescription>
-                    7-8 uppercase alphanumeric characters
+                    Enter the battery's unique identifier
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -165,6 +156,8 @@ export const AddBatteryModal = ({
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="BATTERY_SMART">Battery Smart</option>
+                    <option value="MOOVING">Mooving</option>
+                    <option value="SUN_MOBILITY">Sun Mobility</option>
                     <option value="OTHER">Other</option>
                   </select>
                   <FormMessage />

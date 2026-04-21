@@ -918,7 +918,7 @@ export type Database = {
       rental_plan: "daily" | "weekly" | "monthly"
       rider_status: "active" | "inactive" | "suspended" | "deboarded"
       security_deposit_status: "retained" | "refunded" | "partially_refunded"
-      service_provider: "BATTERY_SMART" | "OTHER"
+      service_provider: "BATTERY_SMART" | "MOOVING" | "SUN_MOBILITY" | "OTHER"
       vehicle_status: "Ready for Deployment" | "Deployed" | "Under Maintenance"
       vehicle_type: "High Speed" | "Low Speed"
     }
@@ -1061,7 +1061,7 @@ export const Constants = {
       rental_plan: ["daily", "weekly", "monthly"],
       rider_status: ["active", "inactive", "suspended", "deboarded"],
       security_deposit_status: ["retained", "refunded", "partially_refunded"],
-      service_provider: ["BATTERY_SMART", "OTHER"],
+      service_provider: ["BATTERY_SMART", "MOOVING", "SUN_MOBILITY", "OTHER"],
       vehicle_status: ["Ready for Deployment", "Deployed", "Under Maintenance"],
       vehicle_type: ["High Speed", "Low Speed"],
     },

@@ -3,7 +3,7 @@ import { addBattery, generateBatteryId, isBatteryIdAvailable } from '@/lib/batte
 
 export interface AddBatteryInput {
   battery_id: string;
-  service_provider: 'BATTERY_SMART' | 'OTHER';
+  service_provider: 'BATTERY_SMART' | 'MOOVING' | 'SUN_MOBILITY' | 'OTHER';
   zone_id?: string | null;
   retrofit_date?: string | null;
   location?: 'NOIDA' | 'OTHER' | null;
@@ -31,8 +31,9 @@ export const useAddBattery = (options?: {
     },
     onSuccess: () => {
       // Invalidate battery-related queries
-      queryClient.invalidateQueries({ queryKey: ['batteries-list'] });
+      queryClient.invalidateQueries({ queryKey: ['batteries'] });
       queryClient.invalidateQueries({ queryKey: ['battery-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['battery-providers'] });
       options?.onSuccess?.();
     },
     onError: (error) => {
