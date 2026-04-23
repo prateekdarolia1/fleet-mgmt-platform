@@ -124,6 +124,16 @@ const TLCollectionView = ({ tl }: TLCollectionViewProps) => {
     [upcomingPayments, myRiderIds, search]
   );
 
+  const overdueTotal = useMemo(
+    () => myOverdue.reduce((sum, p) => sum + (p.balance ?? p.amount_due ?? 0), 0),
+    [myOverdue]
+  );
+
+  const upcomingTotal = useMemo(
+    () => myUpcoming.reduce((sum, p) => sum + (p.amount_due ?? 0), 0),
+    [myUpcoming]
+  );
+
   const loading = ridersLoading || overdueLoading || upcomingLoading;
 
   return (
@@ -186,6 +196,22 @@ const TLCollectionView = ({ tl }: TLCollectionViewProps) => {
         </div>
 
         <TabsContent value="overdue" className="mt-0 max-w-2xl mx-auto px-4 sm:px-6 pt-3 space-y-3">
+          {!loading && myOverdue.length > 0 && (
+            <div className="flex items-center justify-between rounded-lg bg-red-50 border border-red-100 px-4 py-3">
+              <div>
+                <p className="text-xs text-red-500 font-medium">Overdue</p>
+                <p className="text-lg font-bold text-red-700">
+                  {myOverdue.length} payment{myOverdue.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-red-500 font-medium">Total</p>
+                <p className="text-lg font-bold text-red-700">
+                  ₹{overdueTotal.toLocaleString("en-IN")}
+                </p>
+              </div>
+            </div>
+          )}
           {loading ? (
             <LoadingState />
           ) : myOverdue.length === 0 ? (
@@ -221,6 +247,22 @@ const TLCollectionView = ({ tl }: TLCollectionViewProps) => {
         </TabsContent>
 
         <TabsContent value="upcoming" className="mt-0 max-w-2xl mx-auto px-4 sm:px-6 pt-3 space-y-3">
+          {!loading && myUpcoming.length > 0 && (
+            <div className="flex items-center justify-between rounded-lg bg-amber-50 border border-amber-100 px-4 py-3">
+              <div>
+                <p className="text-xs text-amber-600 font-medium">Upcoming</p>
+                <p className="text-lg font-bold text-amber-800">
+                  {myUpcoming.length} payment{myUpcoming.length !== 1 ? "s" : ""}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-amber-600 font-medium">Total</p>
+                <p className="text-lg font-bold text-amber-800">
+                  ₹{upcomingTotal.toLocaleString("en-IN")}
+                </p>
+              </div>
+            </div>
+          )}
           {loading ? (
             <LoadingState />
           ) : myUpcoming.length === 0 ? (

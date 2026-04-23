@@ -73,11 +73,15 @@ export const MarkAsPaidDrawer = ({
   requireProof,
 }: MarkAsPaidDrawerProps) => {
   const [paymentMode, setPaymentMode] = useState<PaymentMode>("cash");
+  const [upiLast4, setUpiLast4] = useState("");
   const [paymentDate, setPaymentDate] = useState<string>(today());
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // TL mode: always UPI, no dropdown
+  const isTL = requireProof;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const markPaid = useMarkPaymentPaidWithProof();
@@ -85,7 +89,8 @@ export const MarkAsPaidDrawer = ({
   // Reset form when drawer opens for a new target
   useEffect(() => {
     if (open) {
-      setPaymentMode("cash");
+      setPaymentMode(isTL ? "upi" : "cash");
+      setUpiLast4("");
       setPaymentDate(today());
       setNotes("");
       setFile(null);
@@ -111,8 +116,10 @@ export const MarkAsPaidDrawer = ({
     if (!target) return false;
     if (isSubmitting) return false;
     if (requireProof && !file) return false;
+    if (isTL && upiLast4.trim().length !== 4) return false;
+    if (!isTL && paymentMode === "upi" && upiLast4.trim().length !== 4) return false;
     return true;
-  }, [target, isSubmitting, requireProof, file]);
+  }, [target, isSubmitting, requireProof, file, isTL, paymentMode, upiLast4]);
 
   const handleFilePick = (picked: File | null) => {
     if (!picked) return;
@@ -143,6 +150,7 @@ export const MarkAsPaidDrawer = ({
         source: target.source,
         amount_due: target.amount_due,
         payment_mode: paymentMode,
+        upi_last4: paymentMode === "upi" ? upiLast4.trim() : undefined,
         payment_date: paymentDate,
         notes: notes.trim() || undefined,
         screenshot_url: screenshotUrl,
@@ -180,24 +188,51 @@ export const MarkAsPaidDrawer = ({
         </DrawerHeader>
 
         <div className="px-4 sm:px-6 pb-2 space-y-4 overflow-y-auto">
-          <div className="space-y-2">
-            <Label htmlFor="payment-mode">Payment Mode</Label>
-            <Select
-              value={paymentMode}
-              onValueChange={(v) => setPaymentMode(v as PaymentMode)}
-            >
-              <SelectTrigger id="payment-mode" className="h-11 text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAYMENT_MODE_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isTL ? (
+            <div className="space-y-2">
+              <Label>Payment Mode</Label>
+              <div className="h-11 px-3 flex items-center rounded-md border bg-muted text-base font-medium">
+                UPI
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="payment-mode">Payment Mode</Label>
+              <Select
+                value={paymentMode}
+                onValueChange={(v) => setPaymentMode(v as PaymentMode)}
+              >
+                <SelectTrigger id="payment-mode" className="h-11 text-base">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_MODE_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {(isTL || paymentMode === "upi") && (
+            <div className="space-y-2">
+              <Label htmlFor="upi-last4">
+                UPI Last 4 Digits <span className="text-red-600">*</span>
+              </Label>
+              <Input
+                id="upi-last4"
+                value={upiLast4}
+                onChange={(e) =>
+                  setUpiLast4(e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 4).toUpperCase())
+                }
+                placeholder="e.g. 1234"
+                maxLength={4}
+                className="h-11 text-base tracking-widest"
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="payment-date">Payment Date</Label>

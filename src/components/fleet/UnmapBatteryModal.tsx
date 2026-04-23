@@ -27,6 +27,7 @@ import { AlertCircle, Loader2, Battery, Truck, CheckCircle, Info } from 'lucide-
 import { useBatteriesList } from '@/hooks/useBatteriesList';
 import { useUnmapBatteryWithErrorHandling } from '@/hooks/useUnmapBattery';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -35,8 +36,8 @@ const unmappingSchema = z.object({
   batteryId: z.string().min(1, 'Please select a battery'),
   reason: z
     .string()
-    .min(10, 'Reason must be at least 10 characters')
     .max(200, 'Reason must be 200 characters or less')
+    .optional()
 });
 
 type UnmappingFormData = z.infer<typeof unmappingSchema>;
@@ -45,12 +46,15 @@ interface UnmapBatteryModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  /** When provided, skips battery selection and jumps straight to the reason step */
+  preselectedBatteryId?: string;
 }
 
 export const UnmapBatteryModal = ({
   open,
   onOpenChange,
-  onSuccess
+  onSuccess,
+  preselectedBatteryId
 }: UnmapBatteryModalProps) => {
   const [selectedBattery, setSelectedBattery] = useState<any>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
@@ -60,6 +64,8 @@ export const UnmapBatteryModal = ({
     meetsMinLength: false,
     withinMaxLength: true
   });
+
+  const isPreselected = Boolean(preselectedBatteryId);
 
   const { user } = useAuth();
   const form = useForm<UnmappingFormData>({
@@ -93,25 +99,49 @@ export const UnmapBatteryModal = ({
     }
   });
 
-  // Update selected battery when form value changes
+  // Auto-select battery when preselectedBatteryId is provided and data loads
   useEffect(() => {
+    if (isPreselected && preselectedBatteryId && (batteriesData as any)?.batteries) {
+      const battery = (batteriesData as any).batteries.find((b: any) => b.id === preselectedBatteryId);
+      if (battery) {
+        form.setValue('batteryId', battery.id, { shouldValidate: true });
+        setSelectedBattery(battery);
+      }
+    }
+  }, [preselectedBatteryId, batteriesData, isPreselected]);
+
+  // Update selected battery when form value changes (manual selection path)
+  useEffect(() => {
+    if (isPreselected) return;
     const batteryId = form.watch('batteryId');
     if (batteryId && (batteriesData as any)?.batteries) {
       const battery = (batteriesData as any).batteries.find((b: any) => b.id === batteryId);
-      setSelectedBattery(battery);
-      // Extract vehicle info from battery if available
-      if (battery) {
-        // The battery object should have vehicle info from the API
-        setSelectedVehicle({
-          id: battery.vehicle_id,
-          vehicle_number: battery.vehicle_number || 'N/A',
-          rider_name: battery.rider_name || 'N/A'
-        });
-      }
+      setSelectedBattery(battery || null);
     } else {
+      setSelectedBattery(null);
       setSelectedVehicle(null);
     }
-  }, [form.watch('batteryId'), batteriesData]);
+  }, [form.watch('batteryId'), batteriesData, isPreselected]);
+
+  // Fetch vehicle info from vehicles table whenever a battery with a vehicle_id is selected
+  useEffect(() => {
+    if (!selectedBattery?.vehicle_id) {
+      setSelectedVehicle(null);
+      return;
+    }
+    supabase
+      .from('vehicles')
+      .select('id, vehicle_number, rider_name')
+      .eq('id', selectedBattery.vehicle_id)
+      .single()
+      .then(({ data }) => {
+        setSelectedVehicle({
+          id: data?.id || selectedBattery.vehicle_id,
+          vehicle_number: data?.vehicle_number || 'N/A',
+          rider_name: data?.rider_name || 'N/A',
+        });
+      });
+  }, [selectedBattery?.vehicle_id]);
 
   // Track reason validation
   useEffect(() => {
@@ -125,17 +155,14 @@ export const UnmapBatteryModal = ({
     });
   }, [form.watch('reason')]);
 
-  const isReasonValid =
-    reasonValidation.hasContent &&
-    reasonValidation.meetsMinLength &&
-    reasonValidation.withinMaxLength;
+  const isReasonValid = reasonValidation.withinMaxLength;
 
   const handleConfirm = async () => {
     const batteryId = form.getValues('batteryId');
-    const reason = form.getValues('reason');
+    const reason = form.getValues('reason') || '';
 
-    if (!batteryId || !reason || !isReasonValid) {
-      toast.error('Please select a battery and provide a valid reason');
+    if (!batteryId) {
+      toast.error('Please select a battery');
       return;
     }
 
@@ -148,6 +175,7 @@ export const UnmapBatteryModal = ({
       setSelectedBattery(null);
       setSelectedVehicle(null);
       setReasonCharCount(0);
+      setReasonValidation({ hasContent: false, meetsMinLength: false, withinMaxLength: true });
     }
     onOpenChange(newOpen);
   };
@@ -164,54 +192,56 @@ export const UnmapBatteryModal = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleConfirm)} className="space-y-6">
-            {/* Step 1: Select Battery */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 font-medium text-sm">
-                  1
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">Battery ID (Lilypad Internal ID)</h3>
-                <div className="group relative">
-                  <Info className="h-4 w-4 text-blue-500 cursor-help" />
-                  <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
-                    <p className="font-semibold mb-1">Battery ID (Lilypad)</p>
-                    <p>Internal identifier used by Lilypad to track physical batteries. This is NOT the Battery Smart ID.</p>
+            {/* Step 1: Select Battery — hidden when battery is preselected */}
+            {!isPreselected && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 font-medium text-sm">
+                    1
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">Battery ID (Lilypad Internal ID)</h3>
+                  <div className="group relative">
+                    <Info className="h-4 w-4 text-blue-500 cursor-help" />
+                    <div className="absolute right-0 bottom-full mb-2 w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-50">
+                      <p className="font-semibold mb-1">Battery ID (Lilypad)</p>
+                      <p>Internal identifier used by Lilypad to track physical batteries. This is NOT the Battery Smart ID.</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <FormField
-                control={form.control}
-                name="batteryId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <select
-                        {...field}
-                        disabled={batteriesLoading}
-                        className={cn(
-                          'w-full px-4 py-2.5 rounded-lg border-2 bg-background text-sm font-medium transition-colors',
-                          'hover:border-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50',
-                          field.value ? 'border-red-200 bg-red-50/30' : 'border-input',
-                          batteriesLoading && 'opacity-50 cursor-not-allowed'
-                        )}
-                      >
-                        <option value="">
-                          {batteriesLoading ? 'Loading batteries...' : 'Select a mapped battery to unmap...'}
-                        </option>
-                        {(batteriesData as any)?.batteries &&
-                          (batteriesData as any).batteries.map((battery: any) => (
-                            <option key={battery.id} value={battery.id}>
-                              {battery.battery_id} • {battery.battery_smart_id || battery.battery_id}
-                            </option>
-                          ))}
-                      </select>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                <FormField
+                  control={form.control}
+                  name="batteryId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <select
+                          {...field}
+                          disabled={batteriesLoading}
+                          className={cn(
+                            'w-full px-4 py-2.5 rounded-lg border-2 bg-background text-sm font-medium transition-colors',
+                            'hover:border-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50',
+                            field.value ? 'border-red-200 bg-red-50/30' : 'border-input',
+                            batteriesLoading && 'opacity-50 cursor-not-allowed'
+                          )}
+                        >
+                          <option value="">
+                            {batteriesLoading ? 'Loading batteries...' : 'Select a mapped battery to unmap...'}
+                          </option>
+                          {(batteriesData as any)?.batteries &&
+                            (batteriesData as any).batteries.map((battery: any) => (
+                              <option key={battery.id} value={battery.id}>
+                                {battery.battery_id} • {battery.battery_smart_id || battery.battery_id}
+                              </option>
+                            ))}
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             {/* Battery + Vehicle Summary */}
             {selectedBattery && (
@@ -266,16 +296,13 @@ export const UnmapBatteryModal = ({
               </div>
             )}
 
-            {/* Step 2: Provide Reason */}
+            {/* Step 2 (or 1 when preselected): Provide Reason */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex items-center justify-center w-6 h-6 rounded-full bg-red-100 text-red-700 font-medium text-sm">
-                  2
+                  {isPreselected ? '1' : '2'}
                 </div>
-                <h3 className="text-sm font-semibold text-foreground">Reason (Required)</h3>
-                <span className="text-xs px-2 py-1 rounded bg-red-100 text-red-700 font-medium">
-                  Mandatory
-                </span>
+                <h3 className="text-sm font-semibold text-foreground">Reason (Optional)</h3>
               </div>
 
               <FormField
@@ -328,66 +355,9 @@ export const UnmapBatteryModal = ({
                   </span>
                 </div>
 
-                {/* Validation Checklist */}
-                <div className="flex flex-col gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="flex items-center gap-2 text-xs">
-                    <CheckCircle
-                      className={cn(
-                        'h-4 w-4 flex-shrink-0',
-                        reasonValidation.hasContent
-                          ? 'text-green-600'
-                          : 'text-gray-300'
-                      )}
-                    />
-                    <span
-                      className={
-                        reasonValidation.hasContent
-                          ? 'text-gray-700 font-medium'
-                          : 'text-gray-500'
-                      }
-                    >
-                      Reason provided
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <CheckCircle
-                      className={cn(
-                        'h-4 w-4 flex-shrink-0',
-                        reasonValidation.meetsMinLength
-                          ? 'text-green-600'
-                          : 'text-gray-300'
-                      )}
-                    />
-                    <span
-                      className={
-                        reasonValidation.meetsMinLength
-                          ? 'text-gray-700 font-medium'
-                          : 'text-gray-500'
-                      }
-                    >
-                      At least 10 characters
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <CheckCircle
-                      className={cn(
-                        'h-4 w-4 flex-shrink-0',
-                        reasonValidation.withinMaxLength
-                          ? 'text-green-600'
-                          : 'text-red-600'
-                      )}
-                    />
-                    <span
-                      className={
-                        reasonValidation.withinMaxLength
-                          ? 'text-gray-700 font-medium'
-                          : 'text-red-600 font-medium'
-                      }
-                    >
-                      Within 200 character limit
-                    </span>
-                  </div>
-                </div>
+                {!reasonValidation.withinMaxLength && (
+                  <p className="text-xs text-red-600 font-medium">Exceeds 200 character limit</p>
+                )}
               </div>
             </div>
 
@@ -433,7 +403,6 @@ export const UnmapBatteryModal = ({
                 variant="destructive"
                 disabled={
                   isUnmappingLoading ||
-                  !form.formState.isValid ||
                   !selectedBattery ||
                   !isReasonValid
                 }

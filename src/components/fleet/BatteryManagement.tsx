@@ -11,6 +11,7 @@ import { useBatteriesList } from '@/hooks/useBatteriesList';
 import type { BatteryListResult } from '@/lib/batteries/listBatteries';
 import { AddBatteryModal } from './AddBatteryModal';
 import { MapBatteryModal } from './MapBatteryModal';
+import { UnmapBatteryModal } from './UnmapBatteryModal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,7 +24,7 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
-import { Search, Loader2, Battery, Eye, Plus, Link } from 'lucide-react';
+import { Search, Loader2, Battery, Eye, Plus, Link, Unlink } from 'lucide-react';
 
 // DDD: Battery state for mapping operation
 interface BatteryForMapping {
@@ -40,6 +41,10 @@ export const BatteryManagement = () => {
   // SOLID: Single Responsibility - Map modal state management
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [selectedBatteryForMap, setSelectedBatteryForMap] = useState<BatteryForMapping | null>(null);
+
+  // Unmap modal state
+  const [isUnmapModalOpen, setIsUnmapModalOpen] = useState(false);
+  const [selectedBatteryIdForUnmap, setSelectedBatteryIdForUnmap] = useState<string | null>(null);
 
   // Fetch batteries with filtering
   const { data: batteriesData, isLoading } = useBatteriesList({
@@ -191,25 +196,42 @@ export const BatteryManagement = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {/* Map to Vehicle Button - DDD: Battery-Vehicle Mapping Action */}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation(); // SOLID: Event delegation control
-                            setSelectedBatteryForMap({
-                              id: battery.id,
-                              battery_id: battery.battery_id
-                            });
-                            setIsMapModalOpen(true);
-                          }}
-                          disabled={battery.status === 'MAPPED'}
-                          className="gap-1"
-                          title={battery.status === 'MAPPED' ? 'Battery is already mapped' : 'Map to vehicle'}
-                        >
-                          <Link className="h-4 w-4" />
-                          Map
-                        </Button>
+                        {battery.status === 'MAPPED' ? (
+                          /* Unmap Button — only for mapped batteries */
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBatteryIdForUnmap(battery.id);
+                              setIsUnmapModalOpen(true);
+                            }}
+                            className="gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                            title="Unmap from vehicle"
+                          >
+                            <Unlink className="h-4 w-4" />
+                            Unmap
+                          </Button>
+                        ) : (
+                          /* Map Button — only for unmapped batteries */
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBatteryForMap({
+                                id: battery.id,
+                                battery_id: battery.battery_id
+                              });
+                              setIsMapModalOpen(true);
+                            }}
+                            className="gap-1"
+                            title="Map to vehicle"
+                          >
+                            <Link className="h-4 w-4" />
+                            Map
+                          </Button>
+                        )}
 
                         {/* View Button */}
                         <Button
@@ -244,7 +266,7 @@ export const BatteryManagement = () => {
         }}
       />
 
-      {/* Map Battery Modal - DRY: Reusable modal for battery-vehicle mapping */}
+      {/* Map Battery Modal */}
       {selectedBatteryForMap && (
         <MapBatteryModal
           open={isMapModalOpen}
@@ -252,9 +274,22 @@ export const BatteryManagement = () => {
           batteryId={selectedBatteryForMap.id}
           batteryDisplayId={selectedBatteryForMap.battery_id}
           onSuccess={() => {
-            // SOLID: Separation of concerns - modal handles its own success
-            // The hook will auto-refresh via query invalidation
             setSelectedBatteryForMap(null);
+          }}
+        />
+      )}
+
+      {/* Unmap Battery Modal */}
+      {selectedBatteryIdForUnmap && (
+        <UnmapBatteryModal
+          open={isUnmapModalOpen}
+          onOpenChange={(open) => {
+            setIsUnmapModalOpen(open);
+            if (!open) setSelectedBatteryIdForUnmap(null);
+          }}
+          preselectedBatteryId={selectedBatteryIdForUnmap}
+          onSuccess={() => {
+            setSelectedBatteryIdForUnmap(null);
           }}
         />
       )}

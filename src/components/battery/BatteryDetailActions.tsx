@@ -115,6 +115,7 @@ export const BatteryDetailActions = ({
       <UnmapBatteryModal
         open={isUnmappingModalOpen}
         onOpenChange={setIsUnmappingModalOpen}
+        preselectedBatteryId={battery.battery.id}
         onSuccess={handleUnmapSuccess}
       />
     </>

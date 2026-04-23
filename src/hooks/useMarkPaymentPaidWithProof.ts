@@ -14,6 +14,8 @@ export interface MarkPaidWithProofParams {
   amount_due: number;
   /** Payment mode */
   payment_mode: PaymentMode;
+  /** Last 4 digits of UPI ID — required when payment_mode is 'upi' */
+  upi_last4?: string;
   /** Payment date (YYYY-MM-DD) */
   payment_date: string;
   /** Optional notes */
@@ -43,6 +45,7 @@ export function useMarkPaymentPaidWithProof() {
             status: "paid" as const,
             payment_date: params.payment_date,
             payment_mode: params.payment_mode as any,
+            upi_last4: params.payment_mode === "upi" ? (params.upi_last4 ?? null) : null,
             notes: params.notes ?? null,
             screenshot_url: params.screenshot_url,
             collected_by: params.collected_by,
@@ -63,6 +66,7 @@ export function useMarkPaymentPaidWithProof() {
           paid_amount: params.amount_due,
           payment_date: params.payment_date,
           payment_mode: params.payment_mode as any,
+          upi_last4: params.payment_mode === "upi" ? (params.upi_last4 ?? null) : null,
           notes: params.notes ?? null,
           screenshot_url: params.screenshot_url,
           collected_by: params.collected_by,
@@ -93,6 +97,7 @@ export function useMarkPaymentPaidWithProof() {
               status: "paid" as const,
               payment_date: params.payment_date,
               payment_mode: params.payment_mode as any,
+              upi_last4: params.payment_mode === "upi" ? (params.upi_last4 ?? null) : null,
               notes: params.notes ?? null,
               screenshot_url: params.screenshot_url,
               collected_by: params.collected_by,
@@ -112,6 +117,7 @@ export function useMarkPaymentPaidWithProof() {
             payment_type: "rental" as const,
             rental_period: `Weekly Rental - Week ${rp.week_number}`,
             payment_mode: params.payment_mode as any,
+            upi_last4: params.payment_mode === "upi" ? (params.upi_last4 ?? null) : null,
             notes: params.notes ?? null,
             ledger_id: null,
             screenshot_url: params.screenshot_url,
