@@ -1,5 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  PAYMENT_WINDOW_DAYS,
+  overdueDueDateFilter,
+  upcomingDueDateRange,
+} from '@/lib/payments/window';
 
 // Unified overdue payment type that works with both tables
 export interface UnifiedOverduePayment {
@@ -50,23 +55,26 @@ async function resolveRentalLedgerIds(riderIds: string[]): Promise<Map<string, s
 }
 
 /**
- * Fetch overdue payments from BOTH tables (payments + rental_payments)
- * A payment is overdue if it's been pending for MORE than 4 calendar days from due date
+ * Fetch overdue payments from BOTH tables (payments + rental_payments).
+ * A row is overdue when due_date < today − PAYMENT_GRACE_DAYS (canonical rule).
+ *
+ * No paging — admin tool, full list always returned. The 10000 cap is a safety
+ * fence; production data is currently <100 overdue rows.
  */
-export function useUnifiedOverduePayments(limit = 50) {
+const HARD_CAP = 10000;
+
+export function useUnifiedOverduePayments() {
   return useQuery({
-    queryKey: ['unified-payments', 'overdue', limit],
+    queryKey: ['unified-payments', 'overdue'],
     queryFn: async (): Promise<UnifiedOverduePayment[]> => {
-      // 3-day grace period — payments with due_date before this are overdue
-      const threeDaysAgo = new Date();
-      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-      const overdueThreshold = threeDaysAgo.toISOString().split('T')[0];
+      const { lt: overdueThreshold } = overdueDueDateFilter();
 
       // Fetch from rental_payments table - ONLY status='overdue' or past-due pending/partial
       const { data: rentalPayments, error: rentalError } = await supabase
         .from('rental_payments')
         .select(`
           id,
+          payment_id,
           ledger_id,
           week_number,
           amount_due,
@@ -82,7 +90,7 @@ export function useUnifiedOverduePayments(limit = 50) {
         .in('status', ['overdue', 'pending', 'partial'])
         .lt('due_date', overdueThreshold)
         .order('due_date', { ascending: true })
-        .limit(limit);
+        .limit(HARD_CAP);
 
       if (rentalError) {
         console.error('Error fetching overdue rental_payments:', rentalError);
@@ -95,7 +103,7 @@ export function useUnifiedOverduePayments(limit = 50) {
         .in('status', ['overdue', 'pending', 'partial'])
         .lt('due_date', overdueThreshold)
         .order('due_date', { ascending: true })
-        .limit(limit);
+        .limit(HARD_CAP);
 
       if (paymentsError) {
         console.error('Error fetching overdue payments:', paymentsError);
@@ -104,8 +112,14 @@ export function useUnifiedOverduePayments(limit = 50) {
       // Combine and normalize results
       const unifiedResults: UnifiedOverduePayment[] = [];
 
+      // Track payment_ids already added from rental_payments — sync trigger
+      // copies payments → rental_payments with the same payment_id, so we'd
+      // otherwise see the same row twice. Prefer rental_payments (has week_number).
+      const seenPaymentIds = new Set<string>();
+
       // Add rental_payments results
       (rentalPayments || []).forEach((rp) => {
+        if (rp.payment_id) seenPaymentIds.add(rp.payment_id);
         unifiedResults.push({
           id: rp.id,
           source: 'rental_payments',
@@ -118,6 +132,7 @@ export function useUnifiedOverduePayments(limit = 50) {
           status: rp.status,
           week_number: rp.week_number,
           ledger_id: rp.ledger_id,
+          payment_id: rp.payment_id,
         });
       });
 
@@ -127,8 +142,9 @@ export function useUnifiedOverduePayments(limit = 50) {
       )];
       const riderLedgerMap = await resolveRentalLedgerIds(nullLedgerRiderIds);
 
-      // Add payments table results
+      // Add payments table results, skipping rows already represented by rental_payments
       (payments || []).forEach((p) => {
+        if (p.payment_id && seenPaymentIds.has(p.payment_id)) return;
         unifiedResults.push({
           id: p.id,
           source: 'payments',
@@ -147,32 +163,24 @@ export function useUnifiedOverduePayments(limit = 50) {
       // Sort by due date
       unifiedResults.sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
 
-      return unifiedResults.slice(0, limit);
+      return unifiedResults;
     },
   });
 }
 
 /**
- * Fetch upcoming/due payments from BOTH tables (payments + rental_payments)
- * Includes:
- * - Payments due within the next X days (future)
- * - Payments that are 1-4 days past due (still in pending grace period)
+ * Fetch upcoming payments from BOTH tables (payments + rental_payments).
+ * "Upcoming" = due_date in [today − PAYMENT_GRACE_DAYS, today + PAYMENT_WINDOW_DAYS].
+ * Anything beyond the window is "future" and intentionally excluded.
  *
- * A payment becomes OVERDUE only after MORE than 3 days past due date.
+ * The `days` argument exists for legacy callers; do not pass a custom value
+ * for new surfaces — defer to PAYMENT_WINDOW_DAYS so the rule stays one-source.
  */
-export function useUnifiedUpcomingPayments(days = 7) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  // 3-day grace period — payments newer than this are still in upcoming
-  const threeDaysAgo = new Date(today);
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  const pendingThreshold = threeDaysAgo.toISOString().split('T')[0];
-
-  // Future date for "due this week"
-  const futureDate = new Date(today);
-  futureDate.setDate(futureDate.getDate() + days);
-  const futureDateStr = futureDate.toISOString().split('T')[0];
+export function useUnifiedUpcomingPayments(days: number = PAYMENT_WINDOW_DAYS) {
+  const now = new Date();
+  const { gte: pendingThreshold } = upcomingDueDateRange(now);
+  const futureDate = new Date(now.getTime() + days * 86400000);
+  const futureDateStr = `${futureDate.getUTCFullYear()}-${String(futureDate.getUTCMonth() + 1).padStart(2, '0')}-${String(futureDate.getUTCDate()).padStart(2, '0')}`;
 
   return useQuery({
     queryKey: ['unified-payments', 'upcoming', days],
@@ -183,6 +191,7 @@ export function useUnifiedUpcomingPayments(days = 7) {
         .from('rental_payments')
         .select(`
           id,
+          payment_id,
           ledger_id,
           week_number,
           amount_due,
@@ -197,7 +206,8 @@ export function useUnifiedUpcomingPayments(days = 7) {
         .in('status', ['pending', 'partial'])
         .gte('due_date', pendingThreshold)
         .lte('due_date', futureDateStr)
-        .order('due_date', { ascending: true });
+        .order('due_date', { ascending: true })
+        .limit(HARD_CAP);
 
       if (rentalError) {
         console.error('Error fetching upcoming rental_payments:', rentalError);
@@ -210,7 +220,8 @@ export function useUnifiedUpcomingPayments(days = 7) {
         .in('status', ['pending'])
         .gte('due_date', pendingThreshold)
         .lte('due_date', futureDateStr)
-        .order('due_date', { ascending: true });
+        .order('due_date', { ascending: true })
+        .limit(HARD_CAP);
 
       if (paymentsError) {
         console.error('Error fetching upcoming payments:', paymentsError);
@@ -219,8 +230,14 @@ export function useUnifiedUpcomingPayments(days = 7) {
       // Combine and normalize results
       const unifiedResults: UnifiedUpcomingPayment[] = [];
 
+      // Track payment_ids already added from rental_payments — sync trigger
+      // copies payments → rental_payments with the same payment_id, so we'd
+      // otherwise see the same row twice. Prefer rental_payments (has week_number).
+      const seenPaymentIds = new Set<string>();
+
       // Add rental_payments results
       (rentalPayments || []).forEach((rp) => {
+        if (rp.payment_id) seenPaymentIds.add(rp.payment_id);
         unifiedResults.push({
           id: rp.id,
           source: 'rental_payments',
@@ -232,6 +249,7 @@ export function useUnifiedUpcomingPayments(days = 7) {
           status: rp.status,
           week_number: rp.week_number,
           ledger_id: rp.ledger_id,
+          payment_id: rp.payment_id,
         });
       });
 
@@ -241,8 +259,9 @@ export function useUnifiedUpcomingPayments(days = 7) {
       )];
       const riderLedgerMap = await resolveRentalLedgerIds(nullLedgerRiderIds);
 
-      // Add payments table results
+      // Add payments table results, skipping rows already represented by rental_payments
       (payments || []).forEach((p) => {
+        if (p.payment_id && seenPaymentIds.has(p.payment_id)) return;
         unifiedResults.push({
           id: p.id,
           source: 'payments',

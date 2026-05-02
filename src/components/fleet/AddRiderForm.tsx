@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { usePlacesSearch } from "@/hooks/usePlacesSearch";
+import { checkMobileExists } from "@/lib/riders/checkMobileExists";
 interface RiderFormData {
   // Section 1: Personal Information
   first_name?: string;
@@ -109,6 +110,8 @@ export const AddRiderForm = ({
     id_credentials_checked?: boolean;
     retained_document_details?: string;
   }>({
+    mode: 'onBlur',
+    reValidateMode: 'onBlur',
     defaultValues: initialData ? {
       first_name: initialData.first_name || '',
       last_name: initialData.last_name || '',
@@ -266,6 +269,14 @@ export const AddRiderForm = ({
               pattern: {
                 value: /^\d{10}$/,
                 message: "Must be 10 digits"
+              },
+              validate: async (value) => {
+                if (!value || !/^\d{10}$/.test(value)) return true;
+                if (initialData?.mobile_number === value) return true;
+                const dup = await checkMobileExists(value, initialData?.id);
+                return dup.exists
+                  ? `Already registered to ${dup.rider?.rider_id} (${dup.rider?.name})`
+                  : true;
               }
             }} render={({
               field

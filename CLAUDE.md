@@ -1,189 +1,73 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Internal admin platform for an EV rental operation in Noida — leases electric scooters to gig-economy riders working for Swiggy, Zomato, Zepto, Blinkit, BigBasket. The team uses this to manage vehicles, riders, batteries, rental ledgers, and weekly payment collection.
 
----
+## Stack
 
-# context-mode — MANDATORY routing rules
-
-You have context-mode MCP tools available. These rules are NOT optional — they protect your context window from flooding. A single unrouted command can dump 56 KB into context and waste the entire session.
-
-## BLOCKED commands — do NOT attempt these
-
-### curl / wget — BLOCKED
-Any Bash command containing `curl` or `wget` is intercepted and replaced with an error message. Do NOT retry.
-Instead use:
-- `ctx_fetch_and_index(url, source)` to fetch and index web pages
-- `ctx_execute(language: "javascript", code: "const r = await fetch(...)")` to run HTTP calls in sandbox
-
-### Inline HTTP — BLOCKED
-Any Bash command containing `fetch('http`, `requests.get(`, `requests.post(`, `http.get(`, or `http.request(` is intercepted and replaced with an error message. Do NOT retry with Bash.
-Instead use:
-- `ctx_execute(language, code)` to run HTTP calls in sandbox — only stdout enters context
-
-### WebFetch — BLOCKED
-WebFetch calls are denied entirely. The URL is extracted and you are told to use `ctx_fetch_and_index` instead.
-Instead use:
-- `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` to query the indexed content
-
-## REDIRECTED tools — use sandbox equivalents
-
-### Bash (>20 lines output)
-Bash is ONLY for: `git`, `mkdir`, `rm`, `mv`, `cd`, `ls`, `npm install`, `pip install`, and other short-output commands.
-For everything else, use:
-- `ctx_batch_execute(commands, queries)` — run multiple commands + search in ONE call
-- `ctx_execute(language: "shell", code: "...")` — run in sandbox, only stdout enters context
-
-### Read (for analysis)
-If you are reading a file to **Edit** it → Read is correct (Edit needs content in context).
-If you are reading to **analyze, explore, or summarize** → use `ctx_execute_file(path, language, code)` instead. Only your printed summary enters context. The raw file content stays in the sandbox.
-
-### Grep (large results)
-Grep results can flood context. Use `ctx_execute(language: "shell", code: "grep ...")` to run searches in sandbox. Only your printed summary enters context.
-
-## Tool selection hierarchy
-
-1. **GATHER**: `ctx_batch_execute(commands, queries)` — Primary tool. Runs all commands, auto-indexes output, returns search results. ONE call replaces 30+ individual calls.
-2. **FOLLOW-UP**: `ctx_search(queries: ["q1", "q2", ...])` — Query indexed content. Pass ALL questions as array in ONE call.
-3. **PROCESSING**: `ctx_execute(language, code)` | `ctx_execute_file(path, language, code)` — Sandbox execution. Only stdout enters context.
-4. **WEB**: `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` — Fetch, chunk, index, query. Raw HTML never enters context.
-5. **INDEX**: `ctx_index(content, source)` — Store content in FTS5 knowledge base for later search.
-
-## Subagent routing
-
-When spawning subagents (Agent/Task tool), the routing block is automatically injected into their prompt. Bash-type subagents are upgraded to general-purpose so they have access to MCP tools. You do NOT need to manually instruct subagents about context-mode.
-
-## Output constraints
-
-- Keep responses under 500 words.
-- Write artifacts (code, configs, PRDs) to FILES — never return them as inline text. Return only: file path + 1-line description.
-- When indexing content, use descriptive source labels so others can `ctx_search(source: "label")` later.
-
-## ctx commands
-
-| Command | Action |
-|---------|--------|
-| `ctx stats` | Call the `ctx_stats` MCP tool and display the full output verbatim |
-| `ctx doctor` | Call the `ctx_doctor` MCP tool, run the returned shell command, display as checklist |
-| `ctx upgrade` | Call the `ctx_upgrade` MCP tool, run the returned shell command, display as checklist |
-
----
-
-## Project: Fleet Management Platform
-
-A B2B electric vehicle fleet management platform built with React + Vite + Supabase. Focuses on battery management, rider assignments, and vehicle tracking for EV rental services.
+React 18 + TypeScript + Vite, shadcn/ui (Radix) + Tailwind, TanStack Query, React Router. Backend is **Supabase** (PostgreSQL + Auth + RLS), with RPC functions for complex ops. Tests: Vitest + Testing Library. Always import the supabase client from `@/integrations/supabase/client` — never instantiate another.
 
 ## Commands
 
 ```bash
-npm run dev          # Start dev server on port 8082
-npm run build        # Production build
-npm run build:dev    # Development build
-npm run lint         # Run ESLint
-npm run preview      # Preview production build
-
-# Battery/Database scripts (run against Supabase)
-npm run setup:batteries    # Setup batteries table
-npm run verify:batteries   # Verify batteries table
-npm run test:batteries-validation  # Test battery validation
-npm run test:battery-events        # Test battery events
-npm run test:vehicles-battery      # Test vehicle-battery mapping
-npm run test:map-battery           # Test map battery RPC
+npm run dev          # vite dev server (port 8082)
+npm run build        # production build
+npm run lint         # eslint
+npx vitest run       # unit tests (jsdom)
 ```
 
-## Tech Stack
+## Code Layout
 
-- **Frontend**: React 18 + TypeScript + Vite
-- **UI**: shadcn/ui (Radix primitives) + Tailwind CSS
-- **Backend**: Supabase (PostgreSQL + Auth + Edge Functions)
-- **State**: TanStack Query (React Query)
-- **Testing**: Vitest + Testing Library
-
-## Architecture
-
-```text
+```
 src/
-├── components/       # UI components (shadcn/ui based)
-├── hooks/           # React Query hooks for data fetching
-├── integrations/
-│   └── supabase/    # Supabase client & generated types
-├── lib/
-│   ├── batteries/   # Battery domain logic
-│   ├── riders/      # Rider domain logic
-│   ├── vehicles/    # Vehicle domain logic
-│   └── import/      # ERP-grade CSV import system
-├── types/           # TypeScript types (historical, import)
-├── pages/           # Page components
-└── __tests__/       # Vitest tests (mirrors src structure)
+├── components/             UI (shadcn-based, kept thin)
+├── hooks/                  React Query data hooks (useVehicles, useBatteries, ...)
+├── lib/<domain>/           Domain logic — batteries/, riders/, vehicles/, import/
+├── pages/                  Route-level pages
+├── integrations/supabase/  Client + generated types
+└── __tests__/              Mirrors src/
 ```
 
-### Key Patterns
+**Domain-driven**: business logic lives in `src/lib/<domain>/`. Components stay presentational. Data fetching always goes through a hook in `src/hooks/`, never a raw supabase call inside a component.
 
-1. **Domain-Driven Structure**: Code organized by business domain (vehicles, riders, batteries) in `src/lib/`
-2. **React Query Hooks**: All data fetching via hooks in `src/hooks/` (e.g., `useVehicles.ts`, `useBatteries.ts`)
-3. **Supabase Client**: Import from `@/integrations/supabase/client` — never create new clients
-4. **Event Sourcing**: All entity changes logged via `*_events` tables for audit trail
-5. **Historical Data**: Point-in-time queries with confidence scores (see `src/types/historical.ts`)
+## Database
 
-### Database Conventions
+Full schema reference: **`openspec/db-schema.md`** (16 tables, FKs, enums, RPCs). Read it before touching DB code.
 
-- Tables: `vehicles`, `riders`, `batteries`, `payments`, `vehicle_events`, `rider_events`
-- RLS (Row Level Security) enabled on all tables
-- RPC functions for complex operations (e.g., `map_battery_to_vehicle`)
+### ⚠️ Dual-table source-of-truth is asymmetric (the #1 gotcha)
 
-### Dual-Table Architecture
+Two parallel pairs exist that the docs claim are mirror-synced via triggers. **In practice they aren't symmetric** — different tables are authoritative for different questions:
 
-The system uses dual ledger/payment tables:
-- **UI Layer (source of truth)**: `rider_ledgers` + `payments`
-- **RPC Layer (synced)**: `rental_ledgers` + `rental_payments`
-- Database triggers automatically sync from source to target
-- Bulk operations use dual-write pattern for consistency
+| Querying for... | Use this table | Field for amount |
+|---|---|---|
+| Money collected (rentals + deposits) | `payments` where `status='paid' AND cancelled_at IS NULL` | `amount` |
+| Outstanding (overdue + pending) | `rental_payments` where `status IN ('overdue','pending')` | `amount_due` |
+| Active rental contracts | `rental_ledgers` (82 rows) — `rider_ledgers` is legacy (1 row) | — |
 
-See `openspec/changes/fix-retroactive-payments/sync-trigger-architecture.md` for details.
+`payments` only ever has *paid* rows. Future-week bills are auto-generated by RPC into `rental_payments` and never appear in `payments`. The dashboard's "Collected" KPI = `sum(payments.amount)` paid + non-cancelled.
 
-## Payment Generation Behavior
+### Schema drift to know about
 
-### Retroactive Ledger Creation
+`openspec/db-schema.md` lists `data_import_batches` and `retroactive_events` — **neither exists in the live DB**. Some recent columns aren't documented either: `payments.{screenshot_url, collected_by, collected_at, upi_last4}`, `rental_ledgers.{is_historical_import, data_source, confidence_score, effective_start_date}`. Trust the live DB over the doc when they conflict.
 
-When creating a ledger with a past start date:
-- **Past payments** (due_date < today) → status: `overdue`
-- **Current payment** (first due_date >= today) → status: `pending`
-- **6-month limit**: Only generates payments up to 6 months in the past
+### Reading DB state (read-only pattern)
 
-Example: Creating a weekly ledger on March 26 with start date January 18:
-- Generates ~10 weekly payments (6 weeks past + 4 weeks buffer)
-- First 6 payments: status `overdue`
-- Remaining payments: status `pending`
+`scripts/read-all.mjs` and `scripts/pull-all-tables.mjs` already hardcode the Supabase URL + anon key. Copy that pattern for inline `node -e` reads. **Don't create a new file in `scripts/` for one-off DB checks** — run inline. Reserve `scripts/` for reusable artifacts.
 
-### Ledger Reactivation (Gap Period Payments)
+## Domain Quick-Reference
 
-When reactivating a paused ledger:
-- **Gap payments** generated between `paused_at` and new `start_date` → status: `overdue`
-- **6 future payments** generated from new start date → status: `pending`
-- Existing pending payments are deleted before regeneration
+- **Riders**: IDs `LPR####`. Status: `active` / `inactive` / `suspended` / `deboarded`. Duty: `IDLE` / `LIVE`. `onboarded_by` = `TL1` or `TL2` (team leads).
+- **Vehicles**: prefixes `EVP` (Evolet Polo) and `INT` (IntuitEV BanaEV). Mostly Low Speed Swappable.
+- **Batteries**: `battery_smart_id` is 7–8 char uppercase alphanumeric (e.g. `D252707`). Providers: `BATTERY_SMART`, `Mooving`, `Sun Mobility`.
+- **Event sourcing**: every entity change must emit a row to its `*_events` table (`vehicle_events`, `rider_events`, `battery_events`). Don't skip.
 
-Example: Paused on January 1, reactivated on February 1:
-- Generates 4 weekly gap payments (Jan 1 to Feb 1) → `overdue`
-- Generates 6 future payments from Feb 1 → `pending`
+## Reports & Scripts
 
-### Payment ID Generation
+- `scripts/export-payments-collected.mjs` → `scripts/collections-report.xlsx` — 5-sheet Excel: Summary / Weekly Rentals / Security Deposits / Overdue / Pending. Read-only. `node scripts/export-payments-collected.mjs`.
+- `scripts/read-all.mjs`, `scripts/pull-all-tables.mjs` — read-only inspectors over the live DB.
+- `scripts/db-snapshot.json` — generated sample-of-each-table snapshot (untracked, regenerated by `pull-all-tables.mjs`).
 
-- Format: `P###` (e.g., `P001`, `P002`, ...)
-- Sequential numbering with zero-padding
-- Retry logic (3 attempts) for UNIQUE constraint violations
-- Handles concurrent ledger creation safely
+## Detailed Docs
 
-See `openspec/changes/fix-retroactive-payments/payment-id-generation.md` for details.
-
-## Testing
-
-- Unit tests: `vitest` with jsdom environment
-- Test files: `src/__tests__/` mirroring source structure, or `tests/` for integration tests
-- Setup file: `src/test/setup.ts`
-- Run tests: `npx vitest run` or `npx vitest watch`
-
-## Important Files
-
-- `TECH_ARCHITECTURE.md` — Detailed system architecture documentation
-- `src/integrations/supabase/types.ts` — Generated database types
-- `src/types/historical.ts` — Historical data & confidence scoring types
+- `TECH_ARCHITECTURE.md` — high-level system diagram
+- `openspec/db-schema.md` — full schema reference
+- `openspec/changes/fix-retroactive-payments/*.md` — payment-id generation rules, retroactive ledger lifecycle, sync-trigger architecture

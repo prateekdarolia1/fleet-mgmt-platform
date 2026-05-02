@@ -64,9 +64,9 @@ const TLCollectionView = ({ tl }: TLCollectionViewProps) => {
   const { riders, loading: ridersLoading } = useRiders();
   const { vehicles } = useVehicles();
   const { data: overduePayments, isLoading: overdueLoading } =
-    useUnifiedOverduePayments(100);
+    useUnifiedOverduePayments();
   const { data: upcomingPayments, isLoading: upcomingLoading } =
-    useUnifiedUpcomingPayments(14);
+    useUnifiedUpcomingPayments();
 
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);

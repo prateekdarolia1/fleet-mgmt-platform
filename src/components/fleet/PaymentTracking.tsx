@@ -223,8 +223,14 @@ export const PaymentTracking = () => {
   const [safetyCheckError, setSafetyCheckError] = useState<string | null>(null);
   const [isSafetyCheckSubmitting, setIsSafetyCheckSubmitting] = useState(false);
 
-  const { data: overduePayments } = useUnifiedOverduePayments(50);
-  const { data: upcomingPayments } = useUnifiedUpcomingPayments(7);
+  const { data: overduePayments } = useUnifiedOverduePayments();
+  const { data: upcomingPayments } = useUnifiedUpcomingPayments();
+
+  // "Pending" KPI = sum of upcoming-this-week balances. Overdue is shown separately.
+  const pendingThisWeekAmount = (upcomingPayments || []).reduce(
+    (sum, p) => sum + (p.amount_due || 0),
+    0
+  );
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -371,8 +377,8 @@ export const PaymentTracking = () => {
                 <AlertCircle className="h-4 w-4 text-secondary-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-secondary-foreground">₹{stats.pendingAmount.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">Awaiting payment</p>
+                <div className="text-2xl font-bold text-secondary-foreground">₹{pendingThisWeekAmount.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Due this week</p>
               </CardContent>
             </Card>
 

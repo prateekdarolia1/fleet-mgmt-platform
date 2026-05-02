@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { checkMobileExists } from '@/lib/riders/checkMobileExists';
 
 export interface Rider {
   id: string;
@@ -131,6 +132,15 @@ export const useRiders = () => {
     retained_document_details: string;
   }) => {
     try {
+      // Block duplicate mobile numbers — DB has no unique constraint yet, so
+      // this is the primary guard. Race-safe enough for low-volume admin use.
+      const dup = await checkMobileExists(riderData.mobile_number);
+      if (dup.exists) {
+        throw new Error(
+          `Mobile ${riderData.mobile_number} already registered to ${dup.rider?.rider_id} (${dup.rider?.name})`
+        );
+      }
+
       // Generate LPR rider ID
       const { data: existingRiders } = await supabase
         .from('riders')
@@ -177,7 +187,8 @@ export const useRiders = () => {
       return data;
     } catch (err) {
       console.error('Error adding rider:', err);
-      toast.error('Failed to add rider');
+      const msg = err instanceof Error ? err.message : 'Failed to add rider';
+      toast.error(msg);
       throw err;
     }
   };
@@ -199,6 +210,15 @@ export const useRiders = () => {
       }
 
       if (cleanedUpdates.mobile_number) {
+        const currentRider = riders.find(r => r.id === id);
+        if (cleanedUpdates.mobile_number !== currentRider?.mobile_number) {
+          const dup = await checkMobileExists(cleanedUpdates.mobile_number, id);
+          if (dup.exists) {
+            throw new Error(
+              `Mobile ${cleanedUpdates.mobile_number} already registered to ${dup.rider?.rider_id} (${dup.rider?.name})`
+            );
+          }
+        }
         cleanedUpdates.phone = cleanedUpdates.mobile_number;
       }
 

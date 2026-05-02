@@ -147,8 +147,8 @@ async function insertPaymentsWithRetry(
  * Task 4.1-4.6, 9.1: Retroactive payment generation
  *
  * Creates payment entries for the period between start_date and today:
- * - Past payments (due_date < today) → status: "overdue"
- * - Current/future payments (due_date >= today) → status: "pending"
+ * - Past payments beyond the 3-day grace (due_date < today − 3 days) → status: "overdue"
+ * - Inside grace window or current/future (due_date >= today − 3 days) → status: "pending"
  *
  * @param params - Configuration for retroactive payment generation
  * @param params.ledgerId - UUID of the ledger to generate payments for
@@ -210,6 +210,9 @@ function generateRetroactivePayments(params: RetroactivePaymentParams): Generate
   const normalizedToday = new Date(today);
   normalizedToday.setHours(0, 0, 0, 0);
 
+  const graceThreshold = new Date(normalizedToday);
+  graceThreshold.setDate(graceThreshold.getDate() - 3);
+
   const normalizedStart = new Date(startDate);
   normalizedStart.setHours(0, 0, 0, 0);
 
@@ -244,8 +247,8 @@ function generateRetroactivePayments(params: RetroactivePaymentParams): Generate
     dueDate.setDate(dueDate.getDate() + (i * periodDays));
     dueDate.setHours(0, 0, 0, 0);
 
-    // Determine status: past payments are overdue, current/future are pending
-    const status: 'pending' | 'overdue' = dueDate < normalizedToday ? 'overdue' : 'pending';
+    // Past beyond 3-day grace → overdue. Inside grace or future → pending. Matches mark_overdue_payments cron.
+    const status: 'pending' | 'overdue' = dueDate < graceThreshold ? 'overdue' : 'pending';
 
     payments.push({
       payment_id: '', // Will be filled by getNextPaymentIds
@@ -826,11 +829,14 @@ export const useRiderLedgers = () => {
       if (updateError) throw updateError;
 
       // Generate fresh payments from new start_date.
-      // All past due dates → overdue. First date on/after today → pending (1 only, cron handles the rest).
+      // Past dates beyond the 3-day grace → overdue. Inside grace or future → pending.
+      // Stops after first pending row (cron generates subsequent weeks).
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const sixMonthsAgo = new Date(today);
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      const graceThreshold = new Date(today);
+      graceThreshold.setDate(graceThreshold.getDate() - 3);
 
       // Build payment date list (same logic for both sources)
       const dueDates: { due_date: string; status: 'overdue' | 'pending' }[] = [];
@@ -840,7 +846,7 @@ export const useRiderLedgers = () => {
 
       while (!pendingAdded) {
         if (current >= sixMonthsAgo) {
-          const isOverdue = current < today;
+          const isOverdue = current < graceThreshold;
           dueDates.push({
             due_date: toLocalDateStr(current),
             status: isOverdue ? 'overdue' : 'pending',
