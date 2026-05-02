@@ -12,8 +12,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock, Lock, AlertTriangle, Loader2, Download } from "lucide-react";
+import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, Shield, Receipt, Truck, User, Clock, Lock, AlertTriangle, Loader2, Download, Camera, FileText, Paperclip, X } from "lucide-react";
 import { toast } from "sonner";
+import { PaymentProofViewer } from "./PaymentProofViewer";
+import { uploadPaymentProof, validateProofFile, getProofType } from "@/lib/paymentProofs";
+import { supabase } from "@/integrations/supabase/client";
 import { usePayments, type Payment, type PaymentStatus } from "@/hooks/usePayments";
 import { useRiders } from "@/hooks/useRiders";
 import { useVehicles } from "@/hooks/useVehicles";
@@ -210,6 +213,8 @@ export const PaymentTracking = () => {
   const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [editProofFile, setEditProofFile] = useState<File | null>(null);
+  const [editProofRemoved, setEditProofRemoved] = useState(false);
 
   // Safety check modal state for marking payments as paid
   const [isSafetyCheckOpen, setIsSafetyCheckOpen] = useState(false);
@@ -515,13 +520,14 @@ export const PaymentTracking = () => {
                     <TableHead>Status</TableHead>
                     <TableHead>Mode</TableHead>
                     <TableHead>Period</TableHead>
+                    <TableHead>Proof</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredPayments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                         {searchTerm || statusFilter !== "all" ? "No payments found matching your filters." : "No payments recorded yet. Create a ledger to generate payments automatically."}
                       </TableCell>
                     </TableRow>
@@ -561,6 +567,15 @@ export const PaymentTracking = () => {
                          <span className="text-sm">{payment.rental_period}</span>
                        </TableCell>
                         <TableCell>
+                          <PaymentProofViewer
+                            url={payment.screenshot_url}
+                            collectedBy={payment.collected_by}
+                            collectedAt={payment.collected_at}
+                            riderName={payment.rider_name}
+                            label={payment.payment_id}
+                          />
+                        </TableCell>
+                        <TableCell>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -574,6 +589,8 @@ export const PaymentTracking = () => {
                                   payment_date: payment.payment_date || '',
                                   notes: payment.notes || ''
                                 });
+                                setEditProofFile(null);
+                                setEditProofRemoved(false);
                                 setIsEditDialogOpen(true);
                               }}
                             >
@@ -1061,6 +1078,84 @@ export const PaymentTracking = () => {
                 placeholder="Additional notes..."
               />
             </div>
+
+            <div className="grid gap-2">
+              <Label>Payment Proof</Label>
+              {editProofFile ? (
+                <div className="rounded-md border bg-muted/30 p-3 flex items-center gap-3">
+                  {getProofType(editProofFile) === "image" ? (
+                    <Paperclip className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  ) : (
+                    <FileText className="h-5 w-5 text-red-500 flex-shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{editProofFile.name}</p>
+                    <p className="text-xs text-muted-foreground">{(editProofFile.size / 1024).toFixed(0)} KB · will replace existing</p>
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setEditProofFile(null)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : editingPayment?.screenshot_url && !editProofRemoved ? (
+                <div className="rounded-md border p-3 flex items-center gap-3">
+                  <PaymentProofViewer
+                    url={editingPayment.screenshot_url}
+                    collectedBy={editingPayment.collected_by}
+                    collectedAt={editingPayment.collected_at}
+                    riderName={editingPayment.rider_name}
+                    label={editingPayment.payment_id}
+                    compact={false}
+                  />
+                  <div className="flex gap-2 ml-auto">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => document.getElementById("editProofFileInput")?.click()}
+                    >
+                      <Camera className="h-3.5 w-3.5 mr-1" />
+                      Replace
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditProofRemoved(true)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full h-12 border-dashed"
+                  onClick={() => document.getElementById("editProofFileInput")?.click()}
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  {editProofRemoved ? "Upload replacement (existing removed)" : "Attach payment proof"}
+                </Button>
+              )}
+              <input
+                id="editProofFileInput"
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0] || null;
+                  if (!f) return;
+                  const v = validateProofFile(f);
+                  if (!v.ok) {
+                    toast.error(v.error || "Invalid file");
+                    return;
+                  }
+                  setEditProofFile(f);
+                  setEditProofRemoved(false);
+                  e.target.value = "";
+                }}
+              />
+            </div>
           </div>
           <DialogFooter className="flex-col sm:flex-row gap-2">
             {/* Delete button - only for pending/overdue payments */}
@@ -1102,14 +1197,35 @@ export const PaymentTracking = () => {
 
                   setIsUpdating(true);
                   try {
+                    // Resolve new screenshot_url if proof was changed
+                    let nextScreenshotUrl: string | null | undefined = undefined;
+                    if (editProofFile) {
+                      nextScreenshotUrl = await uploadPaymentProof(editProofFile, editingPayment.id);
+                    } else if (editProofRemoved) {
+                      nextScreenshotUrl = null;
+                    }
+
                     await updatePayment(editingPayment.id, {
                       amount,
                       status: editFormData.status,
                       payment_mode: editFormData.payment_mode,
                       payment_date: editFormData.payment_date || undefined,
-                      notes: editFormData.notes || undefined
+                      notes: editFormData.notes || undefined,
+                      ...(nextScreenshotUrl !== undefined ? { screenshot_url: nextScreenshotUrl } as any : {}),
                     });
+
+                    // Mirror screenshot change to rental_payments via shared payment_id, if any.
+                    // The sync trigger covers most fields but not screenshot_url historically.
+                    if (nextScreenshotUrl !== undefined && editingPayment.payment_id) {
+                      await supabase
+                        .from('rental_payments')
+                        .update({ screenshot_url: nextScreenshotUrl } as any)
+                        .eq('payment_id', editingPayment.payment_id);
+                    }
+
                     setIsEditDialogOpen(false);
+                    setEditProofFile(null);
+                    setEditProofRemoved(false);
                     toast.success('Payment updated successfully');
                   } catch (error) {
                     toast.error(error instanceof Error ? error.message : 'Failed to update payment');

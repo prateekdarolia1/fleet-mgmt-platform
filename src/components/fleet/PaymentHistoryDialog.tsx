@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, CreditCard, FileText, IndianRupee } from "lucide-react";
 import { usePaymentHistory } from "@/hooks/usePaymentHistory";
+import { PaymentProofViewer } from "./PaymentProofViewer";
 
 interface PaymentHistoryDialogProps {
   open: boolean;
@@ -134,13 +135,14 @@ export const PaymentHistoryDialog = ({
                   <TableHead>Payment Date</TableHead>
                   <TableHead>Mode</TableHead>
                   <TableHead>Period</TableHead>
+                  <TableHead>Proof</TableHead>
                   <TableHead>Notes</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {payments.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       No payment records found for this rider.
                     </TableCell>
                   </TableRow>
@@ -178,6 +180,15 @@ export const PaymentHistoryDialog = ({
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">{payment.rental_period}</div>
+                      </TableCell>
+                      <TableCell>
+                        <PaymentProofViewer
+                          url={payment.screenshot_url}
+                          collectedBy={payment.collected_by}
+                          collectedAt={payment.collected_at}
+                          riderName={riderName}
+                          label={payment.rental_period}
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="text-sm text-muted-foreground max-w-[150px] truncate">

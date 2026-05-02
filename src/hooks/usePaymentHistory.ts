@@ -17,6 +17,11 @@ export interface Payment {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  // Collection metadata
+  screenshot_url?: string | null;
+  collected_by?: 'admin' | 'TL1' | 'TL2' | null;
+  collected_at?: string | null;
+  upi_last4?: string | null;
 }
 
 export const usePaymentHistory = (riderId?: string, ledgerId?: string) => {
@@ -69,9 +74,13 @@ export const usePaymentHistory = (riderId?: string, ledgerId?: string) => {
           payment_type: 'rental',
           payment_mode: (rp.payment_mode || null) as Payment['payment_mode'],
           rental_period: `Week ${rp.week_number}`,
-          notes: null,
+          notes: (rp as any).notes ?? null,
           created_at: rp.created_at,
           updated_at: rp.updated_at || rp.created_at,
+          screenshot_url: (rp as any).screenshot_url ?? null,
+          collected_by: (rp as any).collected_by ?? null,
+          collected_at: (rp as any).collected_at ?? null,
+          upi_last4: (rp as any).upi_last4 ?? null,
         });
       }
 

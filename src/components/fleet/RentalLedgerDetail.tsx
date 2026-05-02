@@ -27,7 +27,9 @@ import {
 import { cn } from '@/lib/utils';
 import { useRentalLedgerById, useRentalLedgerStats } from '@/hooks/useRentalLedgers';
 import { useRentalPaymentsByLedger, useMarkRentalPaymentPaid } from '@/hooks/useRentalPayments';
+import { effectiveStatus } from '@/lib/payments/window';
 import { RentalPaymentForm } from './RentalPaymentForm';
+import { PaymentProofViewer } from './PaymentProofViewer';
 
 interface RentalLedgerDetailProps {
   ledgerId: string;
@@ -61,19 +63,32 @@ const getStatusBadge = (status: string) => {
   );
 };
 
-// Payment status badge
-const getPaymentStatusBadge = (status: string) => {
+// Payment status badge — uses effectiveStatus so a row whose due_date is
+// beyond today + 7 days is shown as "Scheduled" rather than "Pending".
+// Keeps the per-ledger view consistent with the canonical upcoming-window rule.
+const getPaymentStatusBadge = (row: { status: string; due_date: string }) => {
+  const eff = effectiveStatus(row);
+
   const styles: Record<string, string> = {
-    pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    partial: 'bg-blue-50 text-blue-700 border-blue-200',
-    paid: 'bg-green-50 text-green-700 border-green-200',
-    overdue: 'bg-red-50 text-red-700 border-red-200',
-    waived: 'bg-gray-50 text-gray-700 border-gray-200'
+    upcoming:  'bg-yellow-50 text-yellow-700 border-yellow-200',
+    partial:   'bg-blue-50 text-blue-700 border-blue-200',
+    paid:      'bg-green-50 text-green-700 border-green-200',
+    overdue:   'bg-red-50 text-red-700 border-red-200',
+    future:    'bg-slate-50 text-slate-600 border-slate-200',
+    waived:    'bg-gray-50 text-gray-700 border-gray-200',
+    cancelled: 'bg-gray-50 text-gray-500 border-gray-200',
   };
 
+  const labels: Record<string, string> = {
+    upcoming: 'Pending',
+    future:   'Scheduled',
+  };
+
+  const label = labels[eff] || eff.charAt(0).toUpperCase() + eff.slice(1);
+
   return (
-    <Badge variant="outline" className={cn('text-xs', styles[status] || styles.pending)}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
+    <Badge variant="outline" className={cn('text-xs', styles[eff] || styles.upcoming)}>
+      {label}
     </Badge>
   );
 };
@@ -319,6 +334,7 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
                   <TableHead className="text-right">Paid</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Proof</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -349,7 +365,16 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
                       ₹{(payment.balance || payment.amount_due || 0).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      {getPaymentStatusBadge(payment.status)}
+                      {getPaymentStatusBadge(payment)}
+                    </TableCell>
+                    <TableCell>
+                      <PaymentProofViewer
+                        url={(payment as any).screenshot_url}
+                        collectedBy={(payment as any).collected_by}
+                        collectedAt={(payment as any).collected_at}
+                        riderName={ledger?.rider_name}
+                        label={`Week ${payment.week_number}`}
+                      />
                     </TableCell>
                     <TableCell className="text-right">
                       {payment.status !== 'paid' && payment.status !== 'waived' && (

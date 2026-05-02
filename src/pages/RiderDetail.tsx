@@ -23,9 +23,9 @@ interface Rider {
   phone: string;
   email: string | null;
   address: string | null;
-  status: 'Active' | 'Inactive';
+  status: 'active' | 'inactive' | 'suspended' | 'deboarded';
   duty_status: 'LIVE' | 'IDLE';
-  vehicle_id: string | null;
+  vehicle_assigned: string | null;
   battery_smart_id: string | null;
   created_at: string;
 }
@@ -50,6 +50,23 @@ export default function RiderDetail() {
       return data as unknown as Rider;
     },
     enabled: !!riderId,
+  });
+
+  // The mounted battery lives on the vehicle, not the rider — riders.battery_smart_id
+  // is often stale/null. Look up the rider's currently assigned vehicle for the truth.
+  const { data: assignedVehicle } = useQuery({
+    queryKey: ['rider-vehicle', rider?.vehicle_assigned],
+    queryFn: async () => {
+      if (!rider?.vehicle_assigned) return null;
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('vehicle_number, battery_smart_id')
+        .eq('vehicle_number', rider.vehicle_assigned)
+        .maybeSingle();
+      if (error) throw new Error(`Failed to fetch vehicle: ${error.message}`);
+      return data;
+    },
+    enabled: !!rider?.vehicle_assigned,
   });
 
   // Fetch rider events
@@ -104,11 +121,18 @@ export default function RiderDetail() {
 
   const getStatusBadge = (status: string) => {
     const colors: Record<string, string> = {
-      'Active': 'bg-green-100 text-green-800 border-green-300',
-      'Inactive': 'bg-gray-100 text-gray-800 border-gray-300',
+      active: 'bg-green-100 text-green-800 border-green-300',
+      inactive: 'bg-gray-100 text-gray-800 border-gray-300',
+      suspended: 'bg-amber-100 text-amber-800 border-amber-300',
+      deboarded: 'bg-red-100 text-red-800 border-red-300',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300';
+    return colors[(status || '').toLowerCase()] || 'bg-gray-100 text-gray-800 border-gray-300';
   };
+
+  const formatStatus = (status: string) =>
+    status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : '';
+
+  const batterySmartId = rider.battery_smart_id || assignedVehicle?.battery_smart_id || null;
 
   const getDutyStatusBadge = (dutyStatus: string) => {
     const colors: Record<string, string> = {
@@ -145,7 +169,7 @@ export default function RiderDetail() {
             </div>
             <div className="ml-auto flex gap-2">
               <Badge className={`${getStatusBadge(rider.status)} border`}>
-                {rider.status}
+                {formatStatus(rider.status)}
               </Badge>
               <Badge className={`${getDutyStatusBadge(rider.duty_status)} border`}>
                 {rider.duty_status}
@@ -190,7 +214,7 @@ export default function RiderDetail() {
               <div>
                 <p className="text-sm text-gray-500">Status</p>
                 <Badge className={`${getStatusBadge(rider.status)} border mt-1`}>
-                  {rider.status}
+                  {formatStatus(rider.status)}
                 </Badge>
               </div>
               <div>
@@ -202,13 +226,13 @@ export default function RiderDetail() {
               <div>
                 <p className="text-sm text-gray-500">Vehicle Assigned</p>
                 <p className="font-semibold">
-                  {rider.vehicle_id || 'No vehicle assigned'}
+                  {rider.vehicle_assigned || 'No vehicle assigned'}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">BatterySmart ID</p>
                 <p className="font-semibold">
-                  {rider.battery_smart_id || 'Not set'}
+                  {batterySmartId || 'Not set'}
                 </p>
               </div>
               <div>

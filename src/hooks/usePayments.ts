@@ -23,6 +23,11 @@ export interface Payment {
   // Cancellation fields
   cancelled_at?: string | null;
   cancelled_by?: string | null;
+  // Collection metadata (set when TL or admin marks paid)
+  screenshot_url?: string | null;
+  collected_by?: 'admin' | 'TL1' | 'TL2' | null;
+  collected_at?: string | null;
+  upi_last4?: string | null;
 }
 
 export const usePayments = () => {
