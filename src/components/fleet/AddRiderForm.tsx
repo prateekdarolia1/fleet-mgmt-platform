@@ -324,8 +324,8 @@ export const AddRiderForm = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map((month, index) => <SelectItem key={index} value={index.toString()}>
-                              {month}
+                          {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, index) => <SelectItem key={index} value={index.toString()}>
+                              {month} ({index + 1})
                             </SelectItem>)}
                         </SelectContent>
                       </Select>

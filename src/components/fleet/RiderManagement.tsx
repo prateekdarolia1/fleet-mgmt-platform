@@ -454,6 +454,7 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
               <TableHead>Join Date</TableHead>
               <TableHead>Rider Status</TableHead>
               <TableHead>Duty Status</TableHead>
+              <TableHead>Vehicle</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -500,6 +501,13 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
                   >
                     {rider.duty_status || 'IDLE'}
                   </Badge>
+                </TableCell>
+                <TableCell>
+                  {rider.vehicle_assigned ? (
+                    <span className="text-sm font-medium">{rider.vehicle_assigned}</span>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">—</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
