@@ -1048,14 +1048,35 @@ export const InventoryManagement = () => {
                       <Battery className="h-3 w-3" />
                       Map
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleStatusChange(vehicle)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStatusChange(vehicle);
+                      }}
+                    >
                       <RotateCcw className="h-3 w-3 mr-1" />
                       Status
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => startEditVehicle(vehicle)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        startEditVehicle(vehicle);
+                      }}
+                    >
                       <Edit className="h-3 w-3" />
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => confirmRemoveVehicle(vehicle)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        confirmRemoveVehicle(vehicle);
+                      }}
+                    >
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
