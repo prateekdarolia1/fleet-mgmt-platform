@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar, CreditCard, FileText, IndianRupee } from "lucide-react";
 import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 import { PaymentProofViewer } from "./PaymentProofViewer";
+import { cleanUpiLast4 } from "@/lib/payments/display";
 
 interface PaymentHistoryDialogProps {
   open: boolean;
@@ -147,7 +148,10 @@ export const PaymentHistoryDialog = ({
                     </TableCell>
                   </TableRow>
                 ) : (
-                  payments.map((payment) => (
+                  payments.map((payment) => {
+                    const upi = payment.payment_mode === 'upi' ? cleanUpiLast4(payment.upi_last4) : null;
+                    const paidOn = payment.collected_at ?? payment.payment_date;
+                    return (
                     <TableRow key={payment.id}>
                       <TableCell className="font-medium">
                         {payment.payment_id}
@@ -165,15 +169,13 @@ export const PaymentHistoryDialog = ({
                         {formatDate(payment.due_date)}
                       </TableCell>
                       <TableCell>
-                        {payment.payment_date 
-                          ? formatDate(payment.payment_date)
-                          : '-'
-                        }
+                        {paidOn ? formatDate(paidOn) : '-'}
                       </TableCell>
                       <TableCell>
-                        {payment.payment_mode 
-                          ? <Badge variant="outline">
+                        {payment.payment_mode
+                          ? <Badge variant="outline" className="font-mono">
                               {payment.payment_mode.replace('_', ' ').toUpperCase()}
+                              {upi ? ` ••${upi}` : ''}
                             </Badge>
                           : '-'
                         }
@@ -186,6 +188,7 @@ export const PaymentHistoryDialog = ({
                           url={payment.screenshot_url}
                           collectedBy={payment.collected_by}
                           collectedAt={payment.collected_at}
+                          upiLast4={payment.upi_last4}
                           riderName={riderName}
                           label={payment.rental_period}
                         />
@@ -196,7 +199,8 @@ export const PaymentHistoryDialog = ({
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

@@ -50,7 +50,31 @@ export const usePayments = () => {
       const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPayments(data || []);
+
+      // Enrich from rental_payments: the `payments.upi_last4` column has poor
+      // historical coverage (sync bug — see payment-upi-data-audit.md). For each
+      // row missing collection metadata, fall back to the rental_payments value
+      // keyed by payment_id. Read-only enrichment; no DB writes.
+      const rows = (data || []) as Payment[];
+      const paymentIds = rows.map(p => p.payment_id).filter(Boolean);
+      if (paymentIds.length > 0) {
+        const { data: rpRows } = await supabase
+          .from('rental_payments')
+          .select('payment_id, upi_last4, collected_at, collected_by, screenshot_url')
+          .in('payment_id', paymentIds);
+        const rpByPaymentId = new Map<string, any>();
+        (rpRows || []).forEach((rp: any) => rpByPaymentId.set(rp.payment_id, rp));
+        rows.forEach((p) => {
+          const rp = rpByPaymentId.get(p.payment_id);
+          if (!rp) return;
+          if (!p.upi_last4 && rp.upi_last4) (p as any).upi_last4 = rp.upi_last4;
+          if (!p.collected_at && rp.collected_at) (p as any).collected_at = rp.collected_at;
+          if (!p.collected_by && rp.collected_by) (p as any).collected_by = rp.collected_by;
+          if (!p.screenshot_url && rp.screenshot_url) (p as any).screenshot_url = rp.screenshot_url;
+        });
+      }
+
+      setPayments(rows);
     } catch (err) {
       console.error('Error fetching payments:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');

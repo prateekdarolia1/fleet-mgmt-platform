@@ -50,13 +50,28 @@ export const usePaymentHistory = (riderId?: string, ledgerId?: string) => {
 
       if (paymentsRes.error) throw paymentsRes.error;
 
+      // Build a payment_id -> rental_payments map so we can enrich payments rows
+      // that are missing upi_last4 / collected_at (sync gap, see audit doc).
+      const rpByPaymentId = new Map<string, any>();
+      for (const rp of (rentalRes.data || [])) {
+        if (rp.payment_id) rpByPaymentId.set(rp.payment_id, rp);
+      }
+
       // Normalise rental_payments rows to the Payment shape
       const seenIds = new Set<string>();
       const merged: Payment[] = [];
 
       for (const p of (paymentsRes.data || [])) {
         seenIds.add(p.payment_id);
-        merged.push(p as Payment);
+        const rp = rpByPaymentId.get(p.payment_id);
+        const enriched = { ...p } as any;
+        if (rp) {
+          if (!enriched.upi_last4 && rp.upi_last4) enriched.upi_last4 = rp.upi_last4;
+          if (!enriched.collected_at && rp.collected_at) enriched.collected_at = rp.collected_at;
+          if (!enriched.collected_by && rp.collected_by) enriched.collected_by = rp.collected_by;
+          if (!enriched.screenshot_url && rp.screenshot_url) enriched.screenshot_url = rp.screenshot_url;
+        }
+        merged.push(enriched as Payment);
       }
 
       for (const rp of (rentalRes.data || [])) {

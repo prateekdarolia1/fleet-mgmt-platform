@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, FileText, Image as ImageIcon, Paperclip } from "lucide-react";
 import { formatDate } from "@/lib/dateUtils";
+import { cleanUpiLast4 } from "@/lib/payments/display";
 
 interface PaymentProofViewerProps {
   url: string | null | undefined;
   collectedBy?: string | null;
   collectedAt?: string | null;
+  upiLast4?: string | null;
   riderName?: string | null;
   label?: string | null;
   /** When true, render compact icon button. When false, render text button. */
@@ -21,6 +23,7 @@ export const PaymentProofViewer = ({
   url,
   collectedBy,
   collectedAt,
+  upiLast4,
   riderName,
   label,
   compact = true,
@@ -32,6 +35,7 @@ export const PaymentProofViewer = ({
   }
 
   const isPdf = isPdfUrl(url);
+  const upi = cleanUpiLast4(upiLast4);
 
   return (
     <>
@@ -69,7 +73,7 @@ export const PaymentProofViewer = ({
           </DialogHeader>
 
           <div className="space-y-3">
-            {(riderName || collectedBy || collectedAt) && (
+            {(riderName || collectedBy || collectedAt || upi) && (
               <div className="text-sm text-muted-foreground space-y-0.5">
                 {riderName && <div><span className="font-medium text-foreground">Rider:</span> {riderName}</div>}
                 {collectedBy && (
@@ -80,6 +84,12 @@ export const PaymentProofViewer = ({
                 )}
                 {collectedAt && (
                   <div><span className="font-medium text-foreground">Collected on:</span> {formatDate(collectedAt)}</div>
+                )}
+                {upi && (
+                  <div>
+                    <span className="font-medium text-foreground">UPI:</span>{" "}
+                    <span className="font-mono">••{upi}</span>
+                  </div>
                 )}
               </div>
             )}

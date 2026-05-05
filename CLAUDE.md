@@ -15,6 +15,8 @@ npm run lint         # eslint
 npx vitest run       # unit tests (jsdom)
 ```
 
+**Don't run `lint`, `tsc`, `build`, or test suites repeatedly to verify changes — only run when the user explicitly asks.** The repo has hundreds of pre-existing lint warnings/errors that aren't actionable for the task at hand, and re-running burns time without informing the work. Trust the edits unless the user reports a problem.
+
 ## Code Layout
 
 ```

@@ -16,6 +16,7 @@ import { Plus, Search, Filter, Calendar, IndianRupee, AlertCircle, CheckCircle, 
 import { toast } from "sonner";
 import { PaymentProofViewer } from "./PaymentProofViewer";
 import { uploadPaymentProof, validateProofFile, getProofType } from "@/lib/paymentProofs";
+import { cleanUpiLast4 } from "@/lib/payments/display";
 import { supabase } from "@/integrations/supabase/client";
 import { usePayments, type Payment, type PaymentStatus } from "@/hooks/usePayments";
 import { useRiders } from "@/hooks/useRiders";
@@ -207,6 +208,7 @@ export const PaymentTracking = () => {
     status: 'pending' as Payment['status'],
     payment_mode: 'cash' as Payment['payment_mode'],
     payment_date: '',
+    upi_last4: '',
     notes: ''
   });
   const [isUpdating, setIsUpdating] = useState(false);
@@ -239,7 +241,6 @@ export const PaymentTracking = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
   const [selectedLedgerId, setSelectedLedgerId] = useState<string | null>(null);
   const [isLedgerDetailOpen, setIsLedgerDetailOpen] = useState(false);
   const [overdueTlFilter, setOverdueTlFilter] = useState<'all' | 'TL1' | 'TL2' | 'none'>('all');
@@ -311,19 +312,21 @@ export const PaymentTracking = () => {
     );
   };
 
-  const getPaymentModeBadge = (mode?: Payment['payment_mode']) => {
+  const getPaymentModeBadge = (mode?: Payment['payment_mode'], upiLast4?: string | null) => {
     if (!mode) return <span className="text-muted-foreground">-</span>;
-    
+
     const variants = {
       cash: 'default',
-      upi: 'secondary', 
+      upi: 'secondary',
       'bank-transfer': 'outline',
       card: 'outline'
     } as const;
-    
+
+    const upi = mode === 'upi' ? cleanUpiLast4(upiLast4) : null;
+
     return (
-      <Badge variant={variants[mode]} className="text-xs">
-        {mode.toUpperCase()}
+      <Badge variant={variants[mode]} className="text-xs font-mono">
+        {mode.toUpperCase()}{upi ? ` ••${upi}` : ''}
       </Badge>
     );
   };
@@ -436,74 +439,6 @@ export const PaymentTracking = () => {
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
-                <Dialog open={isAddPaymentOpen} onOpenChange={setIsAddPaymentOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Record Payment
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Record New Payment</DialogTitle>
-                      <DialogDescription>
-                        Add a new payment record for a rider.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="paymentRider">Rider</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select rider" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="R001">Arjun Kumar (R001)</SelectItem>
-                              <SelectItem value="R002">Priya Singh (R002)</SelectItem>
-                              <SelectItem value="R003">Rajesh Patel (R003)</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="paymentAmount">Amount (₹)</Label>
-                          <Input id="paymentAmount" type="number" />
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="paymentDueDate">Due Date</Label>
-                          <Input id="paymentDueDate" type="date" />
-                        </div>
-                        <div className="grid gap-2">
-                          <Label htmlFor="paymentMode">Payment Mode</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select mode" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cash">Cash</SelectItem>
-                              <SelectItem value="upi">UPI</SelectItem>
-                              <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
-                              <SelectItem value="card">Card</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="paymentPeriod">Rental Period</Label>
-                        <Input id="paymentPeriod" placeholder="e.g., Jan 2024, Week 1 Feb 2024" />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="paymentNotes">Notes</Label>
-                        <Input id="paymentNotes" placeholder="Additional notes..." />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit">Record Payment</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
               </div>
 
               {/* Payments Table */}
@@ -562,7 +497,7 @@ export const PaymentTracking = () => {
                          )}
                        </TableCell>
                         <TableCell>{getStatusBadge(payment.status)}</TableCell>
-                        <TableCell>{getPaymentModeBadge(payment.payment_mode)}</TableCell>
+                        <TableCell>{getPaymentModeBadge(payment.payment_mode, payment.upi_last4)}</TableCell>
                        <TableCell>
                          <span className="text-sm">{payment.rental_period}</span>
                        </TableCell>
@@ -571,6 +506,7 @@ export const PaymentTracking = () => {
                             url={payment.screenshot_url}
                             collectedBy={payment.collected_by}
                             collectedAt={payment.collected_at}
+                            upiLast4={payment.upi_last4}
                             riderName={payment.rider_name}
                             label={payment.payment_id}
                           />
@@ -587,6 +523,7 @@ export const PaymentTracking = () => {
                                   status: payment.status,
                                   payment_mode: payment.payment_mode || 'cash',
                                   payment_date: payment.payment_date || '',
+                                  upi_last4: payment.upi_last4 || '',
                                   notes: payment.notes || ''
                                 });
                                 setEditProofFile(null);
@@ -1069,6 +1006,28 @@ export const PaymentTracking = () => {
                 onChange={(e) => setEditFormData(prev => ({ ...prev, payment_date: e.target.value }))}
               />
             </div>
+            {editFormData.payment_mode === 'upi' && (
+              <div className="grid gap-2">
+                <Label htmlFor="editUpiLast4">UPI Last 4</Label>
+                <Input
+                  id="editUpiLast4"
+                  value={editFormData.upi_last4}
+                  onChange={(e) => setEditFormData(prev => ({
+                    ...prev,
+                    upi_last4: e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 4).toUpperCase()
+                  }))}
+                  placeholder="e.g. 4K9M"
+                  maxLength={4}
+                  className="font-mono tracking-widest"
+                />
+              </div>
+            )}
+            {editingPayment?.collected_at && (
+              <div className="text-xs text-muted-foreground">
+                Collected on {formatDate(editingPayment.collected_at)}
+                {editingPayment.collected_by ? ` by ${editingPayment.collected_by}` : ''}
+              </div>
+            )}
             <div className="grid gap-2">
               <Label htmlFor="editNotes">Notes</Label>
               <Input
@@ -1205,21 +1164,29 @@ export const PaymentTracking = () => {
                       nextScreenshotUrl = null;
                     }
 
+                    // upi_last4 only applies when mode is upi; clear it otherwise.
+                    const nextUpiLast4 = editFormData.payment_mode === 'upi'
+                      ? (editFormData.upi_last4 || null)
+                      : null;
+
                     await updatePayment(editingPayment.id, {
                       amount,
                       status: editFormData.status,
                       payment_mode: editFormData.payment_mode,
                       payment_date: editFormData.payment_date || undefined,
                       notes: editFormData.notes || undefined,
+                      upi_last4: nextUpiLast4,
                       ...(nextScreenshotUrl !== undefined ? { screenshot_url: nextScreenshotUrl } as any : {}),
-                    });
+                    } as any);
 
-                    // Mirror screenshot change to rental_payments via shared payment_id, if any.
-                    // The sync trigger covers most fields but not screenshot_url historically.
-                    if (nextScreenshotUrl !== undefined && editingPayment.payment_id) {
+                    // Mirror screenshot + upi_last4 change to rental_payments via shared payment_id.
+                    // The sync trigger covers most fields but not these historically.
+                    if (editingPayment.payment_id) {
+                      const mirror: Record<string, any> = { upi_last4: nextUpiLast4 };
+                      if (nextScreenshotUrl !== undefined) mirror.screenshot_url = nextScreenshotUrl;
                       await supabase
                         .from('rental_payments')
-                        .update({ screenshot_url: nextScreenshotUrl } as any)
+                        .update(mirror)
                         .eq('payment_id', editingPayment.payment_id);
                     }
 
@@ -1437,18 +1404,36 @@ export const PaymentTracking = () => {
                 setSafetyCheckError(null);
 
                 try {
-                  // Format notes to include UPI verification info
-                  let formattedNotes = safetyCheckData.notes || '';
-                  if (safetyCheckData.payment_mode === 'upi' && safetyCheckData.upi_last4) {
-                    formattedNotes = `UPI ID last 4: ${safetyCheckData.upi_last4.toUpperCase()}${formattedNotes ? ` | ${formattedNotes}` : ''}`;
-                  }
+                  const upiLast4 = safetyCheckData.payment_mode === 'upi'
+                    ? safetyCheckData.upi_last4.toUpperCase()
+                    : null;
+                  const nowIso = new Date().toISOString();
 
                   await updatePayment(safetyCheckPayment.id, {
                     status: 'paid',
                     payment_mode: safetyCheckData.payment_mode,
                     payment_date: safetyCheckData.payment_date,
-                    notes: formattedNotes || undefined
-                  });
+                    upi_last4: upiLast4,
+                    collected_by: 'admin',
+                    collected_at: nowIso,
+                    notes: safetyCheckData.notes || undefined,
+                  } as any);
+
+                  // Mirror to rental_payments via shared payment_id, since the
+                  // sync trigger doesn't cover all collection fields historically.
+                  if (safetyCheckPayment.payment_id) {
+                    await supabase
+                      .from('rental_payments')
+                      .update({
+                        status: 'paid',
+                        payment_mode: safetyCheckData.payment_mode,
+                        payment_date: safetyCheckData.payment_date,
+                        upi_last4: upiLast4,
+                        collected_by: 'admin',
+                        collected_at: nowIso,
+                      } as any)
+                      .eq('payment_id', safetyCheckPayment.payment_id);
+                  }
 
                   setIsSafetyCheckOpen(false);
                   setSafetyCheckPayment(null);

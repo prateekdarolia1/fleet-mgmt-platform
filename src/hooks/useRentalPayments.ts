@@ -111,12 +111,14 @@ export function useMarkRentalPaymentPaid() {
             .maybeSingle();
 
           const nowIso = new Date().toISOString();
+          const upiLast4 = variables.payment_mode === 'upi' ? (variables.upi_last4 ?? null) : null;
           if (existing) {
             // Update existing row (standalone ledger flow)
             await supabase.from('payments').update({
               status: result.status as any,
               payment_date: paymentDate,
               payment_mode: (variables.payment_mode as any) || null,
+              upi_last4: upiLast4,
               collected_by: 'admin',
               collected_at: nowIso,
             } as any).eq('payment_id', rp.payment_id);
@@ -134,6 +136,7 @@ export function useMarkRentalPaymentPaid() {
               payment_type: 'rental',
               rental_period: `Weekly Rental - Week ${rp.week_number}`,
               payment_mode: (variables.payment_mode as any) || null,
+              upi_last4: upiLast4,
               ledger_id: null,
               collected_by: 'admin',
               collected_at: nowIso,

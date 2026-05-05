@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { useRentalLedgerById, useRentalLedgerStats } from '@/hooks/useRentalLedgers';
 import { useRentalPaymentsByLedger, useMarkRentalPaymentPaid } from '@/hooks/useRentalPayments';
 import { effectiveStatus } from '@/lib/payments/window';
+import { cleanUpiLast4, paidOnDate } from '@/lib/payments/display';
 import { RentalPaymentForm } from './RentalPaymentForm';
 import { PaymentProofViewer } from './PaymentProofViewer';
 
@@ -333,13 +334,20 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
                   <TableHead className="text-right">Amount Due</TableHead>
                   <TableHead className="text-right">Paid</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
+                  <TableHead>Paid On</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Proof</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {payments.map((payment) => (
+                {payments.map((payment) => {
+                  const upi = cleanUpiLast4((payment as any).upi_last4);
+                  const paidOn = paidOnDate(
+                    (payment as any).collected_at,
+                    payment.payment_date,
+                  );
+                  return (
                   <TableRow
                     key={payment.id}
                     className={cn(
@@ -365,13 +373,28 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
                       ₹{(payment.balance || payment.amount_due || 0).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      {getPaymentStatusBadge(payment)}
+                      {paidOn ? (
+                        <span className="text-sm">{formatDate(paidOn)}</span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {getPaymentStatusBadge(payment)}
+                        {upi && (
+                          <div className="text-xs font-mono text-muted-foreground">
+                            UPI ••{upi}
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <PaymentProofViewer
                         url={(payment as any).screenshot_url}
                         collectedBy={(payment as any).collected_by}
                         collectedAt={(payment as any).collected_at}
+                        upiLast4={(payment as any).upi_last4}
                         riderName={ledger?.rider_name}
                         label={`Week ${payment.week_number}`}
                       />
@@ -388,7 +411,8 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
                       )}
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}
