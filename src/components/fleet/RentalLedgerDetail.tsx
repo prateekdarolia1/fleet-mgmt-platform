@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { formatDate } from '@/lib/dateUtils';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -101,16 +103,57 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
   const { data: ledger, isLoading: ledgerLoading } = useRentalLedgerById(ledgerId);
   const { data: payments, isLoading: paymentsLoading } = useRentalPaymentsByLedger(ledgerId);
 
+  // Fetch ALL deposit rows for this ledger so we can show every deposit
+  // (e.g. one at activation + another on reactivation).
+  const { data: depositRows } = useQuery({
+    queryKey: ['ledger-deposits', ledgerId, ledger?.rider_id],
+    enabled: !!ledger?.rider_id && !!ledger?.security_deposit && ledger.security_deposit > 0,
+    queryFn: async () => {
+      // Match by ledger_id OR rider_id since RentalLedgerConfirmModal sets ledger_id=null.
+      const byLedger = await supabase
+        .from('payments')
+        .select('payment_id, payment_mode, upi_last4, collected_at, payment_date, amount, status, rental_period')
+        .eq('payment_type', 'security_deposit')
+        .eq('ledger_id', ledgerId)
+        .is('cancelled_at', null)
+        .order('collected_at', { ascending: false, nullsFirst: false })
+        .order('payment_id', { ascending: false });
+      const byRider = await supabase
+        .from('payments')
+        .select('payment_id, payment_mode, upi_last4, collected_at, payment_date, amount, status, rental_period')
+        .eq('payment_type', 'security_deposit')
+        .eq('rider_id', ledger!.rider_id)
+        .is('cancelled_at', null)
+        .order('collected_at', { ascending: false, nullsFirst: false })
+        .order('payment_id', { ascending: false });
+
+      // Merge + dedupe by payment_id, preserve order (ledger-matched first)
+      const seen = new Set<string>();
+      const merged: any[] = [];
+      for (const r of [...(byLedger.data || []), ...(byRider.data || [])]) {
+        if (seen.has(r.payment_id)) continue;
+        seen.add(r.payment_id);
+        merged.push(r);
+      }
+      return merged;
+    },
+  });
+
+  // Balance can legitimately be 0 (fully paid), so use ?? not ||.
+  // If balance is null, fall back to amount_due − paid_amount.
+  const balanceOf = (p: { balance: number | null; amount_due: number; paid_amount: number }) =>
+    p.balance ?? Math.max(0, (p.amount_due || 0) - (p.paid_amount || 0));
+
   // Calculate stats
   const stats = {
     totalDue: payments?.reduce((sum, p) => sum + (p.amount_due || 0), 0) || 0,
     totalCollected: payments?.reduce((sum, p) => sum + (p.paid_amount || 0), 0) || 0,
     outstanding: payments
       ?.filter(p => ['pending', 'partial', 'overdue'].includes(p.status))
-      .reduce((sum, p) => sum + (p.balance || p.amount_due || 0), 0) || 0,
+      .reduce((sum, p) => sum + balanceOf(p), 0) || 0,
     overdue: payments
       ?.filter(p => p.status === 'overdue')
-      .reduce((sum, p) => sum + (p.balance || p.amount_due || 0), 0) || 0,
+      .reduce((sum, p) => sum + balanceOf(p), 0) || 0,
     overdueCount: payments?.filter(p => p.status === 'overdue').length || 0
   };
 
@@ -280,20 +323,67 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
       {ledger.security_deposit && ledger.security_deposit > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Security Deposit</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">
+                Security Deposits {depositRows && depositRows.length > 1 && `(${depositRows.length})`}
+              </CardTitle>
+              <Badge variant={ledger.security_deposit_status === 'collected' ? 'default' : 'outline'}>
+                {ledger.security_deposit_status === 'collected' ? 'Collected' : 'Pending'}
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
+            {depositRows && depositRows.length > 0 ? (
+              <div className="space-y-2">
+                {depositRows.map((d) => {
+                  const paidOn = paidOnDate(d.collected_at, d.payment_date);
+                  const upi = cleanUpiLast4(d.upi_last4);
+                  return (
+                    <div
+                      key={d.payment_id}
+                      className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2"
+                    >
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <p className="text-base font-bold">₹{Number(d.amount || 0).toLocaleString()}</p>
+                          <span className="text-xs text-muted-foreground font-mono">{d.payment_id}</span>
+                          {d.rental_period?.includes('Reactivation') && (
+                            <Badge variant="secondary" className="text-xs">Reactivation</Badge>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                          {d.payment_mode && (
+                            <span>
+                              Mode: <span className="font-medium uppercase">{d.payment_mode}</span>
+                              {d.payment_mode === 'upi' && upi && (
+                                <span className="font-mono"> ••{upi}</span>
+                              )}
+                            </span>
+                          )}
+                          {paidOn && (
+                            <span>Received on: <span className="font-medium">{formatDate(paidOn)}</span></span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                {depositRows.length > 1 && (
+                  <div className="pt-1 text-xs text-muted-foreground border-t">
+                    Total collected: <span className="font-semibold text-foreground">
+                      ₹{depositRows.reduce((s, d) => s + Number(d.amount || 0), 0).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
                 <p className="text-lg font-bold">₹{ledger.security_deposit.toLocaleString()}</p>
                 <p className="text-sm text-muted-foreground">
                   Status: {ledger.security_deposit_status || 'pending'}
                 </p>
               </div>
-              <Badge variant={ledger.security_deposit_status === 'collected' ? 'default' : 'outline'}>
-                {ledger.security_deposit_status === 'collected' ? 'Collected' : 'Pending'}
-              </Badge>
-            </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -370,7 +460,7 @@ export const RentalLedgerDetail = ({ ledgerId, onBack }: RentalLedgerDetailProps
                       ₹{(payment.paid_amount || 0).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      ₹{(payment.balance || payment.amount_due || 0).toLocaleString()}
+                      ₹{balanceOf(payment).toLocaleString()}
                     </TableCell>
                     <TableCell>
                       {paidOn ? (

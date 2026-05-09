@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatDate } from '@/lib/dateUtils';
+import { usePolling } from './usePolling';
 
 export type LedgerStatus = 'active' | 'paused' | 'closed';
 export type SecurityDepositStatus = 'retained' | 'refunded' | 'partially_refunded';
@@ -409,6 +410,10 @@ export interface CreateLedgerData {
   rental_amount: number;
   rental_start_date: string;
   swaps_allowed_per_month?: number;
+  // Deposit collection details
+  deposit_payment_mode?: 'cash' | 'upi' | 'bank-transfer' | 'card' | 'other';
+  deposit_upi_last4?: string;
+  deposit_collected_at?: string; // YYYY-MM-DD
   // Historical tracking fields (for retroactive entries)
   is_historical?: boolean;
   data_source?: string;
@@ -420,9 +425,9 @@ export const useRiderLedgers = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchLedgers = async () => {
+  const fetchLedgers = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
 
       // Fetch from both tables concurrently — rider creation flow writes directly
       // to rental_ledgers, so we must include it to show all ledgers.
@@ -489,7 +494,7 @@ export const useRiderLedgers = () => {
       console.error('Error fetching ledgers:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -583,6 +588,10 @@ export const useRiderLedgers = () => {
       });
 
       // Insert security deposit payment
+      const depositCollectedAtIso = ledgerData.deposit_collected_at
+        ? new Date(`${ledgerData.deposit_collected_at}T00:00:00`).toISOString()
+        : new Date().toISOString();
+      const isDepositUpi = ledgerData.deposit_payment_mode === 'upi';
       const { error: securityDepositError } = await supabase
         .from('payments')
         .insert({
@@ -596,8 +605,12 @@ export const useRiderLedgers = () => {
           payment_type: 'security_deposit' as const,
           rental_period: 'Security Deposit',
           ledger_id: ledger.id,
-          notes: 'Security deposit payment'
-        });
+          notes: 'Security deposit payment',
+          payment_mode: ledgerData.deposit_payment_mode || null,
+          upi_last4: isDepositUpi ? (ledgerData.deposit_upi_last4 || null) : null,
+          collected_at: depositCollectedAtIso,
+          collected_by: 'admin',
+        } as any);
 
       if (securityDepositError) {
         console.error('[createLedger] Security deposit error:', securityDepositError);
@@ -765,10 +778,15 @@ export const useRiderLedgers = () => {
   };
 
   /**
-   * Check if a ledger can be reactivated
-   * Returns eligibility status and any blocking reasons
+   * Check if a ledger can be reactivated.
+   * Business rules: a paused ledger may only be reactivated when its rider is
+   * (1) status='active' and (2) duty_status='LIVE'. The rider must be passed
+   * in by the caller since this hook doesn't load riders itself.
    */
-  const canReactivate = (riderId: string): {
+  const canReactivate = (
+    riderId: string,
+    rider?: { status?: string | null; duty_status?: string | null } | null,
+  ): {
     eligible: boolean;
     reasons: string[];
     ledger?: RiderLedger;
@@ -776,6 +794,24 @@ export const useRiderLedgers = () => {
     const ledger = ledgers.find(l => l.rider_id === riderId && l.status === 'paused');
     if (!ledger) {
       return { eligible: false, reasons: ['No paused ledger found for this rider'] };
+    }
+
+    const reasons: string[] = [];
+    if (!rider) {
+      reasons.push('Rider record not found.');
+    } else {
+      const status = (rider.status || '').toLowerCase();
+      const duty = (rider.duty_status || '').toUpperCase();
+      if (status !== 'active') {
+        reasons.push(`Rider status must be Active to reactivate (currently ${rider.status || 'unknown'}).`);
+      }
+      if (duty !== 'LIVE') {
+        reasons.push(`Rider duty status must be LIVE to reactivate (currently ${rider.duty_status || 'IDLE'}).`);
+      }
+    }
+
+    if (reasons.length > 0) {
+      return { eligible: false, reasons, ledger };
     }
     return { eligible: true, reasons: [], ledger };
   };
@@ -791,6 +827,9 @@ export const useRiderLedgers = () => {
       rental_amount?: number;
       rental_frequency?: 'daily' | 'weekly' | 'monthly';
       new_security_deposit?: number;
+      deposit_payment_mode?: 'cash' | 'upi' | 'bank-transfer' | 'card' | 'other';
+      deposit_upi_last4?: string;
+      deposit_collected_at?: string; // YYYY-MM-DD
     }
   ) => {
     try {
@@ -803,6 +842,27 @@ export const useRiderLedgers = () => {
         throw new Error('Only paused ledgers can be reactivated');
       }
 
+      // Defense-in-depth: re-fetch the rider's current status/duty from the DB
+      // rather than trust stale UI state. Reactivation requires status=active
+      // and duty_status=LIVE.
+      const { data: riderRow, error: riderErr } = await supabase
+        .from('riders')
+        .select('status, duty_status')
+        .eq('rider_id', ledger.rider_id)
+        .maybeSingle();
+
+      if (riderErr) throw riderErr;
+      if (!riderRow) {
+        throw new Error('Rider record not found — cannot reactivate ledger.');
+      }
+      const currentStatus = (riderRow.status || '').toLowerCase();
+      const currentDuty = (riderRow.duty_status || '').toUpperCase();
+      if (currentStatus !== 'active') {
+        throw new Error(`Rider status must be Active to reactivate (currently ${riderRow.status || 'unknown'}).`);
+      }
+      if (currentDuty !== 'LIVE') {
+        throw new Error(`Rider duty status must be LIVE to reactivate (currently ${riderRow.duty_status || 'IDLE'}).`);
+      }
 
       const effectiveFrequency = params.rental_frequency || ledger.rental_frequency;
       const effectiveAmount = params.rental_amount !== undefined ? params.rental_amount : ledger.rental_amount;
@@ -925,18 +985,25 @@ export const useRiderLedgers = () => {
       // Security deposit — always goes into payments table (shown in Ledger Management)
       if (params.new_security_deposit && params.new_security_deposit > 0) {
         const [depositId] = await getNextPaymentIds(1);
+        const reactCollectedDate = params.deposit_collected_at || params.start_date;
+        const reactDepositCollectedAtIso = new Date(`${reactCollectedDate}T00:00:00`).toISOString();
+        const reactIsUpi = params.deposit_payment_mode === 'upi';
         await supabase.from('payments').insert({
           payment_id: depositId,
           rider_id: ledger.rider_id,
           rider_name: ledger.rider_name,
           amount: params.new_security_deposit,
           due_date: params.start_date,
-          payment_date: params.start_date,
+          payment_date: reactCollectedDate,
           status: 'paid' as const,
           payment_type: 'security_deposit' as const,
           rental_period: 'Security Deposit (Reactivation)',
           ledger_id: ledger._source === 'rider_ledgers' ? id : null,
-        });
+          payment_mode: params.deposit_payment_mode || null,
+          upi_last4: reactIsUpi ? (params.deposit_upi_last4 || null) : null,
+          collected_at: reactDepositCollectedAtIso,
+          collected_by: 'admin',
+        } as any);
       }
 
       setLedgers(prev => prev.map(l =>
@@ -1031,6 +1098,8 @@ export const useRiderLedgers = () => {
     window.addEventListener('ledger-created', handler);
     return () => window.removeEventListener('ledger-created', handler);
   }, []);
+
+  usePolling(() => fetchLedgers(true), 60_000);
 
   return {
     ledgers,

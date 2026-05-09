@@ -336,6 +336,15 @@ function buildDepositRows({ deposits, rentalLedgers, riders }) {
         if (m) upi = m[1]
       }
 
+      // For deposits, prefer collected_at (real receipt time) over payment_date
+      // (which is the rental_start_date placeholder for legacy rows).
+      const collectedDateStr = d.collected_at
+        ? d.collected_at.slice(0, 10)
+        : d.payment_date
+      const collectedDate = d.collected_at
+        ? new Date(d.collected_at)
+        : parseDateOnly(d.payment_date)
+
       return {
         riderName: d.rider_name || rider?.name || '—',
         tlAssigned: tl,
@@ -344,10 +353,10 @@ function buildDepositRows({ deposits, rentalLedgers, riders }) {
         dutyStatus: rider?.duty_status || '—',
         vehicleAssigned: vehicleNumber || '—',
         amount: Number(d.amount || 0),
-        paymentCollectedDate: parseDateOnly(d.payment_date),
+        mode: fmtMode(d.payment_mode),
+        paymentCollectedDate: collectedDate,
         upiTxnNo: upi,
-        _mode: fmtMode(d.payment_mode),
-        _rawPaymentDate: d.payment_date,
+        _rawPaymentDate: collectedDateStr,
       }
     })
     .sort((a, b) => {
@@ -730,6 +739,7 @@ function writeDepositSheet(wb, rows) {
     { header: 'Duty Status', key: 'dutyStatus', width: 12 },
     { header: 'Vehicle Assigned', key: 'vehicleAssigned', width: 14 },
     { header: 'Amount', key: 'amount', width: 13, style: { numFmt: '"₹"#,##0' } },
+    { header: 'Mode', key: 'mode', width: 14 },
     { header: 'Payment Collected Date', key: 'paymentCollectedDate', width: 20, style: { numFmt: 'dd-mmm-yyyy' } },
     { header: 'UPI Txn No.', key: 'upiTxnNo', width: 13 },
   ]
@@ -752,8 +762,9 @@ function writeDepositSheet(wb, rows) {
     row.eachCell((cell, colNumber) => {
       cell.border = thinBorder()
       const isAmount = colNumber === 8
-      const isDate = colNumber === 9
-      const isCenter = colNumber === 1 || isDate || colNumber === 10
+      const isMode = colNumber === 9
+      const isDate = colNumber === 10
+      const isCenter = colNumber === 1 || isMode || isDate || colNumber === 11
       cell.alignment = {
         vertical: 'middle',
         horizontal: isCenter ? 'center' : isAmount ? 'right' : 'left',
@@ -784,11 +795,11 @@ function writeDepositSheet(wb, rows) {
   amountCell.alignment = { vertical: 'middle', horizontal: 'right' }
   amountCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.totalBg } }
 
-  ws.mergeCells(`I${totalRowNum}:J${totalRowNum}`)
+  ws.mergeCells(`I${totalRowNum}:K${totalRowNum}`)
   const tail = ws.getCell(`I${totalRowNum}`)
   tail.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLORS.totalBg } }
 
-  for (let col = 1; col <= 10; col++) {
+  for (let col = 1; col <= 11; col++) {
     const c = ws.getCell(totalRowNum, col)
     c.border = {
       top: { style: 'medium', color: { argb: COLORS.totalBorder } },
@@ -801,7 +812,7 @@ function writeDepositSheet(wb, rows) {
 
   ws.autoFilter = {
     from: { row: 1, column: 1 },
-    to: { row: lastDataRow, column: 10 },
+    to: { row: lastDataRow, column: 11 },
   }
 }
 

@@ -172,27 +172,48 @@ export const MarkAsPaidDrawer = ({
       <DrawerContent className="max-h-[92vh]">
         <div className="w-full max-w-2xl mx-auto flex flex-col overflow-hidden">
         <DrawerHeader className="text-left">
-          <DrawerTitle>Mark as Paid</DrawerTitle>
-          <DrawerDescription>
-            {target ? (
-              <>
-                {target.rider_name || "Unknown"} · {target.label} ·{" "}
-                <span className="font-semibold text-foreground">
-                  ₹{target.amount_due.toLocaleString("en-IN")}
-                </span>
-              </>
-            ) : (
-              "Record payment details"
-            )}
-          </DrawerDescription>
+          {isTL ? (
+            <>
+              <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-muted-foreground">
+                Mark Paid
+              </p>
+              <DrawerTitle className="text-lg">
+                {target?.rider_name || "Unknown"}
+              </DrawerTitle>
+              <DrawerDescription>
+                {target ? `${target.label}` : "Record payment details"}
+              </DrawerDescription>
+            </>
+          ) : (
+            <>
+              <DrawerTitle>Mark as Paid</DrawerTitle>
+              <DrawerDescription>
+                {target ? (
+                  <>
+                    {target.rider_name || "Unknown"} · {target.label} ·{" "}
+                    <span className="font-semibold text-foreground">
+                      ₹{target.amount_due.toLocaleString("en-IN")}
+                    </span>
+                  </>
+                ) : (
+                  "Record payment details"
+                )}
+              </DrawerDescription>
+            </>
+          )}
         </DrawerHeader>
 
         <div className="px-4 sm:px-6 pb-2 space-y-4 overflow-y-auto">
           {isTL ? (
             <div className="space-y-2">
-              <Label>Payment Mode</Label>
-              <div className="h-11 px-3 flex items-center rounded-md border bg-muted text-base font-medium">
-                UPI
+              <Label>Amount</Label>
+              <div className="h-16 px-4 flex items-center justify-between rounded-lg border bg-[#fafaf7] border-[#e8e3da]">
+                <span className="text-[26px] font-extrabold tracking-tight tabular-nums text-[#1c1917]">
+                  ₹{(target?.amount_due ?? 0).toLocaleString("en-IN")}
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#78716c]">
+                  Full amount
+                </span>
               </div>
             </div>
           ) : (
@@ -219,44 +240,59 @@ export const MarkAsPaidDrawer = ({
           {(isTL || paymentMode === "upi") && (
             <div className="space-y-2">
               <Label htmlFor="upi-last4">
-                UPI Last 4 Digits <span className="text-red-600">*</span>
+                UPI ref · last 4 digits{" "}
+                <span className="text-red-600">*</span>
               </Label>
               <Input
                 id="upi-last4"
+                noSpaces
                 value={upiLast4}
                 onChange={(e) =>
-                  setUpiLast4(e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 4).toUpperCase())
+                  setUpiLast4(
+                    e.target.value
+                      .replace(/[^a-zA-Z0-9]/g, "")
+                      .slice(0, 4)
+                      .toUpperCase()
+                  )
                 }
-                placeholder="e.g. 1234"
+                placeholder="0000"
                 maxLength={4}
-                className="h-11 text-base tracking-widest"
+                className={
+                  isTL
+                    ? "h-12 text-xl font-bold text-center tracking-[0.5em]"
+                    : "h-11 text-base tracking-widest"
+                }
               />
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="payment-date">Payment Date</Label>
-            <Input
-              id="payment-date"
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              max={today()}
-              className="h-11 text-base"
-            />
-          </div>
+          {!isTL && (
+            <div className="space-y-2">
+              <Label htmlFor="payment-date">Payment Date</Label>
+              <Input
+                id="payment-date"
+                type="date"
+                value={paymentDate}
+                onChange={(e) => setPaymentDate(e.target.value)}
+                max={today()}
+                className="h-11 text-base"
+              />
+            </div>
+          )}
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Notes (optional)</Label>
-            <Textarea
-              id="notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Any reference number, remarks..."
-              rows={2}
-              className="text-base"
-            />
-          </div>
+          {!isTL && (
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (optional)</Label>
+              <Textarea
+                id="notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Any reference number, remarks..."
+                rows={2}
+                className="text-base"
+              />
+            </div>
+          )}
 
           {requireProof && (
             <div className="space-y-2">
@@ -339,19 +375,25 @@ export const MarkAsPaidDrawer = ({
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="h-12 text-base"
+            className={isTL ? "h-14 text-[17px] font-bold" : "h-12 text-base"}
           >
             {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {isSubmitting ? "Saving..." : "Confirm Payment"}
+            {isSubmitting
+              ? "Saving..."
+              : isTL && target
+              ? `Confirm ₹${target.amount_due.toLocaleString("en-IN")}`
+              : "Confirm Payment"}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-            className="h-11"
-          >
-            Cancel
-          </Button>
+          {!isTL && (
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+              className="h-11"
+            >
+              Cancel
+            </Button>
+          )}
         </DrawerFooter>
         </div>
       </DrawerContent>

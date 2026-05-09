@@ -23,6 +23,14 @@ const ledgerSchema = z.object({
     required_error: "Please select a payment date"
   }),
   transaction_id: z.string().min(1, "Transaction ID is required").max(100, "Transaction ID must be less than 100 characters"),
+  deposit_payment_mode: z.enum(['cash', 'upi', 'bank-transfer', 'card', 'other'], {
+    required_error: "Please select payment mode"
+  }),
+  deposit_upi_last4: z.string()
+    .length(4, 'UPI last 4 must be exactly 4 characters')
+    .regex(/^[A-Za-z0-9]{4}$/, 'UPI last 4 must be alphanumeric')
+    .optional()
+    .or(z.literal('')),
   rental_frequency: z.enum(['daily', 'weekly', 'monthly'], {
     required_error: "Please select a rental frequency"
   }),
@@ -31,7 +39,10 @@ const ledgerSchema = z.object({
     required_error: "Please select a start date"
   }),
   swaps_allowed_per_month: z.number().min(0, "Must be 0 or greater").max(99, "Maximum 99 swaps allowed").int("Must be a whole number").optional()
-});
+}).refine(
+  (data) => data.deposit_payment_mode !== 'upi' || (!!data.deposit_upi_last4 && data.deposit_upi_last4.length === 4),
+  { message: 'UPI last 4 is required for UPI deposits', path: ['deposit_upi_last4'] }
+);
 
 type LedgerFormData = z.infer<typeof ledgerSchema>;
 
@@ -81,7 +92,10 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
   useEffect(() => {
     const fetchAvailableRiders = async () => {
       const riders = await getRidersWithoutLedgers();
-      setAvailableRiders(riders);
+      const sorted = [...riders].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base', numeric: true }),
+      );
+      setAvailableRiders(sorted);
     };
     fetchAvailableRiders();
   }, [getRidersWithoutLedgers]);
@@ -132,6 +146,10 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
         rental_amount: data.rental_amount,
         rental_start_date: data.rental_start_date.toISOString().split('T')[0],
         swaps_allowed_per_month: data.swaps_allowed_per_month ?? 4,
+        // Deposit collection details — payment_date is the day the deposit was received
+        deposit_payment_mode: data.deposit_payment_mode,
+        deposit_upi_last4: data.deposit_payment_mode === 'upi' ? data.deposit_upi_last4 || undefined : undefined,
+        deposit_collected_at: data.payment_date.toISOString().split('T')[0],
         // Include historical tracking fields
         ...historicalFields,
       };
@@ -261,6 +279,58 @@ export const CreateLedgerForm = ({ onSuccess }: CreateLedgerFormProps) => {
             </FormItem>
           )}
         />
+
+        {/* Deposit Payment Mode */}
+        <FormField
+          control={form.control}
+          name="deposit_payment_mode"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Deposit Payment Mode</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment mode" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* UPI Last 4 — only when mode = upi */}
+        {form.watch('deposit_payment_mode') === 'upi' && (
+          <FormField
+            control={form.control}
+            name="deposit_upi_last4"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>UPI Last 4 Characters</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    noSpaces
+                    placeholder="e.g., 4K9M"
+                    maxLength={4}
+                    className="uppercase font-mono"
+                  />
+                </FormControl>
+                <p className="text-xs text-muted-foreground">
+                  Last 4 characters of the UPI ID (e.g., last 4 of name@okaxis)
+                </p>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
 
         {/* Rental Frequency */}
         <FormField

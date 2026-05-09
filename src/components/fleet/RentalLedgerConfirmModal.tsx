@@ -49,9 +49,34 @@ const rentalConfirmSchema = z.object({
   security_deposit: z.number()
     .min(0, 'Security deposit cannot be negative')
     .max(50000, 'Security deposit seems too high (max ₹50,000)'),
+  deposit_payment_mode: z.enum(['cash', 'upi', 'bank-transfer', 'card', 'other'] as const).optional(),
+  deposit_upi_last4: z.string()
+    .length(4, 'UPI last 4 must be exactly 4 characters')
+    .regex(/^[A-Za-z0-9]{4}$/, 'UPI last 4 must be alphanumeric')
+    .optional()
+    .or(z.literal('')),
+  deposit_collected_at: z.string().optional(),
   responsible_user_id: z.string().optional(),
   notes: z.string().max(500).optional()
-});
+}).refine(
+  (data) => {
+    // If a deposit is being collected, mode is required
+    if (data.security_deposit > 0) {
+      return !!data.deposit_payment_mode;
+    }
+    return true;
+  },
+  { message: 'Payment mode is required when collecting a deposit', path: ['deposit_payment_mode'] }
+).refine(
+  (data) => {
+    // UPI last 4 required when mode = upi
+    if (data.security_deposit > 0 && data.deposit_payment_mode === 'upi') {
+      return !!data.deposit_upi_last4 && data.deposit_upi_last4.length === 4;
+    }
+    return true;
+  },
+  { message: 'UPI last 4 is required for UPI deposits', path: ['deposit_upi_last4'] }
+);
 
 type RentalConfirmFormData = z.infer<typeof rentalConfirmSchema>;
 
@@ -103,6 +128,9 @@ export const RentalLedgerConfirmModal = ({
       rental_start_date: format(new Date(), 'yyyy-MM-dd'),
       rental_amount: 0,
       security_deposit: 0,
+      deposit_payment_mode: undefined,
+      deposit_upi_last4: '',
+      deposit_collected_at: format(new Date(), 'yyyy-MM-dd'),
       responsible_user_id: '',
       notes: ''
     }
@@ -155,18 +183,25 @@ export const RentalLedgerConfirmModal = ({
         const nextNum = Math.max(parseId(p1.data?.payment_id), parseId(p2.data?.payment_id)) + 1;
         const depositPaymentId = `P${nextNum.toString().padStart(3, '0')}`;
 
+        const collectedDate = data.deposit_collected_at || data.rental_start_date;
+        const collectedAtIso = new Date(`${collectedDate}T00:00:00`).toISOString();
+        const isUpi = data.deposit_payment_mode === 'upi';
         await supabase.from('payments').insert({
           payment_id: depositPaymentId,
           rider_id: riderId,
           rider_name: riderName,
           amount: data.security_deposit,
           due_date: data.rental_start_date,
-          payment_date: data.rental_start_date,
+          payment_date: collectedDate,
           status: 'paid',
           payment_type: 'security_deposit',
           rental_period: 'Security Deposit',
           ledger_id: null, // payments.ledger_id FK points to rider_ledgers, not rental_ledgers
-        });
+          payment_mode: data.deposit_payment_mode || null,
+          upi_last4: isUpi ? (data.deposit_upi_last4 || null) : null,
+          collected_at: collectedAtIso,
+          collected_by: 'admin',
+        } as any);
       }
 
       // Reset form and close modal
@@ -207,6 +242,7 @@ export const RentalLedgerConfirmModal = ({
   };
 
   const watchDeposit = form.watch('security_deposit');
+  const watchDepositMode = form.watch('deposit_payment_mode');
   const watchDate = form.watch('rental_start_date');
   const watchRentalAmount = form.watch('rental_amount');
 
@@ -372,6 +408,96 @@ export const RentalLedgerConfirmModal = ({
                 </FormItem>
               )}
             />
+
+            {/* Deposit collection details — only when a deposit is being charged */}
+            {watchDeposit > 0 && (
+              <div className="space-y-4 rounded-lg border-2 border-blue-100 bg-blue-50/30 p-4">
+                <p className="text-sm font-semibold text-blue-900">Deposit Collection Details</p>
+
+                <FormField
+                  control={form.control}
+                  name="deposit_payment_mode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Mode</FormLabel>
+                      <FormControl>
+                        <select
+                          {...field}
+                          value={field.value || ''}
+                          disabled={isSubmitting}
+                          className={cn(
+                            'w-full px-4 py-2.5 rounded-lg border-2 bg-background text-sm font-medium transition-colors',
+                            'hover:border-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
+                            field.value ? 'border-blue-200 bg-blue-50/30' : 'border-input'
+                          )}
+                        >
+                          <option value="">Select mode...</option>
+                          <option value="cash">Cash</option>
+                          <option value="upi">UPI</option>
+                          <option value="bank-transfer">Bank Transfer</option>
+                          <option value="card">Card</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {watchDepositMode === 'upi' && (
+                  <FormField
+                    control={form.control}
+                    name="deposit_upi_last4"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>UPI Last 4 Characters</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            noSpaces
+                            placeholder="e.g., 4K9M"
+                            maxLength={4}
+                            disabled={isSubmitting}
+                            className={cn(
+                              'uppercase font-mono text-base font-medium border-2 transition-colors',
+                              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50',
+                              field.value?.length === 4 && 'border-green-200 bg-green-50/30'
+                            )}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Last 4 characters of the UPI ID (e.g., last 4 of name@okaxis)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                <FormField
+                  control={form.control}
+                  name="deposit_collected_at"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date Received</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="date"
+                          {...field}
+                          max={format(new Date(), 'yyyy-MM-dd')}
+                          disabled={isSubmitting}
+                          className="border-2"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Date the deposit was actually received
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
 
             {/* Responsible User */}
             <FormField

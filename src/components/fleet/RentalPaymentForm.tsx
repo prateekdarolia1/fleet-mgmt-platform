@@ -258,6 +258,7 @@ export const RentalPaymentForm = ({
                 <FormControl>
                   <Input
                     {...field}
+                    noSpaces
                     placeholder="e.g., 4K9M"
                     maxLength={4}
                     disabled={isSubmitting}

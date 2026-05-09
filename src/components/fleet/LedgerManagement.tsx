@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useTableSort } from "@/hooks/useTableSort";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,11 +68,17 @@ export const LedgerManagement = () => {
     rental_amount: number;
     rental_frequency: 'daily' | 'weekly' | 'monthly';
     new_security_deposit: number;
+    deposit_payment_mode?: 'cash' | 'upi' | 'bank-transfer' | 'card' | 'other';
+    deposit_upi_last4: string;
+    deposit_collected_at: string;
   }>({
     start_date: '',
     rental_amount: 0,
     rental_frequency: 'weekly',
-    new_security_deposit: 0
+    new_security_deposit: 0,
+    deposit_payment_mode: undefined,
+    deposit_upi_last4: '',
+    deposit_collected_at: '',
   });
   const [reactivationEligibility, setReactivationEligibility] = useState<{
     eligible: boolean;
@@ -88,14 +96,28 @@ export const LedgerManagement = () => {
   // Status filter state
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'closed'>('all');
 
+  // Enrich ledgers with mobile + vehicle so fuzzy search can match on them
+  const searchableLedgers = useMemo(
+    () => ledgers.map(l => {
+      const r = riderMap.get(l.rider_id);
+      const v = riderVehicleMap.get(l.rider_id);
+      return {
+        ...l,
+        _search_mobile: r?.mobile_number || r?.phone || '',
+        _search_vehicle: v?.vehicle_number || '',
+      };
+    }),
+    [ledgers, riderMap, riderVehicleMap]
+  );
+
   // Use fuzzy search for ledgers
   const {
     results: searchResults,
     searchTerm,
     setSearchTerm,
   } = useFuzzySearch(
-    ledgers,
-    ['rider_name', 'rider_id'],
+    searchableLedgers,
+    ['rider_name', 'rider_id', '_search_mobile', '_search_vehicle'],
     { threshold: 0.3 }
   );
 
@@ -103,6 +125,20 @@ export const LedgerManagement = () => {
   const filteredLedgers = statusFilter === 'all'
     ? searchResults
     : searchResults.filter(ledger => ledger.status === statusFilter);
+
+  const ledgersSort = useTableSort(filteredLedgers, {
+    rider: (l) => l.rider_name,
+    mobile: (l) => {
+      const r = riderMap.get(l.rider_id);
+      return r?.mobile_number || r?.phone || null;
+    },
+    vehicle: (l) => riderVehicleMap.get(l.rider_id)?.vehicle_number ?? null,
+    battery: (l) => riderVehicleMap.get(l.rider_id)?.battery_smart_id ?? null,
+    status: (l) => l.status,
+    deposit: (l) => Number(l.security_deposit_amount),
+    frequency: (l) => l.rental_frequency,
+    start_date: (l) => l.rental_start_date,
+  });
 
   const getFrequencyBadge = (frequency: string) => {
     const variants = {
@@ -178,14 +214,18 @@ export const LedgerManagement = () => {
     const ledger = ledgers.find(l => l.id === ledgerId);
     if (!ledger) return;
 
-    const eligibility = canReactivate(ledger.rider_id);
+    const rider = riderMap.get(ledger.rider_id);
+    const eligibility = canReactivate(ledger.rider_id, rider);
     setReactivationEligibility(eligibility);
     setReactivateLedgerId(ledgerId);
     setReactivateParams({
       start_date: new Date().toISOString().split('T')[0],
       rental_amount: ledger.rental_amount,
       rental_frequency: ledger.rental_frequency,
-      new_security_deposit: 0
+      new_security_deposit: 0,
+      deposit_payment_mode: undefined,
+      deposit_upi_last4: '',
+      deposit_collected_at: new Date().toISOString().split('T')[0],
     });
     setIsReactivateDialogOpen(true);
   };
@@ -194,11 +234,17 @@ export const LedgerManagement = () => {
     if (!reactivateLedgerId) return;
     setIsReactivating(true);
     try {
+      const collectingDeposit = reactivateParams.new_security_deposit > 0;
       await reactivateLedger(reactivateLedgerId, {
         start_date: reactivateParams.start_date,
         rental_amount: reactivateParams.rental_amount,
         rental_frequency: reactivateParams.rental_frequency,
-        new_security_deposit: reactivateParams.new_security_deposit > 0 ? reactivateParams.new_security_deposit : undefined
+        new_security_deposit: collectingDeposit ? reactivateParams.new_security_deposit : undefined,
+        deposit_payment_mode: collectingDeposit ? reactivateParams.deposit_payment_mode : undefined,
+        deposit_upi_last4: collectingDeposit && reactivateParams.deposit_payment_mode === 'upi'
+          ? reactivateParams.deposit_upi_last4 || undefined
+          : undefined,
+        deposit_collected_at: collectingDeposit ? reactivateParams.deposit_collected_at : undefined,
       });
       setIsReactivateDialogOpen(false);
       setReactivateLedgerId(null);
@@ -326,7 +372,7 @@ export const LedgerManagement = () => {
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by rider name or ID..."
+                placeholder="Search by name, mobile, vehicle or rider ID..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -350,26 +396,26 @@ export const LedgerManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Rider Details</TableHead>
-                  <TableHead>Mobile No.</TableHead>
-                  <TableHead>Vehicle</TableHead>
-                  <TableHead>Battery Smart ID</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Security Deposit</TableHead>
-                  <TableHead>Rental Details</TableHead>
-                  <TableHead>Start Date</TableHead>
+                  <SortableTableHead sortKey="rider" currentKey={ledgersSort.sortKey} direction={ledgersSort.sortDir} onSort={ledgersSort.toggleSort}>Rider Details</SortableTableHead>
+                  <SortableTableHead sortKey="mobile" currentKey={ledgersSort.sortKey} direction={ledgersSort.sortDir} onSort={ledgersSort.toggleSort}>Mobile No.</SortableTableHead>
+                  <SortableTableHead sortKey="vehicle" currentKey={ledgersSort.sortKey} direction={ledgersSort.sortDir} onSort={ledgersSort.toggleSort}>Vehicle</SortableTableHead>
+                  <SortableTableHead sortKey="battery" currentKey={ledgersSort.sortKey} direction={ledgersSort.sortDir} onSort={ledgersSort.toggleSort}>Battery Smart ID</SortableTableHead>
+                  <SortableTableHead sortKey="status" currentKey={ledgersSort.sortKey} direction={ledgersSort.sortDir} onSort={ledgersSort.toggleSort}>Status</SortableTableHead>
+                  <SortableTableHead sortKey="deposit" currentKey={ledgersSort.sortKey} direction={ledgersSort.sortDir} onSort={ledgersSort.toggleSort}>Security Deposit</SortableTableHead>
+                  <SortableTableHead sortKey="frequency" currentKey={ledgersSort.sortKey} direction={ledgersSort.sortDir} onSort={ledgersSort.toggleSort}>Rental Details</SortableTableHead>
+                  <SortableTableHead sortKey="start_date" currentKey={ledgersSort.sortKey} direction={ledgersSort.sortDir} onSort={ledgersSort.toggleSort}>Start Date</SortableTableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLedgers.length === 0 ? (
+                {ledgersSort.sortedRows.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {searchTerm ? "No ledgers found matching your search." : "No ledgers created yet. Create your first ledger to get started."}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredLedgers.map((ledger) => (
+                  ledgersSort.sortedRows.map((ledger) => (
                     <TableRow key={ledger.id} className={ledger.status === 'paused' ? 'bg-amber-50/50' : ''}>
                       <TableCell>
                         <div>
@@ -592,7 +638,18 @@ export const LedgerManagement = () => {
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                {reactivationEligibility.reasons[0]}
+                {reactivationEligibility.reasons.length === 1 ? (
+                  reactivationEligibility.reasons[0]
+                ) : (
+                  <>
+                    <p className="mb-1 font-medium">This ledger can't be reactivated yet:</p>
+                    <ul className="list-disc list-inside space-y-0.5">
+                      {reactivationEligibility.reasons.map((reason, i) => (
+                        <li key={i}>{reason}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
               </AlertDescription>
             </Alert>
           )}
@@ -656,6 +713,57 @@ export const LedgerManagement = () => {
                     Leave 0 if no deposit is being collected on reactivation.
                   </p>
                 </div>
+
+                {/* Deposit collection details — only when a deposit is being collected */}
+                {reactivateParams.new_security_deposit > 0 && (
+                  <div className="grid gap-3 rounded-lg border-2 border-blue-100 bg-blue-50/30 p-3">
+                    <p className="text-sm font-semibold text-blue-900">Deposit Collection Details</p>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="depositMode">Payment Mode</Label>
+                      <Select
+                        value={reactivateParams.deposit_payment_mode || ''}
+                        onValueChange={(value) => setReactivateParams(prev => ({ ...prev, deposit_payment_mode: value as 'cash' | 'upi' | 'bank-transfer' | 'card' | 'other' }))}
+                      >
+                        <SelectTrigger id="depositMode">
+                          <SelectValue placeholder="Select mode..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="cash">Cash</SelectItem>
+                          <SelectItem value="upi">UPI</SelectItem>
+                          <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
+                          <SelectItem value="card">Card</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {reactivateParams.deposit_payment_mode === 'upi' && (
+                      <div className="grid gap-2">
+                        <Label htmlFor="depositUpi">UPI Last 4 Characters</Label>
+                        <Input
+                          id="depositUpi"
+                          placeholder="e.g., 4K9M"
+                          maxLength={4}
+                          value={reactivateParams.deposit_upi_last4}
+                          onChange={(e) => setReactivateParams(prev => ({ ...prev, deposit_upi_last4: e.target.value.replace(/\s/g, '').toUpperCase() }))}
+                          className="uppercase font-mono"
+                        />
+                      </div>
+                    )}
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="depositDate">Date Received</Label>
+                      <Input
+                        id="depositDate"
+                        type="date"
+                        max={new Date().toISOString().split('T')[0]}
+                        value={reactivateParams.deposit_collected_at}
+                        onChange={(e) => setReactivateParams(prev => ({ ...prev, deposit_collected_at: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <DialogFooter>
@@ -667,7 +775,9 @@ export const LedgerManagement = () => {
                   disabled={
                     isReactivating ||
                     !reactivateParams.start_date ||
-                    reactivateParams.rental_amount <= 0
+                    reactivateParams.rental_amount <= 0 ||
+                    (reactivateParams.new_security_deposit > 0 && !reactivateParams.deposit_payment_mode) ||
+                    (reactivateParams.new_security_deposit > 0 && reactivateParams.deposit_payment_mode === 'upi' && (reactivateParams.deposit_upi_last4 || '').length !== 4)
                   }
                   className="bg-green-500 hover:bg-green-600"
                 >
