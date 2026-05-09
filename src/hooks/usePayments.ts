@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { usePolling } from './usePolling';
 
 export type PaymentStatus = 'pending' | 'paid' | 'overdue' | 'partial' | 'cancelled';
 
@@ -35,9 +36,9 @@ export const usePayments = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPayments = async (includeCancelled = false) => {
+  const fetchPayments = async (includeCancelled = false, silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       let query = supabase
         .from('payments')
         .select('*');
@@ -79,7 +80,7 @@ export const usePayments = () => {
       console.error('Error fetching payments:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -256,6 +257,8 @@ export const usePayments = () => {
   useEffect(() => {
     fetchPayments();
   }, []);
+
+  usePolling(() => fetchPayments(false, true), 60_000);
 
   return {
     payments,

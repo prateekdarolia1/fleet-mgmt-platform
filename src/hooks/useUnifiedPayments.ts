@@ -165,6 +165,7 @@ export function useUnifiedOverduePayments() {
 
       return unifiedResults;
     },
+    refetchInterval: 60_000,
   });
 }
 
@@ -281,5 +282,6 @@ export function useUnifiedUpcomingPayments(days: number = PAYMENT_WINDOW_DAYS) {
 
       return unifiedResults;
     },
+    refetchInterval: 60_000,
   });
 }

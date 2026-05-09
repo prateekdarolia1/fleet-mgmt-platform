@@ -24,6 +24,8 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { useTableSort } from '@/hooks/useTableSort';
 import { Search, Loader2, Battery, Eye, Plus, Link, Unlink } from 'lucide-react';
 
 // DDD: Battery state for mapping operation
@@ -53,6 +55,15 @@ export const BatteryManagement = () => {
   });
 
   const batteries = (batteriesData as BatteryListResult)?.batteries || [];
+
+  const batteriesSort = useTableSort(batteries, {
+    battery_id: (b) => b.battery_id,
+    provider: (b) => b.service_provider,
+    status: (b) => b.status,
+    zone: (b) => b.zone_id,
+    plan: (b) => b.battery_plan,
+    created: (b) => b.created_at,
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -151,17 +162,17 @@ export const BatteryManagement = () => {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-semibold">Battery ID (Lilypad)</TableHead>
-                  <TableHead className="font-semibold">Service Provider</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="font-semibold">Zone</TableHead>
-                  <TableHead className="font-semibold">Battery Plan</TableHead>
-                  <TableHead className="font-semibold">Created</TableHead>
+                  <SortableTableHead sortKey="battery_id" currentKey={batteriesSort.sortKey} direction={batteriesSort.sortDir} onSort={batteriesSort.toggleSort} className="font-semibold">Battery ID (Lilypad)</SortableTableHead>
+                  <SortableTableHead sortKey="provider" currentKey={batteriesSort.sortKey} direction={batteriesSort.sortDir} onSort={batteriesSort.toggleSort} className="font-semibold">Service Provider</SortableTableHead>
+                  <SortableTableHead sortKey="status" currentKey={batteriesSort.sortKey} direction={batteriesSort.sortDir} onSort={batteriesSort.toggleSort} className="font-semibold">Status</SortableTableHead>
+                  <SortableTableHead sortKey="zone" currentKey={batteriesSort.sortKey} direction={batteriesSort.sortDir} onSort={batteriesSort.toggleSort} className="font-semibold">Zone</SortableTableHead>
+                  <SortableTableHead sortKey="plan" currentKey={batteriesSort.sortKey} direction={batteriesSort.sortDir} onSort={batteriesSort.toggleSort} className="font-semibold">Battery Plan</SortableTableHead>
+                  <SortableTableHead sortKey="created" currentKey={batteriesSort.sortKey} direction={batteriesSort.sortDir} onSort={batteriesSort.toggleSort} className="font-semibold">Created</SortableTableHead>
                   <TableHead className="font-semibold text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {batteries.map((battery) => (
+                {batteriesSort.sortedRows.map((battery) => (
                   <TableRow
                     key={battery.id}
                     className="cursor-pointer hover:bg-blue-50 transition-colors"

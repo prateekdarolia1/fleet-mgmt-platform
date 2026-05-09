@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
+import { usePolling } from './usePolling';
 
 export interface Payment {
   id: string;
@@ -29,10 +30,10 @@ export const usePaymentHistory = (riderId?: string, ledgerId?: string) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPayments = async () => {
+  const fetchPayments = async (silent = false) => {
     if (!riderId && !ledgerId) return;
 
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError(null);
 
     try {
@@ -106,13 +107,15 @@ export const usePaymentHistory = (riderId?: string, ledgerId?: string) => {
       console.error('Error fetching payment history:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch payment history');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchPayments();
   }, [riderId, ledgerId]);
+
+  usePolling(() => fetchPayments(true), 60_000, !!(riderId || ledgerId));
 
   return {
     payments,

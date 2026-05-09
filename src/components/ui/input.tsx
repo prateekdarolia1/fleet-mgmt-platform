@@ -2,8 +2,34 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+export interface InputProps extends React.ComponentProps<"input"> {
+  /**
+   * When true, the space bar is blocked on keydown and any whitespace
+   * (including pasted content) is stripped before reaching the parent's
+   * onChange. Use for fields where spaces are never valid: IDs, codes,
+   * phone/aadhaar/PAN/IFSC numbers, UPI handles, smart IDs, etc.
+   */
+  noSpaces?: boolean;
+}
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, noSpaces, onKeyDown, onChange, ...props }, ref) => {
+    const handleKeyDown = noSpaces
+      ? (e: React.KeyboardEvent<HTMLInputElement>) => {
+          if (e.key === " ") e.preventDefault();
+          onKeyDown?.(e);
+        }
+      : onKeyDown;
+
+    const handleChange = noSpaces
+      ? (e: React.ChangeEvent<HTMLInputElement>) => {
+          if (/\s/.test(e.target.value)) {
+            e.target.value = e.target.value.replace(/\s+/g, "");
+          }
+          onChange?.(e);
+        }
+      : onChange;
+
     return (
       <input
         type={type}
@@ -12,6 +38,8 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className,
         )}
         ref={ref}
+        onKeyDown={handleKeyDown}
+        onChange={handleChange}
         {...props}
       />
     );

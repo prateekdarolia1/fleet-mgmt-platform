@@ -39,6 +39,7 @@ export function useRentalPaymentsByLedger(ledgerId: string | null) {
       return data || [];
     },
     enabled: !!ledgerId,
+    refetchInterval: 60_000,
   });
 }
 
@@ -212,5 +213,6 @@ export function useRentalPaymentById(paymentId: string | null) {
       return data;
     },
     enabled: !!paymentId,
+    refetchInterval: 60_000,
   });
 }

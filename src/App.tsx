@@ -10,7 +10,17 @@ import RiderDetail from "./pages/RiderDetail";
 import TLCollection from "./pages/TLCollection";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      gcTime: 5 * 60_000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      refetchIntervalInBackground: false,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

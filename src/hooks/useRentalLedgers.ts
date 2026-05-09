@@ -56,6 +56,7 @@ export function useRentalLedgers(filters?: {
 
       return data || [];
     },
+    refetchInterval: 60_000,
   });
 }
 
@@ -95,6 +96,7 @@ export function useRentalLedgerById(ledgerId: string | null) {
       return { ...data, profiles } as unknown as RentalLedgerWithPayments;
     },
     enabled: !!ledgerId,
+    refetchInterval: 60_000,
   });
 }
 

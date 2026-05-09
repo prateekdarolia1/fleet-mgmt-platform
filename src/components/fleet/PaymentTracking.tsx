@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useTableSort } from "@/hooks/useTableSort";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -268,6 +270,42 @@ export const PaymentTracking = () => {
     { threshold: 0.3 }
   );
 
+  const paymentsSort = useTableSort(filteredPayments, {
+    payment_id: (p) => p.payment_id,
+    rider: (p) => p.rider_name,
+    amount: (p) => Number(p.amount),
+    type: (p) => p.payment_type,
+    due_date: (p) => p.due_date,
+    payment_date: (p) => p.payment_date,
+    status: (p) => p.status,
+    mode: (p) => p.payment_mode,
+    period: (p) => p.rental_period,
+  });
+
+  const overdueSort = useTableSort(filteredOverduePayments, {
+    week: (p) => p.week_number ?? p.payment_id,
+    rider: (p) => p.rider_name,
+    tl: (p) => riderMap.get(p.rider_id)?.onboarded_by,
+    mobile: (p) => getMobileForRider(p.rider_id),
+    vehicle: (p) => getVehicleForRider(p.rider_id),
+    battery: (p) => getBatteryForRider(p.rider_id),
+    due_date: (p) => p.due_date,
+    amount_due: (p) => Number(p.amount_due ?? 0),
+    balance: (p) => Number(p.balance ?? p.amount_due ?? 0),
+    status: (p) => p.status,
+  });
+
+  const upcomingSort = useTableSort(filteredUpcomingPayments, {
+    week: (p) => p.week_number ?? p.payment_id,
+    rider: (p) => p.rider_name,
+    tl: (p) => riderMap.get(p.rider_id)?.onboarded_by,
+    mobile: (p) => getMobileForRider(p.rider_id),
+    vehicle: (p) => getVehicleForRider(p.rider_id),
+    battery: (p) => getBatteryForRider(p.rider_id),
+    due_date: (p) => p.due_date,
+    amount_due: (p) => Number(p.amount_due ?? 0),
+  });
+
   const getStatusBadge = (status: Payment['status']) => {
     const variants = {
       paid: 'default',
@@ -446,28 +484,28 @@ export const PaymentTracking = () => {
                 <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Payment ID</TableHead>
-                    <TableHead>Rider Details</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead>Payment Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Mode</TableHead>
-                    <TableHead>Period</TableHead>
+                    <SortableTableHead sortKey="payment_id" currentKey={paymentsSort.sortKey} direction={paymentsSort.sortDir} onSort={paymentsSort.toggleSort}>Payment ID</SortableTableHead>
+                    <SortableTableHead sortKey="rider" currentKey={paymentsSort.sortKey} direction={paymentsSort.sortDir} onSort={paymentsSort.toggleSort}>Rider Details</SortableTableHead>
+                    <SortableTableHead sortKey="amount" currentKey={paymentsSort.sortKey} direction={paymentsSort.sortDir} onSort={paymentsSort.toggleSort}>Amount</SortableTableHead>
+                    <SortableTableHead sortKey="type" currentKey={paymentsSort.sortKey} direction={paymentsSort.sortDir} onSort={paymentsSort.toggleSort}>Type</SortableTableHead>
+                    <SortableTableHead sortKey="due_date" currentKey={paymentsSort.sortKey} direction={paymentsSort.sortDir} onSort={paymentsSort.toggleSort}>Due Date</SortableTableHead>
+                    <SortableTableHead sortKey="payment_date" currentKey={paymentsSort.sortKey} direction={paymentsSort.sortDir} onSort={paymentsSort.toggleSort}>Payment Date</SortableTableHead>
+                    <SortableTableHead sortKey="status" currentKey={paymentsSort.sortKey} direction={paymentsSort.sortDir} onSort={paymentsSort.toggleSort}>Status</SortableTableHead>
+                    <SortableTableHead sortKey="mode" currentKey={paymentsSort.sortKey} direction={paymentsSort.sortDir} onSort={paymentsSort.toggleSort}>Mode</SortableTableHead>
+                    <SortableTableHead sortKey="period" currentKey={paymentsSort.sortKey} direction={paymentsSort.sortDir} onSort={paymentsSort.toggleSort}>Period</SortableTableHead>
                     <TableHead>Proof</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPayments.length === 0 ? (
+                  {paymentsSort.sortedRows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                         {searchTerm || statusFilter !== "all" ? "No payments found matching your filters." : "No payments recorded yet. Create a ledger to generate payments automatically."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredPayments.map((payment) => (
+                    paymentsSort.sortedRows.map((payment) => (
                       <TableRow key={payment.id}>
                        <TableCell className="font-medium">{payment.payment_id}</TableCell>
                        <TableCell>
@@ -683,21 +721,21 @@ export const PaymentTracking = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Week</TableHead>
-                        <TableHead>Rider</TableHead>
-                        <TableHead>TL</TableHead>
-                        <TableHead>Mobile No.</TableHead>
-                        <TableHead>Vehicle</TableHead>
-                        <TableHead>Battery Smart ID</TableHead>
-                        <TableHead>Due Date</TableHead>
-                        <TableHead className="text-right">Amount Due</TableHead>
-                        <TableHead className="text-right">Balance</TableHead>
-                        <TableHead>Status</TableHead>
+                        <SortableTableHead sortKey="week" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort}>Week</SortableTableHead>
+                        <SortableTableHead sortKey="rider" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort}>Rider</SortableTableHead>
+                        <SortableTableHead sortKey="tl" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort}>TL</SortableTableHead>
+                        <SortableTableHead sortKey="mobile" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort}>Mobile No.</SortableTableHead>
+                        <SortableTableHead sortKey="vehicle" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort}>Vehicle</SortableTableHead>
+                        <SortableTableHead sortKey="battery" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort}>Battery Smart ID</SortableTableHead>
+                        <SortableTableHead sortKey="due_date" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort}>Due Date</SortableTableHead>
+                        <SortableTableHead sortKey="amount_due" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort} className="text-right">Amount Due</SortableTableHead>
+                        <SortableTableHead sortKey="balance" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort} className="text-right">Balance</SortableTableHead>
+                        <SortableTableHead sortKey="status" currentKey={overdueSort.sortKey} direction={overdueSort.sortDir} onSort={overdueSort.toggleSort}>Status</SortableTableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredOverduePayments.map((payment) => (
+                      {overdueSort.sortedRows.map((payment) => (
                         <TableRow
                           key={`${payment.source}-${payment.id}`}
                           className="cursor-pointer hover:bg-red-50"
@@ -837,19 +875,19 @@ export const PaymentTracking = () => {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Week</TableHead>
-                            <TableHead>Rider</TableHead>
-                            <TableHead>TL</TableHead>
-                            <TableHead>Mobile No.</TableHead>
-                            <TableHead>Vehicle</TableHead>
-                            <TableHead>Battery Smart ID</TableHead>
-                            <TableHead>Due Date</TableHead>
-                            <TableHead className="text-right">Amount Due</TableHead>
+                            <SortableTableHead sortKey="week" currentKey={upcomingSort.sortKey} direction={upcomingSort.sortDir} onSort={upcomingSort.toggleSort}>Week</SortableTableHead>
+                            <SortableTableHead sortKey="rider" currentKey={upcomingSort.sortKey} direction={upcomingSort.sortDir} onSort={upcomingSort.toggleSort}>Rider</SortableTableHead>
+                            <SortableTableHead sortKey="tl" currentKey={upcomingSort.sortKey} direction={upcomingSort.sortDir} onSort={upcomingSort.toggleSort}>TL</SortableTableHead>
+                            <SortableTableHead sortKey="mobile" currentKey={upcomingSort.sortKey} direction={upcomingSort.sortDir} onSort={upcomingSort.toggleSort}>Mobile No.</SortableTableHead>
+                            <SortableTableHead sortKey="vehicle" currentKey={upcomingSort.sortKey} direction={upcomingSort.sortDir} onSort={upcomingSort.toggleSort}>Vehicle</SortableTableHead>
+                            <SortableTableHead sortKey="battery" currentKey={upcomingSort.sortKey} direction={upcomingSort.sortDir} onSort={upcomingSort.toggleSort}>Battery Smart ID</SortableTableHead>
+                            <SortableTableHead sortKey="due_date" currentKey={upcomingSort.sortKey} direction={upcomingSort.sortDir} onSort={upcomingSort.toggleSort}>Due Date</SortableTableHead>
+                            <SortableTableHead sortKey="amount_due" currentKey={upcomingSort.sortKey} direction={upcomingSort.sortDir} onSort={upcomingSort.toggleSort} className="text-right">Amount Due</SortableTableHead>
                             <TableHead className="text-right">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredUpcomingPayments.map((payment) => (
+                          {upcomingSort.sortedRows.map((payment) => (
                             <TableRow
                               key={`${payment.source}-${payment.id}`}
                               className="cursor-pointer hover:bg-amber-50"

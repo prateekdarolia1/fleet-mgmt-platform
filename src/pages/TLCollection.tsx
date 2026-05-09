@@ -1,28 +1,12 @@
 import { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { formatDate } from "@/lib/dateUtils";
 import { useRiders } from "@/hooks/useRiders";
 import { useVehicles } from "@/hooks/useVehicles";
 import {
   useUnifiedOverduePayments,
   useUnifiedUpcomingPayments,
-  type UnifiedOverduePayment,
-  type UnifiedUpcomingPayment,
 } from "@/hooks/useUnifiedPayments";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  AlertCircle,
-  Calendar,
-  CheckCircle2,
-  Phone,
-  Search,
-  Truck,
-  User,
-} from "lucide-react";
+import { AlertCircle, Check, Phone, Search } from "lucide-react";
 import {
   MarkAsPaidDrawer,
   type MarkAsPaidTarget,
@@ -33,22 +17,72 @@ type TLId = "TL1" | "TL2";
 const isValidTL = (value: string): value is TLId =>
   value === "TL1" || value === "TL2";
 
+// Elegant eggshell palette — picked from the design handoff.
+const PAL = {
+  page: "#f5f2ec",
+  card: "#ffffff",
+  ink: "#1c1917",
+  muted: "#78716c",
+  hairline: "#e8e3da",
+  chipBg: "#f3ede2",
+  chipBorder: "#c9b58a",
+  ribbon: "#1c1917",
+  overdue: "#a13d3a",
+  overdueBg: "#f7ece9",
+  overdueInk: "#7a2c2a",
+  upcoming: "#8a6b2e",
+  upcomingBg: "#f6efde",
+  upcomingInk: "#6a5121",
+  callInk: "#2f5d8a",
+  empty: "#3f7a47",
+  emptyBg: "#e8efe7",
+} as const;
+
+const fmtRupee = (n: number) => "₹" + (n || 0).toLocaleString("en-IN");
+const overdueLabel = (d: number) =>
+  d === 1 ? "1 day late" : `${d} days late`;
+const upcomingLabel = (d: number) =>
+  d <= 0 ? "Due today" : d === 1 ? "Due tomorrow" : `Due in ${d} days`;
+const fmtDueDate = (s?: string | null) => {
+  if (!s) return "";
+  const [y, m, d] = s.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  return `${d} ${months[m - 1]}`;
+};
+const daysFromToday = (dateStr?: string | null): number | null => {
+  if (!dateStr) return null;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const due = new Date(y, m - 1, d);
+  due.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.round((today.getTime() - due.getTime()) / 86_400_000);
+};
+
 const TLCollection = () => {
   const { tlId } = useParams<{ tlId: string }>();
   const normalized = (tlId || "").toUpperCase();
 
   if (!isValidTL(normalized)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <Card className="max-w-sm w-full">
-          <CardContent className="pt-6 text-center space-y-2">
-            <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
-            <h1 className="text-xl font-semibold">Invalid URL</h1>
-            <p className="text-sm text-muted-foreground">
-              This collection page doesn't exist. Please check the URL you were given.
-            </p>
-          </CardContent>
-        </Card>
+      <div
+        className="min-h-screen flex items-center justify-center p-6"
+        style={{ background: PAL.page }}
+      >
+        <div
+          className="max-w-sm w-full rounded-2xl p-6 text-center space-y-2"
+          style={{ background: PAL.card, border: `1px solid ${PAL.hairline}` }}
+        >
+          <AlertCircle className="h-10 w-10 text-red-500 mx-auto" />
+          <h1 className="text-xl font-semibold" style={{ color: PAL.ink }}>
+            Invalid URL
+          </h1>
+          <p className="text-sm" style={{ color: PAL.muted }}>
+            This collection page doesn't exist. Please check the URL you were given.
+          </p>
+        </div>
       </div>
     );
   }
@@ -69,6 +103,7 @@ const TLCollectionView = ({ tl }: TLCollectionViewProps) => {
     useUnifiedUpcomingPayments();
 
   const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"overdue" | "upcoming">("overdue");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [target, setTarget] = useState<MarkAsPaidTarget | null>(null);
 
@@ -77,13 +112,11 @@ const TLCollectionView = ({ tl }: TLCollectionViewProps) => {
     setDrawerOpen(true);
   };
 
-  // rider_id → rider (used for mobile number lookup + TL filter)
   const riderMap = useMemo(
     () => new Map(riders.map((r) => [r.rider_id, r])),
     [riders]
   );
 
-  // rider_id → vehicle number
   const riderVehicleMap = useMemo(
     () =>
       new Map(
@@ -92,7 +125,6 @@ const TLCollectionView = ({ tl }: TLCollectionViewProps) => {
     [vehicles]
   );
 
-  // Rider IDs assigned to this TL
   const myRiderIds = useMemo(
     () =>
       new Set(
@@ -104,198 +136,233 @@ const TLCollectionView = ({ tl }: TLCollectionViewProps) => {
   const belongsToMe = <T extends { rider_id: string }>(p: T): boolean =>
     myRiderIds.has(p.rider_id);
 
-  const matchesSearch = <T extends { rider_name?: string | null; rider_id: string }>(
+  const matchesSearch = <
+    T extends { rider_name?: string | null; rider_id: string }
+  >(
     p: T
   ): boolean => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
     const name = (p.rider_name || "").toLowerCase();
     const id = p.rider_id.toLowerCase();
-    return name.includes(q) || id.includes(q);
+    const vehicle = (riderVehicleMap.get(p.rider_id) || "").toLowerCase();
+    return name.includes(q) || id.includes(q) || vehicle.includes(q);
   };
 
+  const byDueAsc = <T extends { due_date?: string | null }>(a: T, b: T) =>
+    new Date(a.due_date || 0).getTime() - new Date(b.due_date || 0).getTime();
+
   const myOverdue = useMemo(
-    () => (overduePayments || []).filter(belongsToMe).filter(matchesSearch),
-    [overduePayments, myRiderIds, search]
+    () =>
+      (overduePayments || [])
+        .filter(belongsToMe)
+        .filter(matchesSearch)
+        .slice()
+        .sort(byDueAsc),
+    [overduePayments, myRiderIds, search, riderVehicleMap]
   );
 
   const myUpcoming = useMemo(
-    () => (upcomingPayments || []).filter(belongsToMe).filter(matchesSearch),
-    [upcomingPayments, myRiderIds, search]
+    () =>
+      (upcomingPayments || [])
+        .filter(belongsToMe)
+        .filter(matchesSearch)
+        .slice()
+        .sort(byDueAsc),
+    [upcomingPayments, myRiderIds, search, riderVehicleMap]
   );
 
   const overdueTotal = useMemo(
     () => myOverdue.reduce((sum, p) => sum + (p.balance ?? p.amount_due ?? 0), 0),
     [myOverdue]
   );
-
   const upcomingTotal = useMemo(
     () => myUpcoming.reduce((sum, p) => sum + (p.amount_due ?? 0), 0),
     [myUpcoming]
   );
 
   const loading = ridersLoading || overdueLoading || upcomingLoading;
+  const list = tab === "overdue" ? myOverdue : myUpcoming;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
-      {/* Sticky Header — full-width bg, content centered */}
-      <header className="sticky top-0 z-20 bg-white border-b shadow-sm">
-        <div className="max-w-2xl mx-auto">
-          <div className="px-4 sm:px-6 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h1 className="text-lg font-bold">{tl} Collections</h1>
-                <p className="text-xs text-muted-foreground">
-                  {myRiderIds.size} rider{myRiderIds.size === 1 ? "" : "s"} assigned
-                </p>
-              </div>
-              <Badge className="bg-blue-600 text-white">{tl}</Badge>
+    <div
+      className="min-h-screen pb-12"
+      style={{ background: PAL.page, color: PAL.ink }}
+    >
+      <div className="max-w-md mx-auto">
+        {/* Sticky header */}
+        <div
+          className="sticky top-0 z-10"
+          style={{
+            background: PAL.card,
+            borderBottom: `1px solid ${PAL.hairline}`,
+          }}
+        >
+          <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+            <div>
+              <p
+                className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                style={{ color: PAL.muted }}
+              >
+                Today's collections
+              </p>
+              <p
+                className="text-[19px] font-semibold"
+                style={{ color: PAL.ink, letterSpacing: "-0.01em" }}
+              >
+                {tl} · {myRiderIds.size} rider{myRiderIds.size === 1 ? "" : "s"}
+              </p>
+            </div>
+            <div
+              className="w-11 h-11 rounded-full font-semibold grid place-items-center text-base"
+              style={{ background: PAL.ribbon, color: PAL.page }}
+            >
+              {tl[2]}
             </div>
           </div>
-          {/* Search */}
-          <div className="px-4 sm:px-6 pb-3">
+
+          <div className="px-4 pb-3">
             <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="search"
-                placeholder="Search by rider name or ID..."
+              <div
+                className="absolute left-3 top-3"
+                style={{ color: PAL.muted }}
+              >
+                <Search className="h-4 w-4" />
+              </div>
+              <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 h-10 text-base"
+                placeholder="Search rider, ID or plate"
+                className="w-full h-11 pl-10 pr-3 rounded-xl outline-none text-[15px]"
+                style={{
+                  background: PAL.page,
+                  border: `1px solid ${PAL.hairline}`,
+                  color: PAL.ink,
+                }}
               />
             </div>
           </div>
-        </div>
-      </header>
 
-      {/* Tabs */}
-      <Tabs defaultValue="overdue" className="w-full">
-        <div className="sticky top-[113px] z-10 bg-gray-50 border-b">
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 pt-3 pb-2">
-            <TabsList className="w-full h-11">
-              <TabsTrigger value="overdue" className="flex-1 text-sm">
-                Overdue
-                <Badge
-                  variant="secondary"
-                  className="ml-2 bg-red-100 text-red-700 hover:bg-red-100"
+          <div className="px-4 pb-3 flex gap-2">
+            {[
+              {
+                id: "overdue" as const,
+                label: "Overdue",
+                n: myOverdue.length,
+                t: overdueTotal,
+                accent: PAL.overdue,
+              },
+              {
+                id: "upcoming" as const,
+                label: "Upcoming",
+                n: myUpcoming.length,
+                t: upcomingTotal,
+                accent: PAL.upcoming,
+              },
+            ].map((entry) => {
+              const active = tab === entry.id;
+              return (
+                <button
+                  key={entry.id}
+                  onClick={() => setTab(entry.id)}
+                  className="flex-1 h-14 rounded-xl px-3 text-left transition"
+                  style={
+                    active
+                      ? { background: PAL.ribbon, color: PAL.page }
+                      : {
+                          background: PAL.page,
+                          color: PAL.ink,
+                          border: `1px solid ${PAL.hairline}`,
+                        }
+                  }
                 >
-                  {myOverdue.length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger value="upcoming" className="flex-1 text-sm">
-                Upcoming
-                <Badge
-                  variant="secondary"
-                  className="ml-2 bg-amber-100 text-amber-700 hover:bg-amber-100"
-                >
-                  {myUpcoming.length}
-                </Badge>
-              </TabsTrigger>
-            </TabsList>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[12px] font-semibold">
+                      {entry.label}
+                    </span>
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                      style={
+                        active
+                          ? {
+                              background: "rgba(255,255,255,0.18)",
+                              color: PAL.page,
+                            }
+                          : { background: entry.accent, color: "#fff" }
+                      }
+                    >
+                      {entry.n}
+                    </span>
+                  </div>
+                  <div className="text-base font-extrabold tabular-nums">
+                    {fmtRupee(entry.t)}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <TabsContent value="overdue" className="mt-0 max-w-2xl mx-auto px-4 sm:px-6 pt-3 space-y-3">
-          {!loading && myOverdue.length > 0 && (
-            <div className="flex items-center justify-between rounded-lg bg-red-50 border border-red-100 px-4 py-3">
-              <div>
-                <p className="text-xs text-red-500 font-medium">Overdue</p>
-                <p className="text-lg font-bold text-red-700">
-                  {myOverdue.length} payment{myOverdue.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-red-500 font-medium">Total</p>
-                <p className="text-lg font-bold text-red-700">
-                  ₹{overdueTotal.toLocaleString("en-IN")}
-                </p>
-              </div>
-            </div>
-          )}
+        {/* List */}
+        <div className="p-4 space-y-3">
           {loading ? (
-            <LoadingState />
-          ) : myOverdue.length === 0 ? (
-            <EmptyState
-              icon={<CheckCircle2 className="h-10 w-10 text-green-500" />}
-              title="No overdue payments"
-              subtitle="All your riders are up to date."
-            />
-          ) : (
-            myOverdue.map((p) => (
-              <PaymentCard
-                key={`${p.source}-${p.id}`}
-                id={p.id}
-                rider_id={p.rider_id}
-                rider_name={p.rider_name}
-                week_number={p.week_number}
-                payment_id={p.payment_id}
-                source={p.source as "payments" | "rental_payments"}
-                due_date={p.due_date}
-                amount_due={p.amount_due ?? 0}
-                balance={p.balance ?? p.amount_due ?? 0}
-                variant="overdue"
-                phone={
-                  riderMap.get(p.rider_id)?.mobile_number ||
-                  riderMap.get(p.rider_id)?.phone ||
-                  null
-                }
-                vehicle={riderVehicleMap.get(p.rider_id) || null}
-                onMarkAsPaid={openMarkAsPaid}
-              />
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="upcoming" className="mt-0 max-w-2xl mx-auto px-4 sm:px-6 pt-3 space-y-3">
-          {!loading && myUpcoming.length > 0 && (
-            <div className="flex items-center justify-between rounded-lg bg-amber-50 border border-amber-100 px-4 py-3">
-              <div>
-                <p className="text-xs text-amber-600 font-medium">Upcoming</p>
-                <p className="text-lg font-bold text-amber-800">
-                  {myUpcoming.length} payment{myUpcoming.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-amber-600 font-medium">Total</p>
-                <p className="text-lg font-bold text-amber-800">
-                  ₹{upcomingTotal.toLocaleString("en-IN")}
-                </p>
-              </div>
+            <div
+              className="text-center py-12"
+              style={{ color: PAL.muted }}
+            >
+              Loading...
             </div>
-          )}
-          {loading ? (
-            <LoadingState />
-          ) : myUpcoming.length === 0 ? (
-            <EmptyState
-              icon={<Calendar className="h-10 w-10 text-gray-400" />}
-              title="No payments due"
-              subtitle="Nothing due in the next 14 days."
-            />
+          ) : list.length === 0 ? (
+            <div className="text-center py-16">
+              <div
+                className="mx-auto mb-3 w-14 h-14 rounded-full grid place-items-center"
+                style={{ background: PAL.emptyBg, color: PAL.empty }}
+              >
+                <Check className="h-7 w-7" strokeWidth={2.5} />
+              </div>
+              <p
+                className="text-base font-semibold"
+                style={{ color: PAL.ink }}
+              >
+                All clear
+              </p>
+              <p className="text-sm mt-1" style={{ color: PAL.muted }}>
+                {tab === "overdue"
+                  ? "No overdue riders"
+                  : "Nothing due soon"}
+              </p>
+            </div>
           ) : (
-            myUpcoming.map((p) => (
-              <PaymentCard
-                key={`${p.source}-${p.id}`}
-                id={p.id}
-                rider_id={p.rider_id}
-                rider_name={p.rider_name}
-                week_number={p.week_number}
-                payment_id={p.payment_id}
-                source={p.source as "payments" | "rental_payments"}
-                due_date={p.due_date}
-                amount_due={p.amount_due ?? 0}
-                variant="upcoming"
-                phone={
-                  riderMap.get(p.rider_id)?.mobile_number ||
-                  riderMap.get(p.rider_id)?.phone ||
-                  null
-                }
-                vehicle={riderVehicleMap.get(p.rider_id) || null}
-                onMarkAsPaid={openMarkAsPaid}
-              />
-            ))
+            list.map((p) => {
+              const phone =
+                riderMap.get(p.rider_id)?.mobile_number ||
+                riderMap.get(p.rider_id)?.phone ||
+                null;
+              const vehicle = riderVehicleMap.get(p.rider_id) || null;
+              return (
+                <PaymentCard
+                  key={`${p.source}-${p.id}`}
+                  id={p.id}
+                  rider_id={p.rider_id}
+                  rider_name={p.rider_name}
+                  week_number={p.week_number}
+                  payment_id={p.payment_id}
+                  source={p.source as "payments" | "rental_payments"}
+                  due_date={p.due_date}
+                  amount_due={p.amount_due ?? 0}
+                  balance={
+                    "balance" in p ? (p.balance as number | undefined) : undefined
+                  }
+                  variant={tab}
+                  phone={phone}
+                  vehicle={vehicle}
+                  onMarkAsPaid={openMarkAsPaid}
+                />
+              );
+            })
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       <MarkAsPaidDrawer
         open={drawerOpen}
@@ -340,113 +407,151 @@ const PaymentCard = ({
   onMarkAsPaid,
 }: PaymentCardProps) => {
   const isOverdue = variant === "overdue";
+  const accent = isOverdue ? PAL.overdue : PAL.upcoming;
+  const accentBg = isOverdue ? PAL.overdueBg : PAL.upcomingBg;
+  const accentInk = isOverdue ? PAL.overdueInk : PAL.upcomingInk;
+  const days = daysFromToday(due_date);
+  const daysText =
+    days == null
+      ? "No date"
+      : isOverdue
+      ? overdueLabel(Math.max(days, 1))
+      : upcomingLabel(days);
   const amountToShow = balance ?? amount_due;
+  const isPartial =
+    isOverdue && balance != null && balance > 0 && balance < amount_due;
 
   return (
-    <Card
-      className={`border ${
-        isOverdue ? "border-red-200 bg-red-50/30" : "border-amber-200 bg-amber-50/30"
-      }`}
+    <div
+      className="rounded-2xl overflow-hidden"
+      style={{ background: PAL.card, border: `1px solid ${PAL.hairline}` }}
     >
-      <CardContent className="p-4 space-y-3">
-        {/* Top row: Rider + Period */}
-        <div className="flex items-start justify-between gap-2">
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <p className="font-semibold truncate">{rider_name || "Unknown"}</p>
-            </div>
-            <p className="text-xs text-muted-foreground ml-6">{rider_id}</p>
+            <p
+              className="text-[17px] font-semibold leading-tight truncate"
+              style={{ color: PAL.ink, letterSpacing: "-0.01em" }}
+            >
+              {rider_name || "Unknown"}
+            </p>
+            <p className="text-xs mt-0.5" style={{ color: PAL.muted }}>
+              {rider_id}
+              {source === "rental_payments" && week_number
+                ? ` · Week ${week_number}`
+                : payment_id
+                ? ` · ${payment_id}`
+                : ""}
+            </p>
           </div>
-          <Badge variant="outline" className="flex-shrink-0 text-xs">
-            {source === "rental_payments"
-              ? `Week ${week_number ?? "—"}`
-              : payment_id || "—"}
-          </Badge>
+          <span
+            className="flex-shrink-0 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wide"
+            style={{ background: accentBg, color: accentInk }}
+          >
+            {daysText}
+          </span>
         </div>
 
-        {/* Details */}
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          {phone && (
-            <div className="flex items-center gap-1.5">
-              <Phone className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <a
-                href={`tel:${phone}`}
-                className="text-blue-600 hover:underline truncate"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {phone}
-              </a>
-            </div>
-          )}
-          {vehicle && (
-            <div className="flex items-center gap-1.5">
-              <Truck className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span className="truncate">{vehicle}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5 col-span-2">
-            <Calendar className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-            <span>{due_date ? `Due ${formatDate(due_date)}` : "No due date"}</span>
+        {vehicle && (
+          <div
+            className="mt-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md"
+            style={{
+              border: `1.5px solid ${PAL.chipBorder}`,
+              background: PAL.chipBg,
+            }}
+          >
+            <span
+              className="text-[9px] font-bold -mr-0.5"
+              style={{ color: PAL.muted }}
+            >
+              IND
+            </span>
+            <span
+              className="text-sm font-bold tracking-wider font-mono"
+              style={{ color: PAL.ink }}
+            >
+              {vehicle}
+            </span>
           </div>
-        </div>
+        )}
 
-        {/* Amount + Action */}
-        <div className="flex items-center justify-between pt-2 border-t">
+        <div className="mt-4 flex items-end justify-between">
           <div>
-            <p className="text-xs text-muted-foreground">
-              {isOverdue ? "Balance" : "Amount Due"}
+            <p
+              className="text-[11px] uppercase font-semibold tracking-wider"
+              style={{ color: PAL.muted }}
+            >
+              {isPartial ? "Balance" : "To collect"}
             </p>
             <p
-              className={`text-xl font-bold ${
-                isOverdue ? "text-red-600" : "text-amber-700"
-              }`}
+              className="text-[34px] font-extrabold tabular-nums leading-none mt-1"
+              style={{ color: PAL.ink, letterSpacing: "-0.02em" }}
             >
-              ₹{amountToShow.toLocaleString("en-IN")}
+              {fmtRupee(amountToShow)}
             </p>
+            {isPartial && (
+              <p className="text-[11px] mt-1" style={{ color: PAL.muted }}>
+                of {fmtRupee(amount_due)} ·{" "}
+                {fmtRupee(amount_due - amountToShow)} already paid
+              </p>
+            )}
           </div>
-          <Button
-            size="sm"
-            className="h-10 px-4"
-            onClick={() =>
-              onMarkAsPaid({
-                payment_id: id,
-                source,
-                rider_name: rider_name ?? null,
-                amount_due,
-                label:
-                  source === "rental_payments"
-                    ? `Week ${week_number ?? "—"}`
-                    : payment_id || "—",
-              })
-            }
-          >
-            Mark as Paid
-          </Button>
+          {due_date && (
+            <p className="text-[11px] pb-1" style={{ color: PAL.muted }}>
+              Due {fmtDueDate(due_date)}
+            </p>
+          )}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      <div
+        className="grid grid-cols-2"
+        style={{ borderTop: `1px solid ${PAL.hairline}` }}
+      >
+        {phone ? (
+          <a
+            href={`tel:${phone}`}
+            className="h-14 flex items-center justify-center gap-2 font-semibold active:opacity-70"
+            style={{
+              color: PAL.callInk,
+              borderRight: `1px solid ${PAL.hairline}`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Phone className="h-[18px] w-[18px]" /> Call
+          </a>
+        ) : (
+          <div
+            className="h-14 flex items-center justify-center text-sm"
+            style={{
+              color: PAL.muted,
+              borderRight: `1px solid ${PAL.hairline}`,
+            }}
+          >
+            No phone
+          </div>
+        )}
+        <button
+          onClick={() =>
+            onMarkAsPaid({
+              payment_id: id,
+              source,
+              rider_name: rider_name ?? null,
+              amount_due,
+              label:
+                source === "rental_payments"
+                  ? `Week ${week_number ?? "—"}`
+                  : payment_id || "—",
+            })
+          }
+          className="h-14 flex items-center justify-center gap-2 font-bold active:opacity-85"
+          style={{ background: accent, color: "#fff" }}
+        >
+          <Check className="h-[18px] w-[18px]" strokeWidth={2.5} /> Mark Paid
+        </button>
+      </div>
+    </div>
   );
 };
-
-const LoadingState = () => (
-  <div className="text-center py-12 text-muted-foreground">
-    <p>Loading...</p>
-  </div>
-);
-
-interface EmptyStateProps {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-}
-
-const EmptyState = ({ icon, title, subtitle }: EmptyStateProps) => (
-  <div className="text-center py-12 space-y-2">
-    <div className="flex justify-center">{icon}</div>
-    <p className="font-semibold">{title}</p>
-    <p className="text-sm text-muted-foreground">{subtitle}</p>
-  </div>
-);
 
 export default TLCollection;
