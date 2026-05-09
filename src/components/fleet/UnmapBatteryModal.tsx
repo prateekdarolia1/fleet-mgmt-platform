@@ -231,7 +231,7 @@ export const UnmapBatteryModal = ({
                           {(batteriesData as any)?.batteries &&
                             (batteriesData as any).batteries.map((battery: any) => (
                               <option key={battery.id} value={battery.id}>
-                                {battery.battery_id} • {battery.battery_smart_id || battery.battery_id}
+                                {battery.battery_id} • {battery.battery_smart_id || '—'}
                               </option>
                             ))}
                         </select>

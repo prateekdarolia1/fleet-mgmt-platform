@@ -52,19 +52,31 @@ export default function RiderDetail() {
     enabled: !!riderId,
   });
 
-  // The mounted battery lives on the vehicle, not the rider — riders.battery_smart_id
-  // is often stale/null. Look up the rider's currently assigned vehicle for the truth.
+  // The Battery Smart ID lives on batteries.battery_smart_id for the row mapped to
+  // the rider's currently assigned vehicle. vehicles.battery_smart_id and
+  // riders.battery_smart_id are both stale/orphaned — don't read from them.
   const { data: assignedVehicle } = useQuery({
-    queryKey: ['rider-vehicle', rider?.vehicle_assigned],
+    queryKey: ['rider-vehicle-with-battery', rider?.vehicle_assigned],
     queryFn: async () => {
       if (!rider?.vehicle_assigned) return null;
-      const { data, error } = await supabase
+      const { data: vehicle, error: vehicleError } = await supabase
         .from('vehicles')
-        .select('vehicle_number, battery_smart_id')
+        .select('id, vehicle_number')
         .eq('vehicle_number', rider.vehicle_assigned)
         .maybeSingle();
-      if (error) throw new Error(`Failed to fetch vehicle: ${error.message}`);
-      return data;
+      if (vehicleError) throw new Error(`Failed to fetch vehicle: ${vehicleError.message}`);
+      if (!vehicle) return null;
+
+      const { data: battery } = await supabase
+        .from('batteries')
+        .select('battery_smart_id')
+        .eq('vehicle_id', vehicle.id)
+        .maybeSingle();
+
+      return {
+        vehicle_number: vehicle.vehicle_number,
+        battery_smart_id: battery?.battery_smart_id ?? null,
+      };
     },
     enabled: !!rider?.vehicle_assigned,
   });
@@ -132,7 +144,7 @@ export default function RiderDetail() {
   const formatStatus = (status: string) =>
     status ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase() : '';
 
-  const batterySmartId = rider.battery_smart_id || assignedVehicle?.battery_smart_id || null;
+  const batterySmartId = assignedVehicle?.battery_smart_id || null;
 
   const getDutyStatusBadge = (dutyStatus: string) => {
     const colors: Record<string, string> = {

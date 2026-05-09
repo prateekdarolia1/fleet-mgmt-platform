@@ -63,12 +63,16 @@ export const ExchangeVehicleModal = ({
   const currentVehicleNumber = rider?.vehicle_assigned ?? null;
   const currentVehicle = vehicles.find(v => v.vehicle_number === currentVehicleNumber) || null;
 
-  const availableVehicles = vehicles.filter(
-    v =>
-      v.status === 'Ready for Deployment' &&
-      v.battery_id != null &&
-      v.id !== currentVehicle?.id
-  );
+  const availableVehicles = vehicles
+    .filter(
+      v =>
+        v.status === 'Ready for Deployment' &&
+        v.battery_id != null &&
+        v.id !== currentVehicle?.id,
+    )
+    .sort((a, b) =>
+      (a.vehicle_number || '').localeCompare(b.vehicle_number || '', undefined, { sensitivity: 'base', numeric: true }),
+    );
 
   const vehiclesWithoutBattery = vehicles.filter(
     v => v.status === 'Ready for Deployment' && v.battery_id == null
@@ -212,6 +216,7 @@ export const ExchangeVehicleModal = ({
                     <FormControl>
                       <Input
                         {...field}
+                        noSpaces
                         placeholder="Enter Battery Smart ID (e.g., BS23342, 9A2KLMQ8)"
                         maxLength={8}
                         disabled={isLoading}

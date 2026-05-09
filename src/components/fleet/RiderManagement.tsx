@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useTableSort } from "@/hooks/useTableSort";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -17,7 +19,9 @@ import { Plus, Search, Filter, Phone, Mail, Calendar, User, Edit, ArrowLeftRight
 import { useRiders, type Rider } from "@/hooks/useRiders";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { useCreateRentalLedger } from "@/hooks/useRentalLedgers";
+import { useRiderLedgers } from "@/hooks/useRiderLedgers";
 import { useVehicleSwap } from "@/hooks/useVehicleSwap";
+import { setBatterySmartIdForVehicle } from "@/lib/batteries/setBatterySmartIdForVehicle";
 import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
 import { AddRiderForm } from "./AddRiderForm";
 import { RiderActivationModal } from "./RiderActivationModal";
@@ -46,21 +50,15 @@ interface RiderFormData {
   dependent_name?: string;
   dependent_relation?: 'FATHER' | 'MOTHER' | 'BROTHER' | 'SPOUSE' | 'OTHER';
   dependent_aadhaar?: string;
-  
-  // Section 2: Banking Information
-  bank_name: string;
-  branch_name: string;
-  ifsc_code: string;
-  account_number: string;
-  
-  // Section 3: Employment Information
+
+  // Section 2: Employment Information
   aggregator: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
   aggregator_other?: string;
   aggregator_id: string;
   joined_since: string;
   avg_earnings_15_days: number;
   
-  // Section 4: Office Use
+  // Section 3: Office Use
   onboarded_by?: 'TL1' | 'TL2' | null;
   aggregator_credentials_checked: boolean;
   id_credentials_checked: boolean;
@@ -78,6 +76,7 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
   const navigate = useNavigate();
   const { riders, loading, addRider, updateRider, refetch: refetchRiders } = useRiders();
   const { vehicles, updateVehicle, refetch: refetchVehicles } = useVehicles();
+  const { ledgers } = useRiderLedgers();
   const [statusFilter, setStatusFilter] = useState("all");
   const [isAddRiderOpen, setIsAddRiderOpen] = useState(false);
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
@@ -131,6 +130,29 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
 
     const currentDutyStatus = editingRider.duty_status || 'IDLE';
 
+    // Gate: block transition to Inactive unless the rider's ledger is paused
+    // (no active ledger) and the vehicle has been deboarded (no vehicle linked).
+    if (newStatus === 'inactive' && editingRider.status !== 'inactive') {
+      const activeLedger = ledgers.find(
+        l => l.rider_id === editingRider.rider_id && l.status === 'active'
+      );
+      // Vehicles table is authoritative — rider.vehicle_assigned can drift stale
+      // (e.g. when a vehicle is deboarded from the Inventory page).
+      const stillHasVehicle = vehicles.some(
+        v => v.rider_id === editingRider.rider_id
+      );
+
+      if (activeLedger || stillHasVehicle) {
+        const reasons: string[] = [];
+        if (activeLedger) reasons.push("pause the rider's ledger");
+        if (stillHasVehicle) reasons.push('deboard the assigned vehicle');
+        toast.error(
+          `Cannot set ${editingRider.name} to Inactive — ${reasons.join(' and ')} first.`
+        );
+        return;
+      }
+    }
+
     // Check if changing from IDLE to LIVE - require vehicle + battery selection
     if (currentDutyStatus === 'IDLE' && newDutyStatus === 'LIVE') {
       setPendingStatusUpdate({
@@ -146,6 +168,16 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
 
     // Check if changing from LIVE to IDLE - unassign vehicle
     if (currentDutyStatus === 'LIVE' && newDutyStatus === 'IDLE') {
+      // Gate: block if rider has an active ledger — must be paused first
+      const activeLedger = ledgers.find(
+        l => l.rider_id === editingRider.rider_id && l.status === 'active'
+      );
+      if (activeLedger) {
+        toast.error(
+          `Cannot set ${editingRider.name} to IDLE — pause the rider's ledger first.`
+        );
+        return;
+      }
       await handleVehicleUnassignment(newStatus, newDutyStatus);
       return;
     }
@@ -206,6 +238,14 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
         rider_id: editingRider.rider_id,
         rider_name: editingRider.name
       });
+
+      // Persist Battery Smart ID onto the battery row mapped to this vehicle.
+      // Reads via useVehicles surface this value as vehicle.battery_smart_id everywhere.
+      const smartIdResult = await setBatterySmartIdForVehicle(vehicleId, batterySmartId);
+      if (!smartIdResult.success) {
+        toast.warning(`Battery Smart ID not saved: ${smartIdResult.error ?? 'unknown error'}`);
+      }
+      await refetchVehicles();
 
       // Success feedback
       toast.success(
@@ -313,9 +353,17 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
     setIsReturnOpen(true);
   };
 
-  const handleConfirmSwap = async (tempVehicleId: string, _batterySmartId: string) => {
+  const handleConfirmSwap = async (tempVehicleId: string, batterySmartId: string) => {
     if (!swapRider) return;
     await performSwap(swapRider.id, tempVehicleId);
+
+    // After the swap RPC has remapped the battery to the temp vehicle, label that
+    // battery row with the Battery Smart ID the operator entered.
+    const smartIdResult = await setBatterySmartIdForVehicle(tempVehicleId, batterySmartId);
+    if (!smartIdResult.success) {
+      toast.warning(`Battery Smart ID not saved: ${smartIdResult.error ?? 'unknown error'}`);
+    }
+
     await Promise.all([refetchVehicles(), refetchRiders()]);
     setIsExchangeOpen(false);
     setSwapRider(null);
@@ -366,6 +414,16 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
     hasActiveFilter ? riderMatchesFilters : undefined,
     { threshold: 0.3 }
   );
+
+  const ridersSort = useTableSort(filteredRiders, {
+    rider_id: (r) => r.rider_id,
+    name: (r) => r.name,
+    tl: (r) => r.onboarded_by,
+    join_date: (r) => r.join_date,
+    status: (r) => r.status,
+    duty_status: (r) => r.duty_status,
+    vehicle: (r) => r.vehicle_assigned,
+  });
 
   const getStatusBadge = (status: Rider['status']) => {
     const statusText = status.charAt(0).toUpperCase() + status.slice(1);
@@ -500,18 +558,18 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
           <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Rider ID</TableHead>
-              <TableHead>Rider details</TableHead>
-              <TableHead>TL</TableHead>
-              <TableHead>Join Date</TableHead>
-              <TableHead>Rider Status</TableHead>
-              <TableHead>Duty Status</TableHead>
-              <TableHead>Vehicle</TableHead>
+              <SortableTableHead sortKey="rider_id" currentKey={ridersSort.sortKey} direction={ridersSort.sortDir} onSort={ridersSort.toggleSort}>Rider ID</SortableTableHead>
+              <SortableTableHead sortKey="name" currentKey={ridersSort.sortKey} direction={ridersSort.sortDir} onSort={ridersSort.toggleSort}>Rider details</SortableTableHead>
+              <SortableTableHead sortKey="tl" currentKey={ridersSort.sortKey} direction={ridersSort.sortDir} onSort={ridersSort.toggleSort}>TL</SortableTableHead>
+              <SortableTableHead sortKey="join_date" currentKey={ridersSort.sortKey} direction={ridersSort.sortDir} onSort={ridersSort.toggleSort}>Join Date</SortableTableHead>
+              <SortableTableHead sortKey="status" currentKey={ridersSort.sortKey} direction={ridersSort.sortDir} onSort={ridersSort.toggleSort}>Rider Status</SortableTableHead>
+              <SortableTableHead sortKey="duty_status" currentKey={ridersSort.sortKey} direction={ridersSort.sortDir} onSort={ridersSort.toggleSort}>Duty Status</SortableTableHead>
+              <SortableTableHead sortKey="vehicle" currentKey={ridersSort.sortKey} direction={ridersSort.sortDir} onSort={ridersSort.toggleSort}>Vehicle</SortableTableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredRiders.map((rider) => (
+            {ridersSort.sortedRows.map((rider) => (
               <TableRow
                 key={rider.id}
                 className="cursor-pointer hover:bg-blue-50 transition-colors"
@@ -701,19 +759,6 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
                         View Location
                       </a> : 'N/A'}
                     </div>
-                  </CardContent>
-                </Card>
-
-                {/* Banking Information */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg">Banking Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div><strong>Bank Name:</strong> {selectedRider.bank_name || 'N/A'}</div>
-                    <div><strong>Branch Name:</strong> {selectedRider.branch_name || 'N/A'}</div>
-                    <div><strong>IFSC Code:</strong> {selectedRider.ifsc_code || 'N/A'}</div>
-                    <div><strong>Account Number:</strong> {selectedRider.account_number || 'N/A'}</div>
                   </CardContent>
                 </Card>
 

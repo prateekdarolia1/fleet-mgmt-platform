@@ -130,6 +130,7 @@ export const AddBatteryModal = ({
                   <FormControl>
                     <Input
                       {...field}
+                      noSpaces
                       placeholder="e.g., BAT0001 or BAT00001"
                       disabled={isAdding}
                       className="font-mono uppercase"
@@ -175,6 +176,7 @@ export const AddBatteryModal = ({
                   <FormControl>
                     <Input
                       {...field}
+                      noSpaces
                       placeholder="e.g., ZONE0001"
                       disabled={isAdding}
                       className="font-mono uppercase"
@@ -260,6 +262,7 @@ export const AddBatteryModal = ({
                   <FormControl>
                     <Input
                       {...field}
+                      noSpaces
                       placeholder="Universal Service Code"
                       disabled={isAdding}
                       className="font-mono uppercase"

@@ -31,20 +31,14 @@ interface RiderFormData {
   dependent_relation?: 'FATHER' | 'MOTHER' | 'BROTHER' | 'SPOUSE' | 'OTHER';
   dependent_aadhaar?: string;
 
-  // Section 2: Banking Information
-  bank_name?: string;
-  branch_name?: string;
-  ifsc_code?: string;
-  account_number?: string;
-
-  // Section 3: Employment Information
+  // Section 2: Employment Information
   aggregator?: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
   aggregator_other?: string;
   aggregator_id?: string;
   joined_since?: string; // Changed to string for API compatibility
   avg_earnings_15_days?: number;
 
-  // Section 4: Office Use
+  // Section 3: Office Use
   onboarded_by?: 'TL1' | 'TL2' | null;
   aggregator_credentials_checked?: boolean;
   id_credentials_checked?: boolean;
@@ -95,11 +89,6 @@ export const AddRiderForm = ({
     dependent_name?: string;
     dependent_relation?: 'FATHER' | 'MOTHER' | 'BROTHER' | 'SPOUSE' | 'OTHER';
     dependent_aadhaar?: string;
-    bank_name?: string;
-    bank_other?: string;
-    branch_name?: string;
-    ifsc_code?: string;
-    account_number?: string;
     aggregator?: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
     aggregator_other?: string;
     aggregator_id?: string;
@@ -129,10 +118,6 @@ export const AddRiderForm = ({
       dependent_name: initialData.dependent_name || '',
       dependent_relation: initialData.dependent_relation || 'FATHER',
       dependent_aadhaar: initialData.dependent_aadhaar || '',
-      bank_name: initialData.bank_name || '',
-      branch_name: initialData.branch_name || '',
-      ifsc_code: initialData.ifsc_code || '',
-      account_number: initialData.account_number || '',
       aggregator: initialData.aggregator || 'SWIGGY',
       aggregator_other: initialData.aggregator_other || '',
       aggregator_id: initialData.aggregator_id || '',
@@ -164,7 +149,6 @@ export const AddRiderForm = ({
       filterByPincode('');
     }
   }, [filterByPincode, placesLoading, filteredStates.length, filteredCities.length]);
-  const indianBanks = ["STATE BANK OF INDIA", "HDFC BANK", "ICICI BANK", "PUNJAB NATIONAL BANK", "BANK OF BARODA", "CANARA BANK", "UNION BANK", "AXIS BANK", "BANK OF INDIA", "CENTRAL BANK OF INDIA", "INDIAN BANK", "KOTAK MAHINDRA BANK", "YES BANK", "FEDERAL BANK", "SOUTH INDIAN BANK", "KARUR VYSYA BANK", "CITY UNION BANK", "OTHER"];
   const handleFormSubmit = (data: any) => {
     // Transform data to match API expectations
     const transformedData: RiderFormData = {
@@ -176,8 +160,6 @@ export const AddRiderForm = ({
       last_name: data.last_name?.toUpperCase(),
       address_line1: data.address_line1?.toUpperCase(),
       address_line2: data.address_line2?.toUpperCase(),
-      branch_name: data.branch_name?.toUpperCase(),
-      bank_name: data.bank_name === 'OTHER' && data.bank_other ? data.bank_other.toUpperCase() : data.bank_name,
       aggregator_other: data.aggregator_other?.toUpperCase(),
       dependent_name: data.dependent_name?.toUpperCase(),
       retained_document_details: data.retained_document_details?.toUpperCase(),
@@ -283,7 +265,7 @@ export const AddRiderForm = ({
             }) => <FormItem>
                     <FormLabel>Mobile Number</FormLabel>
                     <FormControl>
-                      <Input {...field} maxLength={10} />
+                      <Input {...field} maxLength={10} noSpaces />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
@@ -365,7 +347,7 @@ export const AddRiderForm = ({
             }) => <FormItem>
                     <FormLabel>Aadhaar Number</FormLabel>
                     <FormControl>
-                      <Input {...field} maxLength={12} />
+                      <Input {...field} maxLength={12} noSpaces />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
@@ -379,7 +361,7 @@ export const AddRiderForm = ({
             }) => <FormItem>
                     <FormLabel>PAN Number</FormLabel>
                     <FormControl>
-                      <Input {...field} maxLength={10} style={{
+                      <Input {...field} maxLength={10} noSpaces style={{
                   textTransform: 'uppercase'
                 }} />
                     </FormControl>
@@ -550,7 +532,7 @@ export const AddRiderForm = ({
             }) => <FormItem>
                     <FormLabel>Dependent Aadhaar (Optional)</FormLabel>
                     <FormControl>
-                      <Input {...field} maxLength={12} value={field.value || ''} />
+                      <Input {...field} maxLength={12} noSpaces value={field.value || ''} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
@@ -558,98 +540,10 @@ export const AddRiderForm = ({
           </CardContent>
         </Card>
 
-        {/* Section 2: Banking Information */}
+        {/* Section 2: Employment Information */}
         <Card>
           <CardHeader>
-            <CardTitle>Section 2: Banking Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="bank_name" render={({
-              field
-            }) => <FormItem>
-                    <FormLabel>Bank Name</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select bank" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {indianBanks.map(bank => <SelectItem key={bank} value={bank}>{bank}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>} />
-              {form.watch('bank_name') === 'OTHER' && <FormField control={form.control} name="bank_other" rules={{
-              maxLength: {
-                value: 50,
-                message: "Max 50 characters"
-              }
-            }} render={({
-              field
-            }) => <FormItem>
-                      <FormLabel>Specify Bank Name</FormLabel>
-                      <FormControl>
-                        <Input {...field} maxLength={50} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>} />}
-              <FormField control={form.control} name="branch_name" rules={{
-              maxLength: {
-                value: 20,
-                message: "Max 20 characters"
-              }
-            }} render={({
-              field
-            }) => <FormItem>
-                    <FormLabel>Branch Name</FormLabel>
-                    <FormControl>
-                      <Input {...field} maxLength={20} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField control={form.control} name="ifsc_code" rules={{
-              pattern: {
-                value: /^[A-Z0-9]{11}$/,
-                message: "Must be 11 alphanumeric characters"
-              }
-            }} render={({
-              field
-            }) => <FormItem>
-                    <FormLabel>IFSC Code</FormLabel>
-                    <FormControl>
-                      <Input {...field} maxLength={11} style={{
-                  textTransform: 'uppercase'
-                }} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>} />
-              <FormField control={form.control} name="account_number" rules={{
-              pattern: {
-                value: /^\d{1,20}$/,
-                message: "Numbers only, max 20 digits"
-              }
-            }} render={({
-              field
-            }) => <FormItem>
-                    <FormLabel>Account Number</FormLabel>
-                    <FormControl>
-                      <Input {...field} maxLength={20} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>} />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Section 3: Employment Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Section 3: Employment Information</CardTitle>
+            <CardTitle>Section 2: Employment Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -705,7 +599,7 @@ export const AddRiderForm = ({
             }) => <FormItem>
                     <FormLabel>Aggregator ID</FormLabel>
                     <FormControl>
-                      <Input {...field} maxLength={15} />
+                      <Input {...field} maxLength={15} noSpaces />
                     </FormControl>
                     <FormMessage />
                   </FormItem>} />
@@ -751,10 +645,10 @@ export const AddRiderForm = ({
           </CardContent>
         </Card>
 
-        {/* Section 4: Office Use */}
+        {/* Section 3: Office Use */}
         <Card>
           <CardHeader>
-            <CardTitle>Section 4: Office Use</CardTitle>
+            <CardTitle>Section 3: Office Use</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">

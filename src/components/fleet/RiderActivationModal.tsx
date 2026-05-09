@@ -77,9 +77,11 @@ export const RiderActivationModal = ({
 
   // Get vehicles available for deployment (CBU requirement: must have battery mapped)
   // A Complete Business Unit (CBU) = Vehicle + Battery + Rider
-  const availableVehicles = vehicles.filter(
-    v => v.status === 'Ready for Deployment' && v.battery_id != null
-  );
+  const availableVehicles = vehicles
+    .filter(v => v.status === 'Ready for Deployment' && v.battery_id != null)
+    .sort((a, b) =>
+      (a.vehicle_number || '').localeCompare(b.vehicle_number || '', undefined, { sensitivity: 'base', numeric: true }),
+    );
 
   // Vehicles without battery (for warning display)
   const vehiclesWithoutBattery = vehicles.filter(
@@ -246,6 +248,7 @@ export const RiderActivationModal = ({
                     <FormControl>
                       <Input
                         {...field}
+                        noSpaces
                         placeholder="Enter Battery Smart ID (e.g., BS23342, 9A2KLMQ8)"
                         maxLength={8}
                         disabled={isLoading}

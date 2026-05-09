@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SortableTableHead } from "@/components/ui/sortable-table-head";
+import { useTableSort } from "@/hooks/useTableSort";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -15,6 +17,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Plus, Search, Filter, Calendar, Wrench, Edit, Trash2, RotateCcw, Battery } from "lucide-react";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { useAvailableRiders } from "@/hooks/useAvailableRiders";
+import { supabase } from "@/integrations/supabase/client";
 import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
 import { toast } from "sonner";
 import { MapVehicleToBatteryModal } from "./MapVehicleToBatteryModal";
@@ -63,6 +66,13 @@ export const InventoryManagement = () => {
     statusFilter === "all" ? undefined : (vehicle: Vehicle) => vehicle.status === statusFilter,
     { threshold: 0.3 }
   );
+
+  const vehiclesSort = useTableSort(filteredVehicles, {
+    vehicle: (v) => v.vehicle_number,
+    type: (v) => v.vehicle_type,
+    status: (v) => v.status,
+    rider: (v) => v.rider_name,
+  });
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
   const [isEditVehicleOpen, setIsEditVehicleOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -257,6 +267,9 @@ export const InventoryManagement = () => {
       const updates: any = {
         status: selectedStatus
       };
+      // Capture the rider currently linked to this vehicle so we can clear
+      // their vehicle_assigned field when the vehicle is deboarded.
+      const previousRiderId = statusChangeVehicle.rider_id;
       if (selectedStatus === 'Deployed' && selectedRider) {
         const rider = availableRiders.find(r => r.id === selectedRider);
         updates.rider_id = rider?.rider_id;
@@ -268,6 +281,19 @@ export const InventoryManagement = () => {
         updates.rental_start_date = null;
       }
       await updateVehicle(statusChangeVehicle.id, updates);
+
+      // Mirror the deboard onto the rider record — without this, the rider's
+      // vehicle_assigned stays populated and downstream gates (e.g. setting the
+      // rider Inactive) wrongly think a vehicle is still attached.
+      if (selectedStatus !== 'Deployed' && previousRiderId) {
+        const { error: riderClearError } = await supabase
+          .from('riders')
+          .update({ vehicle_assigned: null })
+          .eq('rider_id', previousRiderId);
+        if (riderClearError) {
+          console.error('Failed to clear rider vehicle_assigned:', riderClearError);
+        }
+      }
       setShowStatusDialog(false);
       setStatusChangeVehicle(null);
       setSelectedStatus("");
@@ -982,16 +1008,15 @@ export const InventoryManagement = () => {
           <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Vehicle Details</TableHead>
-              <TableHead>Technical Info</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Rider Assigned</TableHead>
-              <TableHead>Rider Assigned
-              </TableHead>
+              <SortableTableHead sortKey="vehicle" currentKey={vehiclesSort.sortKey} direction={vehiclesSort.sortDir} onSort={vehiclesSort.toggleSort}>Vehicle Details</SortableTableHead>
+              <SortableTableHead sortKey="type" currentKey={vehiclesSort.sortKey} direction={vehiclesSort.sortDir} onSort={vehiclesSort.toggleSort}>Technical Info</SortableTableHead>
+              <SortableTableHead sortKey="status" currentKey={vehiclesSort.sortKey} direction={vehiclesSort.sortDir} onSort={vehiclesSort.toggleSort}>Status</SortableTableHead>
+              <SortableTableHead sortKey="rider" currentKey={vehiclesSort.sortKey} direction={vehiclesSort.sortDir} onSort={vehiclesSort.toggleSort}>Rider Assigned</SortableTableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredVehicles.map(vehicle => <TableRow
+            {vehiclesSort.sortedRows.map(vehicle => <TableRow
                 key={vehicle.id}
                 className="cursor-pointer hover:bg-blue-50 transition-colors"
                 onClick={() => navigate(`/vehicles/${vehicle.id}`)}

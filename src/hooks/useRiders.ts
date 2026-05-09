@@ -38,21 +38,15 @@ export interface Rider {
   dependent_name?: string | null;
   dependent_relation?: string | null;
   dependent_aadhaar?: string | null;
-  
-  // Section 2: Banking Information - these can be null from database
-  bank_name?: string | null;
-  branch_name?: string | null;
-  ifsc_code?: string | null;
-  account_number?: string | null;
-  
-  // Section 3: Employment Information - these can be null from database
+
+  // Section 2: Employment Information - these can be null from database
   aggregator?: string | null;
   aggregator_other?: string | null;
   aggregator_id?: string | null;
   joined_since?: string | null;
   avg_earnings_15_days?: number | null;
   
-  // Section 4: Office Use - these can be null from database
+  // Section 3: Office Use - these can be null from database
   onboarded_by?: string | null;
   aggregator_credentials_checked?: boolean;
   id_credentials_checked?: boolean;
@@ -116,21 +110,15 @@ export const useRiders = () => {
     dependent_name?: string;
     dependent_relation?: 'FATHER' | 'MOTHER' | 'BROTHER' | 'SPOUSE' | 'OTHER';
     dependent_aadhaar?: string;
-    
-    // Section 2: Banking Information
-    bank_name: string;
-    branch_name: string;
-    ifsc_code: string;
-    account_number: string;
-    
-    // Section 3: Employment Information
+
+    // Section 2: Employment Information
     aggregator: 'SWIGGY' | 'ZOMATO' | 'ZEPTO' | 'BLINKIT' | 'BIGBASKET' | 'OTHER';
     aggregator_other?: string;
     aggregator_id: string;
     joined_since: string;
     avg_earnings_15_days: number;
-    
-    // Section 4: Office Use
+
+    // Section 3: Office Use
     onboarded_by?: 'TL1' | 'TL2' | null;
     aggregator_credentials_checked: boolean;
     id_credentials_checked: boolean;
@@ -200,9 +188,9 @@ export const useRiders = () => {
 
   const updateRider = async (id: string, updates: Partial<Rider>) => {
     try {
-      // Clean up the updates object by removing undefined values and bank_other field
+      // Drop undefined values so we don't overwrite stored fields with nulls.
       const cleanedUpdates = Object.entries(updates).reduce((acc, [key, value]) => {
-        if (value !== undefined && key !== 'bank_other') {
+        if (value !== undefined) {
           acc[key] = value;
         }
         return acc;

@@ -236,7 +236,7 @@ export const BatteryMappingModal = ({
                         {(batteriesData as BatteryListResult)?.batteries && (batteriesData as BatteryListResult).batteries.length > 0 ? (
                           (batteriesData as BatteryListResult).batteries.map((battery) => (
                             <SelectItem key={battery.id} value={battery.id}>
-                              {battery.battery_id} • {battery.battery_smart_id || battery.battery_id}
+                              {battery.battery_id} • {battery.battery_smart_id || '—'}
                             </SelectItem>
                           ))
                         ) : (

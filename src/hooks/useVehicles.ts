@@ -85,7 +85,7 @@ export const useVehicles = () => {
         return {
           ...vehicle,
           battery_id: batteryInfo?.uuid || null,
-          battery_smart_id: batteryInfo?.battery_smart_id || batteryInfo?.battery_id || null,
+          battery_smart_id: batteryInfo?.battery_smart_id ?? null,
         };
       });
 
