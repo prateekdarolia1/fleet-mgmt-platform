@@ -18,7 +18,8 @@ import {
   AlertCircle,
   Battery,
   User,
-  RefreshCw
+  RefreshCw,
+  ArrowLeftRight
 } from 'lucide-react';
 import { formatEventTime, getEventDescription } from '@/hooks/useVehicleEvents';
 import type { VehicleEvent } from '@/hooks/useVehicleEvents';
@@ -43,6 +44,9 @@ const getEventIcon = (eventType: string) => {
       return <User className="h-4 w-4 text-cyan-600" />;
     case 'UNASSIGN_RIDER':
       return <User className="h-4 w-4 text-orange-600" />;
+    case 'EXCHANGE_OUT':
+    case 'EXCHANGE_IN':
+      return <ArrowLeftRight className="h-4 w-4 text-amber-600" />;
     case 'UPDATE':
       return <Edit className="h-4 w-4 text-indigo-600" />;
     case 'DELETE':
@@ -67,6 +71,9 @@ const getEventColor = (eventType: string) => {
       return 'bg-cyan-50 border-cyan-200';
     case 'UNASSIGN_RIDER':
       return 'bg-orange-50 border-orange-200';
+    case 'EXCHANGE_OUT':
+    case 'EXCHANGE_IN':
+      return 'bg-amber-50 border-amber-200';
     case 'UPDATE':
       return 'bg-indigo-50 border-indigo-200';
     case 'DELETE':
@@ -91,6 +98,9 @@ const getEventBadgeColor = (eventType: string) => {
       return 'bg-cyan-100 text-cyan-800 border-cyan-300';
     case 'UNASSIGN_RIDER':
       return 'bg-orange-100 text-orange-800 border-orange-300';
+    case 'EXCHANGE_OUT':
+    case 'EXCHANGE_IN':
+      return 'bg-amber-100 text-amber-800 border-amber-300';
     case 'UPDATE':
       return 'bg-indigo-100 text-indigo-800 border-indigo-300';
     case 'DELETE':

@@ -55,11 +55,6 @@ export interface Rider {
   // New status field
   duty_status?: string | null;
 
-  // Vehicle swap tracking — when a swap is open, original_vehicle_assigned
-  // holds the rider's real (broken) vehicle and vehicle_assigned points to the temp.
-  original_vehicle_assigned?: string | null;
-  swapped_at?: string | null;
-
   // Historical tracking fields
   effective_start_date?: string | null;
   effective_end_date?: string | null;

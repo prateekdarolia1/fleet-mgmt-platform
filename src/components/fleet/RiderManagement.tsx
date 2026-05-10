@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
 import { formatDate } from "@/lib/dateUtils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,16 +19,13 @@ import { useRiders, type Rider } from "@/hooks/useRiders";
 import { useVehicles, type Vehicle } from "@/hooks/useVehicles";
 import { useCreateRentalLedger } from "@/hooks/useRentalLedgers";
 import { useRiderLedgers } from "@/hooks/useRiderLedgers";
-import { useVehicleSwap } from "@/hooks/useVehicleSwap";
+import { useVehicleExchange } from "@/hooks/useVehicleExchange";
 import { setBatterySmartIdForVehicle } from "@/lib/batteries/setBatterySmartIdForVehicle";
 import { useFuzzySearchWithFilter } from "@/hooks/useFuzzySearch";
 import { AddRiderForm } from "./AddRiderForm";
 import { RiderActivationModal } from "./RiderActivationModal";
 import { RentalLedgerConfirmModal } from "./RentalLedgerConfirmModal";
 import { ExchangeVehicleModal } from "./ExchangeVehicleModal";
-import { ReturnSwapDialog } from "./ReturnSwapDialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
 interface RiderFormData {
@@ -102,11 +98,10 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
     riderId: string;
   } | null>(null);
 
-  // Vehicle swap state
-  const { performSwap, performReturn, performAbort, isLoading: isSwapLoading } = useVehicleSwap();
-  const [swapRider, setSwapRider] = useState<Rider | null>(null);
+  // Vehicle exchange state
+  const { performExchange, isLoading: isExchangeLoading } = useVehicleExchange();
+  const [exchangeRider, setExchangeRider] = useState<Rider | null>(null);
   const [isExchangeOpen, setIsExchangeOpen] = useState(false);
-  const [isReturnOpen, setIsReturnOpen] = useState(false);
 
   const form = useForm<RiderFormData>();
 
@@ -302,20 +297,6 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
     if (!editingRider) return;
 
     try {
-      // If a swap is open, abort it server-side first (atomically resets temp vehicle
-      // and keeps the original under maintenance), then apply the rider status change.
-      if (editingRider.original_vehicle_assigned) {
-        await performAbort(editingRider.id);
-        await updateRider(editingRider.id, {
-          status: newStatus,
-          duty_status: newDutyStatus,
-        });
-        await refetchVehicles();
-        setIsEditStatusOpen(false);
-        setEditingRider(null);
-        return;
-      }
-
       // Find the vehicle assigned to this rider
       const assignedVehicle = vehicles.find(v => v.rider_id === editingRider.rider_id);
 
@@ -343,38 +324,24 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
   };
 
   const handleOpenExchange = (rider: Rider) => {
-    setSwapRider(rider);
+    setExchangeRider(rider);
     refetchVehicles();
     setIsExchangeOpen(true);
   };
 
-  const handleOpenReturn = (rider: Rider) => {
-    setSwapRider(rider);
-    setIsReturnOpen(true);
-  };
+  const handleConfirmExchange = async (newVehicleId: string, batterySmartId: string) => {
+    if (!exchangeRider) return;
+    await performExchange(exchangeRider.id, newVehicleId);
 
-  const handleConfirmSwap = async (tempVehicleId: string, batterySmartId: string) => {
-    if (!swapRider) return;
-    await performSwap(swapRider.id, tempVehicleId);
-
-    // After the swap RPC has remapped the battery to the temp vehicle, label that
-    // battery row with the Battery Smart ID the operator entered.
-    const smartIdResult = await setBatterySmartIdForVehicle(tempVehicleId, batterySmartId);
+    // Label the battery row mapped to the new vehicle with the operator-entered Smart ID.
+    const smartIdResult = await setBatterySmartIdForVehicle(newVehicleId, batterySmartId);
     if (!smartIdResult.success) {
       toast.warning(`Battery Smart ID not saved: ${smartIdResult.error ?? 'unknown error'}`);
     }
 
     await Promise.all([refetchVehicles(), refetchRiders()]);
     setIsExchangeOpen(false);
-    setSwapRider(null);
-  };
-
-  const handleConfirmReturn = async () => {
-    if (!swapRider) return;
-    await performReturn(swapRider.id);
-    await Promise.all([refetchVehicles(), refetchRiders()]);
-    setIsReturnOpen(false);
-    setSwapRider(null);
+    setExchangeRider(null);
   };
 
   const handleVehicleSelectionCancel = () => {
@@ -614,30 +581,7 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
                 </TableCell>
                 <TableCell>
                   {rider.vehicle_assigned ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{rider.vehicle_assigned}</span>
-                      {rider.original_vehicle_assigned && (
-                        <TooltipProvider delayDuration={150}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] px-1.5 py-0 cursor-help">
-                                TEMP
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="text-xs">
-                                <div>Original: <span className="font-mono font-semibold">{rider.original_vehicle_assigned}</span> (Under Maintenance)</div>
-                                {rider.swapped_at && (
-                                  <div className="text-muted-foreground mt-1">
-                                    Swapped {formatDistanceToNow(new Date(rider.swapped_at), { addSuffix: true })}
-                                  </div>
-                                )}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )}
-                    </div>
+                    <span className="text-sm font-medium">{rider.vehicle_assigned}</span>
                   ) : (
                     <span className="text-muted-foreground text-sm">—</span>
                   )}
@@ -674,33 +618,18 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
                     >
                       Edit Status
                     </Button>
-                    {rider.original_vehicle_assigned ? (
+                    {rider.status === 'active' && rider.vehicle_assigned && (
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-amber-300 text-amber-700 hover:bg-amber-50"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleOpenReturn(rider);
+                          handleOpenExchange(rider);
                         }}
                       >
                         <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
-                        Return Swap
+                        Exchange Vehicle
                       </Button>
-                    ) : (
-                      rider.status === 'active' && rider.vehicle_assigned && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenExchange(rider);
-                          }}
-                        >
-                          <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
-                          Exchange Vehicle
-                        </Button>
-                      )
                     )}
                   </div>
                 </TableCell>
@@ -938,29 +867,17 @@ export const RiderManagement = ({ tlFilter, onTlFilterChange }: RiderManagementP
           isLoading={isActivationLoading}
         />
 
-        {/* Vehicle Exchange Modal — give a temp vehicle to a rider whose own bike has issues */}
+        {/* Vehicle Exchange Modal — permanently reassign rider to a different vehicle */}
         <ExchangeVehicleModal
           open={isExchangeOpen}
           onOpenChange={(open) => {
             setIsExchangeOpen(open);
-            if (!open) setSwapRider(null);
+            if (!open) setExchangeRider(null);
           }}
-          rider={swapRider}
+          rider={exchangeRider}
           vehicles={vehicles}
-          onConfirm={handleConfirmSwap}
-          isLoading={isSwapLoading}
-        />
-
-        {/* Return Swap Dialog — original vehicle is fixed, return temp + restore original to rider */}
-        <ReturnSwapDialog
-          open={isReturnOpen}
-          onOpenChange={(open) => {
-            setIsReturnOpen(open);
-            if (!open) setSwapRider(null);
-          }}
-          rider={swapRider}
-          onConfirm={handleConfirmReturn}
-          isLoading={isSwapLoading}
+          onConfirm={handleConfirmExchange}
+          isLoading={isExchangeLoading}
         />
 
         {/* Rental Ledger Confirmation Modal - Shown after rider activation */}

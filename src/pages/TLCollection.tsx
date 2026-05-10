@@ -41,8 +41,13 @@ const PAL = {
 const fmtRupee = (n: number) => "₹" + (n || 0).toLocaleString("en-IN");
 const overdueLabel = (d: number) =>
   d === 1 ? "1 day late" : `${d} days late`;
-const upcomingLabel = (d: number) =>
-  d <= 0 ? "Due today" : d === 1 ? "Due tomorrow" : `Due in ${d} days`;
+// d = today - due. Positive = past-due (still in 3-day grace window); negative = future.
+const upcomingLabel = (d: number) => {
+  if (d > 0) return d === 1 ? "1 day late" : `${d} days late`;
+  if (d === 0) return "Due today";
+  const ahead = -d;
+  return ahead === 1 ? "Due tomorrow" : `Due in ${ahead} days`;
+};
 const fmtDueDate = (s?: string | null) => {
   if (!s) return "";
   const [y, m, d] = s.split("-").map(Number);

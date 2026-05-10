@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface VehicleEvent {
   id: string;
   vehicle_id: string;
-  event_type: 'CREATE' | 'MAP_BATTERY' | 'UNMAP_BATTERY' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'ASSIGN_RIDER' | 'UNASSIGN_RIDER';
+  event_type: 'CREATE' | 'MAP_BATTERY' | 'UNMAP_BATTERY' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE' | 'ASSIGN_RIDER' | 'UNASSIGN_RIDER' | 'EXCHANGE_OUT' | 'EXCHANGE_IN';
   battery_id: string | null;
   rider_id: string | null;
   previous_status: string | null;
@@ -88,6 +88,10 @@ export function getEventDescription(event: VehicleEvent): string {
       return `Rider ${event.rider_id || 'N/A'} assigned to vehicle`;
     case 'UNASSIGN_RIDER':
       return `Rider ${event.rider_id || 'N/A'} unassigned from vehicle`;
+    case 'EXCHANGE_OUT':
+      return `Rider exchanged out of this vehicle (→ ${event.changes?.new_vehicle ?? 'new vehicle'})`;
+    case 'EXCHANGE_IN':
+      return `Rider exchanged onto this vehicle (← ${event.changes?.old_vehicle ?? 'old vehicle'})`;
     case 'UPDATE':
       return 'Vehicle information updated';
     case 'DELETE':
