@@ -266,19 +266,18 @@ export const MarkAsPaidDrawer = ({
             </div>
           )}
 
-          {!isTL && (
-            <div className="space-y-2">
-              <Label htmlFor="payment-date">Payment Date</Label>
-              <Input
-                id="payment-date"
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-                max={today()}
-                className="h-11 text-base"
-              />
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="payment-date">Payment Date</Label>
+            <Input
+              id="payment-date"
+              type="date"
+              value={paymentDate}
+              onChange={(e) => setPaymentDate(e.target.value)}
+              onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+              max={today()}
+              className="h-11 text-base"
+            />
+          </div>
 
           {!isTL && (
             <div className="space-y-2">
